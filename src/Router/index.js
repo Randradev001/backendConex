@@ -4,5 +4,6 @@ const correoRouter = require("./enviarCorreo")
 
 
 router.use('/enviarCorreo',correoRouter)
-module.exports = router
 
+
+module.exports = router

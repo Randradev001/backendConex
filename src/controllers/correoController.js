@@ -11,6 +11,7 @@ const enviarCorreo = async(req , res)=>{
   //   res.status(200).json(result);
 
   // });
+  console.log('llega')
 
  const pdfArchivo=  fs.readFileSync('/app/hallazgo.pdf');
 
