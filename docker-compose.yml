@@ -1,0 +1,10 @@
+version: '3'
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: backend-node:1
+    ports:
+      - "8065:8065"
+    restart: always
