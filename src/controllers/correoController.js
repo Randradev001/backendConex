@@ -20,7 +20,7 @@ const resend  = new Resend(process.env.RESEND);
         from: "soporte@appsgobm.com",
         to: ["cgala005@contratistas.codelco.cl"],
         subject: "Adjuntado pdf",
-        html: "<strong>Prueba adjuntando pdf</strong>",
+        html: "<strong>Prueba adjuntando pdf, desde el servidor</strong>",
         attachments: [
           {
             filename: 'hallazgo.pdf',
@@ -35,7 +35,6 @@ const resend  = new Resend(process.env.RESEND);
       }
 
       res.status(200).json({ data });
-
 }
 
 
