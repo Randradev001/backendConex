@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const routes = require('./src/Router')
 const app = express()
+const envioReporte = require('./src/controllers/correoController')
 // const http = require('http');
 
 var bodyParser = require('body-parser');
@@ -23,14 +24,12 @@ app.use('/backendDocker',routes);
 
 
 
-
-// ejemplo de como usar cron
-
-// const { CronJob } = require('cron');
-
-// const tareasCron = new CronJob('*/1 * * * *',()=>{
-//     console.log('acá la tarea a realizar')
-//  })
+const { CronJob } = require('cron');
 
 
-//  tareasCron.start()
+const tareasCron = new CronJob('*/1 * * * *',()=>{
+  envioReporte.enviarReporteHallazgo(1)
+})
+
+tareasCron.start()
+
