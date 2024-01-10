@@ -1,12 +1,4 @@
-
-
-class TemplatehallazgosSeguridad{
-
-    constructor(){      
-
-    }
-
-    setBody(id, sector, tipo){     
+const Body=(sector, tipo)=>{
 
       let detalle = '';
       
@@ -45,11 +37,6 @@ class TemplatehallazgosSeguridad{
                           <td style="background-color:#f47600;font-size:1px;line-height:3px" class="topBorder" height="3">&nbsp;</td>
                         </tr> 
                         <tr>
-                        <td style="padding-top: 7px;padding-left:7px"  class="imgHero">
-                          <div>
-                              <img alt="" border="0" src="cid:logo_gobm" width="70" height="auto" style="display:block;color: #f9f9f9;">
-                          </div>
-                        </td>
                       </tr>                   
                         <tr>
                           <td style="padding-bottom: 10px;" align="center" valign="middle" class="emailLogo">
@@ -57,10 +44,10 @@ class TemplatehallazgosSeguridad{
                           </td>
                         </tr>
                         <tr>
-                        <td align="center" valign="top" class="imgHero">
-                            <img alt="" border="0" src="cid:logoGOM" width="100" height="110" style="display:block;color: #f9f9f9;">
-                        </td>
-                      </tr>
+                          <td align="center" valign="top" class="imgHero">
+                            <img alt="" border="0" src="logoGOM.png" width="100" height="110" style="display:block;color: #f9f9f9;">
+                          </td>
+                        </tr>
                         <tr>
                           <td style="padding-bottom: 5px; padding-left: 20px; padding-right: 20px;" align="center" valign="top" class="mainTitle">
                             <h3 class="text" style="color:#000;font-family:Poppins,Helvetica,Arial,sans-serif;font-size:20px;font-weight:500;font-style:normal;letter-spacing:normal;line-height:36px;text-transform:none;text-align:center;padding:0;margin:0">${sector}</h3>
@@ -134,9 +121,6 @@ class TemplatehallazgosSeguridad{
                           <td style="font-size:1px;line-height:1px" height="15">&nbsp;</td>
                         </tr>
                         <tr>
-                      <td align="center" valign="top" class="imgHero">
-                        <img alt="" border="0" src="cid:logo_codelco" width="100" height="auto" style="display:block;color: #f9f9f9;">
-                      </td>
                     </tr>
                       </tbody>
                     </table>
@@ -157,9 +141,7 @@ class TemplatehallazgosSeguridad{
       return body;
     }
 
-}
-
-module.exports=TemplatehallazgosSeguridad;
+module.exports=Body;
 
 
 

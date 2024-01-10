@@ -3,46 +3,71 @@ const conector = require("../conectorMysql/conectorMysql");
 const fs = require('fs');
 const buildPDF = require('../pdfKit/pdfKits');
 
-const Plantilla = require('../MailTemplates/Template')
-const planti = new Plantilla()
+const BodyCorreo = require('../MailTemplates/Template')
 
 
 
-const enviarCorreo = async(req , res)=>{
 
-  // const sql = `select * from rh_permisos where rut='14.420.975-3'`;
-  // conector.query(sql, [], (err, result) => {   
-  //   if (err) throw err;   
-  //     console.log(result)
-  //   res.status(200).json(result);
+const buscarCorreosHallazgo=(id)=>{
+  return new Promise(res=>{
+    let sql=`
+    SELECT mail 
+    FROM hal_seg_correos
+    WHERE fk_combina = ?
+    AND est = 1
+    `
+    conector.query(sql,[id], (err, result) => {
+      if (err) throw err;
+        res(result)
+    });
+  })
+}
 
-  // });
+const enviarCorreo = async(id, sector, tipo)=>{
+
+  const correosValidadores = await buscarCorreosHallazgo(id)
+  let correos=[]  // acá se almacenan los correos de los administradores para ser enviados
+
+  // correos.push('imeri001@contratistas.codelco.cl');
+
+  correosValidadores.map(correohAL=>{
+    correos.push(correohAL.mail)
+  })
   
 
- const pdfArchivo=  fs.readFileSync('/app/hallazgo.pdf');
+  const pdfArchivo= tipo=== 1 ? fs.readFileSync(`/src/pdf/reporte_hallazgo_${id}.pdf`) : '';
+  const logoGom= fs.readFileSync(`/src/img/logoGOM.png`);
+
 
   const resend  = new Resend(process.env.RESEND);
 
-    const { data, error } = await resend.emails.send({
-        from: "soporte@appsgobm.com",
-        to: ["cgala005@contratistas.codelco.cl"],
-        subject: "Adjuntado pdf",
-        html: "<strong>Prueba adjuntando pdf, desde el servidor</strong>",
-        attachments: [
-          {
-            filename: 'hallazgo.pdf',
-            content: pdfArchivo,
-            
-          },
-        ],
-      });
-
-      if (error) {
-        return res.status(400).json({ error });
+  const { data, error } = await resend.emails.send({
+    from: "soporte@appsgobm.com",
+    to: correos,
+    subject: "Reporte hallazgo",
+    html: BodyCorreo(sector, tipo),
+    attachments: tipo === 1 ? 
+    [
+      {
+        filename: `reporte_hallazgo_${id}.pdf`,
+        content: pdfArchivo,
+      },
+      {
+        filename: `logoGOM.png`,
+        content: logoGom,
+      },
+    ]
+    :
+    [
+      {
+        filename: `logoGOM.png`,
+        content: logoGom,
       }
+    ]
+  });
 
-      res.status(200).json({ data });
-
+  console.log('envio correo')
+  console.log(error)
 
 }
 
@@ -194,6 +219,7 @@ const buscarCombinaciones = ()=>{
     SELECT
     id, sector, id_mina AS mina, contrato AS ctto, id_subcontrato AS subctto
     FROM hal_seg_combina_correo
+    WHERE est = 1
     `
   
     conector.query(sql, (err, result) => {
@@ -205,64 +231,6 @@ const buscarCombinaciones = ()=>{
 
 }
 
-const buscarCorreosHallazgo=(id)=>{
-  return new Promise(res=>{
-    let sql=`
-    SELECT mail 
-    FROM hal_seg_correos
-    WHERE fk_combina = ?
-    AND est = 1
-    `
-    conector.query(sql,[id], (err, result) => {
-      if (err) throw err;
-        res(result)
-    });
-  })
-}
-
-
-const envioCorreo = async(id, sector, tipo)=>{
-
-  let attachments = [
-    {
-      filename: 'logoGOM.png',
-      path: `${process.env.PATH_DOCUMENT_HALSEG_BACKEND}/src/Mail/images/logoGOM.png`,
-      cid: "logoGOM",
-    }
-  ]
-
-  if(tipo === 1){
-
-    attachments = [
-      {
-        filename: 'logoGOM.png',
-        path: `${process.env.PATH_DOCUMENT_HALSEG_BACKEND}/src/Mail/images/logoGOM.png`,
-        cid: "logoGOM",
-      },
-      {
-        filename: `reporte_hallazgo_${id}.pdf`,
-        path: `${process.env.PATH_DOCUMENT_HALSEG_BACKEND}/src/pdf/reporte_hallazgo_${id}.pdf`,
-        cid: "reporte_hallazgo",
-      }
-    ]
-     
-  }
-
-
-  const plantilla = planti.setBody(id, sector, tipo)
-
-  const correosValidadores = await buscarCorreosHallazgo(id)
-  let correos=[]  // acá se almacenan los correos de los administradores para ser enviados
-
-  // correos.push('imeri001@contratistas.codelco.cl');
-
-  correosValidadores.map(correohAL=>{
-    correos.push(correohAL.mail)
-  })
-
-  newMailer.enviarCorreo(correos,'Reporte hallazgos turno',plantilla,attachments)
-
-}
 
 
 const enviarReporteHallazgo = async(tipo)=>{
@@ -316,12 +284,16 @@ const enviarReporteHallazgo = async(tipo)=>{
         dataArchivos
       );
 
+      setTimeout(() => {
+        enviarCorreo(com.id, com.sector, 1)
+      }, "1000");
 
-      console.log('envio correo con pdf')
 
     }else{
 
-      console.log('envio correo sin pdf')
+      setTimeout(() => {
+        enviarCorreo(com.id, com.sector, 2)
+      }, "1000");
 
     }
     

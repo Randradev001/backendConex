@@ -7,4 +7,7 @@ services:
     image: backend-node:1
     ports:
       - "8065:8065"
+    volumes:
+      #- C:/Users/Nacho/Desktop/React/00_Backends/0_fotos_servidor:/src/fotosEvidencia
+      - /var/www/html/web/hallazgo_seguridad/documentos:/src/fotosEvidencia
     restart: always
