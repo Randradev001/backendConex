@@ -27,7 +27,7 @@ app.use('/backendDocker',routes);
 const { CronJob } = require('cron');
 
 
-const tareasCron = new CronJob('30 11 * * *',()=>{
+const tareasCron = new CronJob('0 35 11 * * *',()=>{
   envioReporte.enviarReporteHallazgo(1)
 })
 
