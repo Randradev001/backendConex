@@ -35,9 +35,9 @@ app.use('/backendDocker',routes);
 const cron = require('node-cron');
 cron.schedule('0 48 18 * * *', () => {
   console.log('corriendoTarea');
+  	//	envioReporte.enviarReporteHallazgo(1)
 }, {
   scheduled: true,
   timezone: "America/Santiago"
 });
 
-	//	envioReporte.enviarReporteHallazgo(1)
