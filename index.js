@@ -26,7 +26,7 @@ app.use('/backendDocker',routes);
 
 const { CronJob } = require('cron');
 
-const tareasCron =  new CronJob('0 23 14 * * *',()=>{
+const tareasCron =  new CronJob('0 30 14 * * *',()=>{
   console.log('pruebaCron')
 });
 
