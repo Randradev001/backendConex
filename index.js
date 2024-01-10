@@ -27,11 +27,12 @@ app.use('/backendDocker',routes);
 const { CronJob } = require('cron');
 
 const tareasCron = CronJob.from({
-	cronTime: '0 40 12 * * *',
+	cronTime: '0 50 12 * * *',
 	onTick: function () {
     console.log('hago el log pero no ejecuto la funcion')
 		envioReporte.enviarReporteHallazgo(1)
 	},
+  timeZone: 'America/Santiago'
 	// start: true,
 });
 
