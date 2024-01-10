@@ -10,4 +10,8 @@ services:
     volumes:
       #- C:/Users/Nacho/Desktop/React/00_Backends/0_fotos_servidor:/src/fotosEvidencia
       - /var/www/html/web/hallazgo_seguridad/documentos:/src/fotosEvidencia
+      - "/etc/timezone:/etc/timezone:ro" 
+      - "/etc/localtime:/etc/localtime:ro"
+
+
     restart: always
