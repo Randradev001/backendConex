@@ -24,12 +24,20 @@ app.use('/backendDocker',routes);
 
 
 
-const { CronJob } = require('cron');
+// const { CronJob } = require('cron');
 
-const tareasCron =  new CronJob('0 30 18 * * *',()=>{
-  console.log('pruebaCron')
+// const tareasCron =  new CronJob('0 30 18 * * *',()=>{
+//   console.log('pruebaCron')
+// });
+
+// tareasCron.start()
+
+const cron = require('node-cron');
+cron.schedule('0 48 18 * * *', () => {
+  console.log('corriendoTarea');
+}, {
+  scheduled: true,
+  timezone: "America/Santiago"
 });
-
-tareasCron.start()
 
 	//	envioReporte.enviarReporteHallazgo(1)
