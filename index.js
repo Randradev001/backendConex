@@ -33,11 +33,20 @@ app.use('/backendDocker',routes);
 // tareasCron.start()
 
 const cron = require('node-cron');
-cron.schedule('0 48 18 * * *', () => {
-  console.log('corriendoTarea');
-  	//	envioReporte.enviarReporteHallazgo(1)
-}, {
+
+// Turno 1
+cron.schedule('0 0 8 * * *', () => {
+  	envioReporte.enviarReporteHallazgo(1)
+},{
   scheduled: true,
   timezone: "America/Santiago"
+});
+
+// Turno 2
+cron.schedule('0 0 20 * * *', () => {
+  envioReporte.enviarReporteHallazgo(2)
+},{
+scheduled: true,
+timezone: "America/Santiago"
 });
 
