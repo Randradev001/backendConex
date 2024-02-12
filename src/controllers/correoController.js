@@ -66,8 +66,7 @@ const enviarCorreo = async(id, sector, tipo)=>{
     ]
   });
 
-  console.log('envio correo')
-  console.log(error)
+
 
 }
 
