@@ -26,11 +26,11 @@ const buscarCorreos=()=>{
     const correosAEnviar = await buscarCorreos()
     let listaCorreos=[]  // acá se almacenan los correos de los administradores para ser enviados
 
-    setTimeout(() => {
+ 
         correosAEnviar.map(correoReporte=>{
             listaCorreos.push(correoReporte.correo)
           })
-      }, "20000"); 
+    
 
 
   
