@@ -20,26 +20,30 @@ const buscarCorreos=()=>{
   }
 
   const enviarCorreo=async()=>{
-
-    const correos = await buscarCorreos()
-
+     
+    
 
     const correosAEnviar = await buscarCorreos()
     let listaCorreos=[]  // acá se almacenan los correos de los administradores para ser enviados
 
-    correosAEnviar.map(correoReporte=>{
-        listaCorreos.push(correoReporte.correo)
-      })
+    setTimeout(() => {
+        correosAEnviar.map(correoReporte=>{
+            listaCorreos.push(correoReporte.correo)
+          })
+      }, "20000"); 
+
 
   
     const reporte= fs.readFileSync(`/src/img/reporteAprendizaje/reporte.png`);
 
 
     const resend  = new Resend(process.env.RESEND);
-  
+   
+       
+     
     const { data, error } = await resend.emails.send({
       from: "soporte@appsgobm.com",
-      to: 'randr014@contratistas.codelco.cl',
+      to: listaCorreos,
       subject: "Aprendizaje de incidente GOM",
       html: BodyCorreo(),
       attachments:
@@ -51,7 +55,8 @@ const buscarCorreos=()=>{
       ]
     
     });
-  
+
+
   
 }
 
