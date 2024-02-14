@@ -40,7 +40,9 @@ const buscarCorreos=()=>{
     const resend  = new Resend(process.env.RESEND);
    
        
-     
+    await new Promise(resolve => setTimeout(resolve, 10000));
+
+
     const { data, error } = await resend.emails.send({
       from: "soporte@appsgobm.com",
       to: listaCorreos,
