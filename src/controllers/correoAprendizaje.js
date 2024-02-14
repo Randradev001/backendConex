@@ -19,6 +19,8 @@ const buscarCorreos=()=>{
     })
   }
 
+
+
   const enviarCorreo=async()=>{
      
     
@@ -30,8 +32,6 @@ const buscarCorreos=()=>{
         correosAEnviar.map(correoReporte=>{
             listaCorreos.push(correoReporte.correo)
           })
-    
-
 
   
     const reporte= fs.readFileSync(`/src/img/reporteAprendizaje/reporte.png`);
@@ -39,9 +39,6 @@ const buscarCorreos=()=>{
 
     const resend  = new Resend(process.env.RESEND);
    
-       
-    await new Promise(resolve => setTimeout(resolve, 10000));
-
 
     const { data, error } = await resend.emails.send({
       from: "soporte@appsgobm.com",
@@ -61,6 +58,7 @@ const buscarCorreos=()=>{
 
   
 }
+
 
   module.exports={
     enviarCorreo
