@@ -13,5 +13,6 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
       - /var/www/backend/backendAprendizaje/reportes:/src/img/reporteAprendizaje
+      - /var/www/backend/backendAprendizaje/reporteStatus:/src/img/reporteStatusAprendizaje
 
     restart: always

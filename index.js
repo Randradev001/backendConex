@@ -33,6 +33,8 @@ app.use('/backendDocker',routes);
 // tareasCron.start()
 
 const cron = require('node-cron');
+const { enviarCorreo } = require('./src/controllers/correoStatusAprendizaje');
+
 
 // Turno 1
 cron.schedule('0 0 8 * * *', () => {
@@ -49,4 +51,13 @@ cron.schedule('0 0 20 * * *', () => {
 scheduled: true,
 timezone: "America/Santiago"
 });
+
+// Correo dias lunes aprendizaje '0 9 * * 1 '
+cron.schedule('0 9 * * 1 ', () => {
+  console.log('envio de correo 09:00')
+  enviarCorreo()
+ },{
+ scheduled: true,
+ timezone: "America/Santiago"
+ });
 
