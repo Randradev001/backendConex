@@ -21,7 +21,7 @@ const buscarCorreos=()=>{
 
 
 
-  const enviarCorreo=async()=>{
+  const enviarCorreoGenerado=async()=>{
      
     
 
@@ -54,9 +54,13 @@ const buscarCorreos=()=>{
       ]
     
     });
-
-
   
+}
+
+const enviarCorreo=async()=>{
+  setTimeout(() => {
+    enviarCorreoGenerado()
+  }, "20000"); 
 }
 
 
