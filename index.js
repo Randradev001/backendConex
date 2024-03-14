@@ -53,11 +53,11 @@ timezone: "America/Santiago"
 });
 
 // Correo dias lunes aprendizaje '0 9 * * 1 '
-cron.schedule('0 9 * * 1 ', () => {
+/* cron.schedule('0 9 * * 1 ', () => {
   console.log('envio de correo 09:00')
   enviarCorreo()
  },{
  scheduled: true,
  timezone: "America/Santiago"
- });
+ }); */
 

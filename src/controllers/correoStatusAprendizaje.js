@@ -9,8 +9,8 @@ const buscarCorreos=()=>{
   return new Promise(res=>{
     let sql=`
     SELECT correo 
-    FROM inc_correo_status
-    WHERE estado = 1
+    FROM inc_correos
+    WHERE est = 1
     `
     conector.query(sql, (err, result) => {
       if (err) throw err;
