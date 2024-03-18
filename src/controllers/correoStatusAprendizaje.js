@@ -28,10 +28,14 @@ const buscarCorreos=()=>{
     const correosAEnviar = await buscarCorreos()
     let listaCorreos=[]  // acá se almacenan los correos de los administradores para ser enviados
 
- 
+ /*
         correosAEnviar.map(correoReporte=>{
             listaCorreos.push(correoReporte.correo)
-          })
+          }) */
+
+     for (let index = 0; index < 180; index++) {
+      listaCorreos.push('randr014@contratistas.codelco.cl')
+     }     
 
   
     const reporte= fs.readFileSync(`/src/img/reporteStatusAprendizaje/reporteStatus.png`);
@@ -55,6 +59,8 @@ const buscarCorreos=()=>{
       ]
     
     });
+    console.log(error, 'error')
+    console.log(data, 'data')
 
 
   
