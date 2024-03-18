@@ -33,7 +33,7 @@ const buscarCorreos=()=>{
             listaCorreos.push(correoReporte.correo)
           }) */
 
-     for (let index = 0; index < 180; index++) {
+     for (let index = 0; index < 50; index++) {
       listaCorreos.push('randr014@contratistas.codelco.cl')
      }     
 
