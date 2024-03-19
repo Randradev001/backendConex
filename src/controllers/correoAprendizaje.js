@@ -19,7 +19,7 @@ const buscarCorreos=()=>{
     })
   }
 
-
+/*
 
   const enviarCorreoGenerado=async()=>{
      
@@ -55,6 +55,40 @@ const buscarCorreos=()=>{
     
     });
   
+} */
+
+
+const enviarCorreoGenerado = async () => {
+  const correosAEnviar = await buscarCorreos();
+  let listaCorreos = [];  // correos para ser enviados
+
+  correosAEnviar.forEach((correoReporte, index) => {
+      listaCorreos.push(correoReporte.correo);
+      if ((index + 1) % 50 === 0 || index === correosAEnviar.length - 1) {
+          // recorre hasta llegar al 50 y multiplos de 50
+          enviarCorreoBatch(listaCorreos);
+          listaCorreos = []; // reset al arreglo para la soguiente ronda
+      }
+  });
+}
+
+const enviarCorreoBatch = async (listaCorreos) => {
+  const reporte= fs.readFileSync(`/src/img/reporteAprendizaje/reporte.png`);
+
+  const resend = new Resend(process.env.RESEND);
+
+  const { data, error } = await resend.emails.send({
+      from: "soporte@appsgobm.com",
+      to: listaCorreos,
+      subject: "Aprendizaje de incidente GOM",
+      html: BodyCorreo(),
+      attachments: [{
+          filename: `reporte.png`,
+          content: reporte,
+      }]
+  });
+  console.log(error, 'error');
+  console.log(data, 'data');
 }
 
 const enviarCorreo=async()=>{
