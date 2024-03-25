@@ -54,7 +54,7 @@ timezone: "America/Santiago"
 
 // Correo dias lunes aprendizaje '0 9 * * 1 '
 //10 10 18 3 1 
- cron.schedule('10 10 18 3 1 ', () => {
+ cron.schedule('0 9 * * 1 ', () => {
   console.log('envio de correo 09:00')
   enviarCorreo()
  },{
