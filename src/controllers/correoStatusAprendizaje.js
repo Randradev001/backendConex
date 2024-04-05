@@ -81,6 +81,7 @@ const enviarCorreo = async () => {
 
 const enviarCorreoBatch = async (listaCorreos) => {
   const reporte = fs.readFileSync(`/src/img/reporteStatusAprendizaje/reporteStatus.png`);
+  const reporteEX = fs.readFileSync(`/src/img/reporteStatusAprendizaje/reporte.xlsx`);
 
   const resend = new Resend(process.env.RESEND);
 
@@ -92,6 +93,10 @@ const enviarCorreoBatch = async (listaCorreos) => {
       attachments: [{
           filename: `reporte.png`,
           content: reporte,
+      },
+      {
+        filename: 'reporte.xlsx',
+        content: reporteEX,
       }]
   });
   console.log(error, 'error');
