@@ -19,8 +19,8 @@ const generarImages = async ({ url }) => {
   await page.goto(url, {
     waitUntil: 'domcontentloaded'  // Espera a que la página esté cargada
   });
-   await  page.waitForNetworkIdle({ idleTime: 6000 })
-  // await page.waitForSelector('#correctiva')
+  // await  page.waitForNetworkIdle({ idleTime: 6000 })
+   await page.waitForSelector('#correctiva')
 
   await page.evaluate(() => document.body.style.background = 'transparent');
 
