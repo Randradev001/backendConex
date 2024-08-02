@@ -100,7 +100,8 @@ const generaFoto = async (insertId) => {
   const imageBuffer = await generarImages({
     url: `${process.env.DOMINIO}/web/accionesCorrectivas/reporteCorreo?id=${insertId}`
   });
-
+console.log(imageBuffer, 'buffer')
+console.log(`${process.env.DOMINIO}/web/accionesCorrectivas/reporteCorreo?id=${insertId}`,'link')
   const attachments = [
     {
       filename: "reporte.png",
