@@ -22,6 +22,7 @@ RUN apk update && apk upgrade && \
     ca-certificates \
     ttf-freefont
 
+
 # Establecer la variable de entorno para Puppeteer
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
