@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const routes = require('./src/Router')
 const app = express()
-const envioReporte = require('./src/controllers/correoController')
+// const envioReporte = require('./src/controllers/correoController')
 // const http = require('http');
 
 var bodyParser = require('body-parser');
@@ -35,7 +35,7 @@ app.use('/backendDocker',routes);
 const cron = require('node-cron');
 const { enviarCorreo } = require('./src/controllers/correoStatusAprendizaje');
 
-
+/*
 // Turno 1
 cron.schedule('0 0 8 * * *', () => {
  // 	envioReporte.enviarReporteHallazgo(1)
@@ -50,11 +50,11 @@ cron.schedule('0 0 20 * * *', () => {
 },{
 scheduled: true,
 timezone: "America/Santiago"
-});
+}); */
 
 // Correo dias lunes aprendizaje '0 9 * * 1 '
 //10 10 18 3 1 
- cron.schedule('0 9 * * 1 ', () => {
+ cron.schedule('50 02 01 10 *', () => {
   console.log('envio de correo 09:00')
   enviarCorreo()
  },{

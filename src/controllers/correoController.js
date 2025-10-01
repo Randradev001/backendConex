@@ -1,4 +1,4 @@
-const { Resend } = require("resend");
+/* const { Resend } = require("resend");
 const conector = require("../conectorMysql/conectorMysql");
 const fs = require('fs');
 const buildPDF = require('../pdfKit/pdfKits');
@@ -308,4 +308,4 @@ const enviarReporteHallazgo = async(tipo)=>{
 module.exports={
   enviarCorreo,
   enviarReporteHallazgo
-}
+} */

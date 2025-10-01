@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const CorreoController = require('../controllers/correoStatusAprendizaje')
+ const CorreoController = require('../controllers/correoStatusAprendizaje')
 
 router.post("/",CorreoController.enviarCorreo)
 

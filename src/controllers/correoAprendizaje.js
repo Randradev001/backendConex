@@ -1,12 +1,13 @@
 const { Resend } = require("resend");
-const conector = require("../conectorMysql/conectorMysql");
+// const conector = require("../conectorMysql/conectorMysql");
+const { getPool } = require("../conectorMysql/conectorSqlServer");
 const fs = require('fs');
 
 const BodyCorreo = require('../MailTemplates/TemplateAprendizaje');
 const generarImages = require("../puppeteer/generarImg");
 
 
-const buscarCorreos=()=>{
+/* const buscarCorreos=()=>{
     return new Promise(res=>{
       let sql=`
       SELECT correo 
@@ -18,7 +19,21 @@ const buscarCorreos=()=>{
           res(result)
       });
     })
-  }
+  } */
+
+  // Versión async/await
+const buscarCorreos = async () => {
+  const pool = await getPool();
+  const result = await pool.request().query(`
+    SELECT correo
+    FROM dbo.env_direcciones   
+    WHERE estado = 1
+  `);
+
+  return result.recordset; // array de filas: [{ correo: '...' }, ...]
+
+};
+
 
 /*
 
