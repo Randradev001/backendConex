@@ -12,7 +12,7 @@ module.exports = {
         SQLSERVER_USER: "sa",
         SQLSERVER_PASSWORD: "Claveacceso123#",
         SQLSERVER_DATABASE: "BDSYCE",
-        // SQLSERVER_INSTANCE: "SQLEXPRESS",
+         SQLSERVER_INSTANCE: "BDSQL2016",
         SQLSERVER_ENCRYPT: "false",
         SQLSERVER_TRUST_CERT: "true"
       },
