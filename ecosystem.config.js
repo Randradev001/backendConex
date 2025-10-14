@@ -7,7 +7,14 @@ module.exports = {
         NODE_ENV: "production",
         PORT: "3000",
         SERVER: "http://localhost:3000",   // <--- necesario (string)
-        RESEND: "re_XJDieT7j_7yxSqPzfDiecv4vuGLy6Fw9H"  // <--- tu API key si usas Resend
+        RESEND: "re_XJDieT7j_7yxSqPzfDiecv4vuGLy6Fw9H",  // <--- tu API key si usas Resend
+        SQLSERVER_HOST: "WIN-JPBH2M10H9A",
+        SQLSERVER_USER: "sa",
+        SQLSERVER_PASSWORD: "Claveacceso123#",
+        SQLSERVER_DATABASE: "BDSYCE",
+        // SQLSERVER_INSTANCE: "SQLEXPRESS",
+        SQLSERVER_ENCRYPT: "false",
+        SQLSERVER_TRUST_CERT: "true"
       },
       watch: false,
       max_memory_restart: "300M"
