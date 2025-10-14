@@ -6,9 +6,10 @@ const config = {
   user: process.env.SQLSERVER_USER,
   password: process.env.SQLSERVER_PASSWORD,
   database: process.env.SQLSERVER_DATABASE,
+  port: 1433,
   options: {
     instanceName: process.env.SQLSERVER_INSTANCE, // <-- CLAVE AQUÍ
-    encrypt: process.env.SQLSERVER_ENCRYPT === 'true',
+    encrypt: process.env.SQLSERVER_ENCRYPT === 'false',
     trustServerCertificate: process.env.SQLSERVER_TRUST_CERT === 'true',
   },
   pool: { max: 10, min: 0, idleTimeoutMillis: 30000 },
