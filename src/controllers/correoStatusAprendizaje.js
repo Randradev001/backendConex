@@ -80,8 +80,8 @@ const insertContadoresEnvio = async (enviados, errores) => {
 };
 
 
-
-const enviarCorreo = async () => {
+/*
+const enviarCorreo = async (req, res) => {
   const correosAEnviar = await buscarCorreos();
   console.log(correosAEnviar, 'trae desde tabla')
   let listaCorreos = [];  // correos para ser enviados
@@ -94,7 +94,46 @@ const enviarCorreo = async () => {
           listaCorreos = []; // reset al arreglo para la soguiente ronda
       }
   });
-}
+} */
+
+  const enviarCorreo = async (req, res) => {
+    try {
+      const correosAEnviar = await buscarCorreos();
+      console.log(correosAEnviar, 'trae desde tabla');
+  
+      let listaCorreos = [];
+  
+      for (let i = 0; i < correosAEnviar.length; i++) {
+        const correoReporte = correosAEnviar[i];
+        listaCorreos.push({
+          correo: correoReporte.APIMail,
+          rut: correoReporte.APIRut,
+          nombre: correoReporte.APINombre
+        });
+  
+        if ((i + 1) % 5000 === 0 || i === correosAEnviar.length - 1) {
+          // aquí esperamos a que termine
+          await enviarCorreoBatch(listaCorreos);
+          listaCorreos = [];
+        }
+      }
+  
+      // devolvemos algo al cliente
+      return res.json({
+        ok: true,
+        procesados: correosAEnviar.length,
+        msg: "Envío de correos completado"
+      });
+  
+    } catch (error) {
+      console.error("Error en enviarCorreo:", error);
+      return res.status(500).json({
+        ok: false,
+        error: error.message || "Error interno"
+      });
+    }
+  };
+  
 
 
 
@@ -200,8 +239,7 @@ console.log(listaCorreos, 'correos administrativos')
      
       
   });
-  console.log(error, 'error terminado');
-  console.log(data, 'data terminado');
+
 }
 
   module.exports={

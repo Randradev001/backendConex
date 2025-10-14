@@ -11,4 +11,9 @@ router.use('/enviarCorreoAprendizaje',correoAprendizaje)
 
 router.use('/enviarCorreoStatusAprendizaje',correoAprendizajeStatus)
 
+// test para confirmar que este router está montado
+router.get('/test', (req, res) => res.send('Router raíz OK'));
+
+
+
 module.exports = router

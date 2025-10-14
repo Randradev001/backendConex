@@ -10,6 +10,9 @@ app.use(bodyParser.urlencoded({
   extended: true
 }));
 app.use(express.json()) //permite el paso del payload en el body
+app.get('/ping', (req, res) => {
+  res.send('Servidor responde ✅');
+});
 
 
 app.listen(process.env.PORT, () => {
@@ -54,7 +57,7 @@ timezone: "America/Santiago"
 
 // Correo dias lunes aprendizaje '0 9 * * 1 '
 //10 10 18 3 1 
- cron.schedule('50 02 01 10 *', () => {
+ cron.schedule('03 02 04 10 *', () => {
   console.log('envio de correo 09:00')
   enviarCorreo()
  },{
