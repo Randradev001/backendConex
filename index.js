@@ -38,6 +38,9 @@ app.use('/backendDocker',routes);
 const cron = require('node-cron');
 const { enviarCorreo } = require('./src/controllers/correoStatusAprendizaje');
 
+const dteRouter = require('./src/Router/dte.routes');
+app.use('/dte', dteRouter);
+
 /*
 // Turno 1
 cron.schedule('0 0 8 * * *', () => {
