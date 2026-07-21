@@ -15,6 +15,14 @@ router.post("/createCompany", DteController.createCompany);
 router.post("/getCompanies", DteController.getCompanies);
 router.post('/getComunas', DteController.getComunas);
 
+const multer = require('multer');
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+router.post('/uploadCaf', upload.single('cafFile'), DteController.uploadCaf);
+
+router.post('/getCafFiles', DteController.getCafFiles);
 
 
 module.exports = router;
