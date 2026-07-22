@@ -1,0 +1,1778 @@
+[
+  {
+    "name": "Agentes",
+    "description": "Agentes",
+    "id": "76",
+    "keys": [
+      "EmpCod",
+      "AgeCod"
+    ],
+    "indexes": [
+      "IAgentes:Unique:EmpCod+AgeCod",
+      "IAgentes1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "AnuINS",
+    "description": "Anulaciones",
+    "id": "144",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "ANUFolio"
+    ],
+    "indexes": [
+      "IAnuINS:Unique:EmpCod+TempCod+ANUFolio",
+      "IAnuINS1:Duplicate:CAnCod",
+      "IAnuINS2:Duplicate:EmpCod+TempCod",
+      "IAnuINS3:Duplicate:EmpCod+DACod"
+    ]
+  },
+  {
+    "name": "Asig",
+    "description": "Asig",
+    "id": "176",
+    "keys": [
+      "GECODEMP",
+      "AsigUsu",
+      "SistCod",
+      "AsigMod"
+    ],
+    "indexes": [
+      "IAsig:Unique:GECODEMP+AsigUsu+SistCod+AsigMod",
+      "IAsig1:Duplicate:SistCod+AsigMod"
+    ]
+  },
+  {
+    "name": "AsigProg",
+    "description": "AsigProg",
+    "id": "168",
+    "keys": [
+      "GECODEMP",
+      "UsuLogin",
+      "SistCod",
+      "Modcod",
+      "ProgCod"
+    ],
+    "indexes": [
+      "IAsigProg:Unique:GECODEMP+UsuLogin+SistCod+Modcod+ProgCod",
+      "IAsigProg1:Duplicate:SistCod+Modcod+ProgCod",
+      "IAsigProg2:Duplicate:UsuLogin"
+    ]
+  },
+  {
+    "name": "AsigProg1",
+    "description": "AsigProg1",
+    "id": "169",
+    "keys": [
+      "GECODEMP",
+      "UsuLogin",
+      "SistCod",
+      "Modcod",
+      "ProgCod",
+      "ProgOPCod"
+    ],
+    "indexes": [
+      "IAsigProg11:Unique:GECODEMP+UsuLogin+SistCod+Modcod+ProgCod+ProgOPCod",
+      "IAsigProg12:Duplicate:SistCod+Modcod+ProgCod+ProgOPCod",
+      "IAsigProg13:Duplicate:GECODEMP+UsuLogin+SistCod+Modcod+ProgCod"
+    ]
+  },
+  {
+    "name": "AsigSist",
+    "description": "AsigSist",
+    "id": "170",
+    "keys": [
+      "GECODEMP",
+      "AsgSisLogin",
+      "SistCod"
+    ],
+    "indexes": [
+      "IAsigSist:Unique:GECODEMP+AsgSisLogin+SistCod",
+      "IAsigSist1:Duplicate:SistCod"
+    ]
+  },
+  {
+    "name": "Calibres",
+    "description": "Calibres",
+    "id": "77",
+    "keys": [
+      "EmpCod",
+      "Especod",
+      "Calibre"
+    ],
+    "indexes": [
+      "ICalibres:Unique:EmpCod+Especod+Calibre",
+      "ICalibres3:Duplicate:EmpCod+Especod"
+    ]
+  },
+  {
+    "name": "CAP001",
+    "description": "CAP001",
+    "id": "182",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "CAPCOD"
+    ],
+    "indexes": [
+      "ICAP001:Unique:EmpCod+TempCod+CAPCOD",
+      "ICAP0012:Duplicate:EmpCod+Especod+VarCod",
+      "ICAP0013:Duplicate:EmpCod+TempCod",
+      "ICAP0014:Duplicate:EmpCod+EnvCod+Catcod",
+      "ICAP0015:Duplicate:EmpCod+Especod+Calibre",
+      "ICAP0016:Duplicate:EmpCod+ExpCod+ProdCod",
+      "ICAP0011:Duplicate:EmpCod+CliCod",
+      "ind_Capordproc:Duplicate:EmpCod+TempCod+CAPNproc",
+      "Ind_NdespaCS:Duplicate:EmpCod+TempCod+CAPNDesp",
+      "ind_ExisCS:Duplicate:EmpCod+TempCod+CAPNDesp+ExpCod+ProdCod+Especod+VarCod+EnvCod+Catcod+Calibre"
+    ]
+  },
+  {
+    "name": "CausaAnul",
+    "description": "Causales de Anulacion",
+    "id": "142",
+    "keys": [
+      "CAnCod"
+    ],
+    "indexes": [
+      "ICausaAnul:Unique:CAnCod"
+    ]
+  },
+  {
+    "name": "Clientes",
+    "description": "Clientes",
+    "id": "78",
+    "keys": [
+      "EmpCod",
+      "CliCod"
+    ],
+    "indexes": [
+      "IClientes:Unique:EmpCod+CliCod",
+      "IClientes1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "cntfolios",
+    "description": "cntfolios",
+    "id": "194",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "cntFolio"
+    ],
+    "indexes": [
+      "Icntfolios:Unique:EmpCod+TempCod+cntFolio",
+      "Icntfolios1:Duplicate:EmpCod+TempCod",
+      "Icntfolios2:Duplicate:EmpCod+ExpCod"
+    ]
+  },
+  {
+    "name": "Comunas",
+    "description": "Comunas",
+    "id": "158",
+    "keys": [
+      "ComCod"
+    ],
+    "indexes": [
+      "IComunas:Unique:ComCod"
+    ]
+  },
+  {
+    "name": "Condicion",
+    "description": "Condicion",
+    "id": "30",
+    "keys": [
+      "ConCod"
+    ],
+    "indexes": [
+      "ICondicion:Unique:ConCod"
+    ]
+  },
+  {
+    "name": "ConfigEti",
+    "description": "Conf. Etiquetas",
+    "id": "183",
+    "keys": [
+      "EmpCod",
+      "ConfCod",
+      "ConfLinea"
+    ],
+    "indexes": [
+      "IConfigEti:Unique:EmpCod+ConfCod+ConfLinea",
+      "IConfigEti1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "Consig",
+    "description": "Consignatarios",
+    "id": "79",
+    "keys": [
+      "EmpCod",
+      "ConsCod"
+    ],
+    "indexes": [
+      "IConsig:Unique:EmpCod+ConsCod",
+      "IConsig1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "DATMP",
+    "description": "DATMP",
+    "id": "210",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "DMPPlani"
+    ],
+    "indexes": [
+      "IDATMP:Unique:EmpCod+TempCod+DMPPlani",
+      "IDATMP1:Duplicate:EmpCod+TempCod",
+      "IDATMP2:Duplicate:TTMPCod",
+      "IDATMP3:Duplicate:INACCod",
+      "IDATMP4:Duplicate:TRACod"
+    ]
+  },
+  {
+    "name": "DefEmp",
+    "description": "Empresas",
+    "id": "3",
+    "keys": [
+      "EmpCod"
+    ],
+    "indexes": [
+      "IDefEmp:Unique:EmpCod"
+    ]
+  },
+  {
+    "name": "DesCli_FP",
+    "description": "Despachos a Clientes",
+    "id": "145",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "DesOTNumI"
+    ],
+    "indexes": [
+      "IDesCli_FP:Unique:EmpCod+TempCod+DesOTNumI",
+      "IDesCli_FP1:Duplicate:EmpCod+CliCod",
+      "IDesCli_FP2:Duplicate:EmpCod+TempCod"
+    ]
+  },
+  {
+    "name": "DesCli_FP1",
+    "description": "Detalle Despachos de Clientes",
+    "id": "146",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "DesOTNumI",
+      "DesOT1Cor"
+    ],
+    "indexes": [
+      "IDesCli_FP11:Unique:EmpCod+TempCod+DesOTNumI+DesOT1Cor",
+      "IDesCli_FP12:Duplicate:EmpCod+TempCod+DesOTNumI",
+      "IDesCli_FP13:Duplicate:EmpCod+DesOT1Espe"
+    ]
+  },
+  {
+    "name": "DesManual",
+    "description": "DesManual",
+    "id": "208",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "DMATipPlani",
+      "DMANum"
+    ],
+    "indexes": [
+      "IDesManual:Unique:EmpCod+TempCod+DMATipPlani+DMANum",
+      "IDesManual1:Duplicate:DMAPuertoE",
+      "IDesManual2:Duplicate:DMAPuertoD",
+      "IDesManual3:Duplicate:EmpCod+DACod",
+      "IDesManual4:Duplicate:EmpCod+ExpCod",
+      "IDesManual5:Duplicate:EmpCod+AgeCod",
+      "IDesManual6:Duplicate:EmpCod+ConsCod",
+      "IDesManual7:Duplicate:DestCod",
+      "IDesManual8:Duplicate:EmpCod+TempCod"
+    ]
+  },
+  {
+    "name": "DesManual1",
+    "description": "DesManual1",
+    "id": "209",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "DMATipPlani",
+      "DMANum",
+      "DMA2Corr"
+    ],
+    "indexes": [
+      "IDesManual11:Unique:EmpCod+TempCod+DMATipPlani+DMANum+DMA2Corr",
+      "IDesManual12:Duplicate:EmpCod+Especod+Calibre",
+      "IDesManual13:Duplicate:EmpCod+EnvCod+Catcod",
+      "IDesManual14:Duplicate:EmpCod+Especod+VarCod",
+      "IDesManual15:Duplicate:EmpCod+TempCod+DMATipPlani+DMANum"
+    ]
+  },
+  {
+    "name": "DesOrigen",
+    "description": "Despachos SAG",
+    "id": "134",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "DorTipPlani",
+      "DORNum"
+    ],
+    "indexes": [
+      "IDesOrigen:Unique:EmpCod+TempCod+DorTipPlani+DORNum",
+      "IDesOrigen1:Duplicate:EmpCod+TempCod",
+      "IDesOrigen2:Duplicate:EmpCod+ExpCod",
+      "IDesOrigen3:Duplicate:EmpCod+AgeCod",
+      "IDesOrigen4:Duplicate:EmpCod+ConsCod",
+      "IDesOrigen5:Duplicate:EmpCod+DACod",
+      "IDesOrigen6:Duplicate:DorPuertoE",
+      "IDesOrigen7:Duplicate:DorPuertoD",
+      "IDesOrigen8:Duplicate:DestCod",
+      "ind_DorNumPlani:Duplicate:EmpCod+TempCod+DorTipPlani+DORNumf",
+      "IND_DesFec:Duplicate:EmpCod+TempCod+DorFecha"
+    ]
+  },
+  {
+    "name": "DesOrigen1",
+    "description": "Detalle de Folios Planilla",
+    "id": "137",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "DorTipPlani",
+      "DORNum",
+      "dor1Folio"
+    ],
+    "indexes": [
+      "IDesOrigen11:Unique:EmpCod+TempCod+DorTipPlani+DORNum+dor1Folio",
+      "IDesOrigen12:Duplicate:EmpCod+TempCod+DorTipPlani+DORNum",
+      "IDesOrigen13:Duplicate:EmpCod+dor1espe"
+    ]
+  },
+  {
+    "name": "DesOrigen2",
+    "description": "Detalle de Folios Despachados",
+    "id": "138",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "DorTipPlani",
+      "DORNum",
+      "dor1Folio",
+      "Dor2Corr"
+    ],
+    "indexes": [
+      "IDesOrigen21:Unique:EmpCod+TempCod+DorTipPlani+DORNum+dor1Folio+Dor2Corr",
+      "IDesOrigen22:Duplicate:EmpCod+TempCod+DorTipPlani+DORNum+dor1Folio",
+      "IDesOrigen23:Duplicate:EmpCod+Dor2env+Dor2cat",
+      "IDesOrigen24:Duplicate:EmpCod+Dor2Prod",
+      "IDesOrigen25:Duplicate:EmpCod+Dor2espe+Dor2var",
+      "IND_PLANISAG:Duplicate:EmpCod+TempCod+DorTipPlani+DORNum+Dor2espe+Dor2var+Dor2env",
+      "ind_DPlaniProd:Duplicate:EmpCod+TempCod+DorTipPlani+DORNum+Dor2espe+Dor2var+Dor2Prod",
+      "ind_DesPack:Duplicate:EmpCod+TempCod+DorTipPlani+DORNum+Dor2espe+dor1Folio",
+      "Ind_DesCalibre:Duplicate:EmpCod+TempCod+DORNum+Dor2espe+Dor2var+Dor2env+Dor2cat+Dor2cal"
+    ]
+  },
+  {
+    "name": "DespaAuto",
+    "description": "Despachadores",
+    "id": "136",
+    "keys": [
+      "EmpCod",
+      "DACod"
+    ],
+    "indexes": [
+      "IDespaAuto:Unique:EmpCod+DACod",
+      "IDespaAuto1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "DespCajS",
+    "description": "DespCajS",
+    "id": "185",
+    "keys": [
+      "EmpCod",
+      "CliCod",
+      "TdCod",
+      "DCSDesp"
+    ],
+    "indexes": [
+      "IDespCajS:Unique:EmpCod+CliCod+TdCod+DCSDesp",
+      "IDespCajS1:Duplicate:TdCod",
+      "IDespCajS2:Duplicate:EmpCod+CliCod",
+      "ind_despa:Duplicate:DCSNumint"
+    ]
+  },
+  {
+    "name": "Destinos",
+    "description": "Destinos",
+    "id": "19",
+    "keys": [
+      "DestCod"
+    ],
+    "indexes": [
+      "IDestinos:Unique:DestCod",
+      "IDestinos1:Duplicate:DestCMP"
+    ]
+  },
+  {
+    "name": "DestMP",
+    "description": "DestMP",
+    "id": "161",
+    "keys": [
+      "DesMPCod"
+    ],
+    "indexes": [
+      "IDestMP:Unique:DesMPCod"
+    ]
+  },
+  {
+    "name": "EnvCat",
+    "description": "Envases",
+    "id": "80",
+    "keys": [
+      "EmpCod",
+      "EnvCod"
+    ],
+    "indexes": [
+      "IEnvCat:Unique:EmpCod+EnvCod",
+      "IEnvCat1:Duplicate:EmpCod",
+      "IEnvCat2:Duplicate:EnvCMP"
+    ]
+  },
+  {
+    "name": "EnvCat1",
+    "description": "Categorias",
+    "id": "81",
+    "keys": [
+      "EmpCod",
+      "EnvCod",
+      "Catcod"
+    ],
+    "indexes": [
+      "IEnvCat11:Unique:EmpCod+EnvCod+Catcod",
+      "IEnvCat12:Duplicate:EmpCod+EnvCod"
+    ]
+  },
+  {
+    "name": "EnvMP",
+    "description": "EnvMP",
+    "id": "160",
+    "keys": [
+      "ENMTCod"
+    ],
+    "indexes": [
+      "IEnvMP:Unique:ENMTCod"
+    ]
+  },
+  {
+    "name": "Especies",
+    "description": "Especies",
+    "id": "82",
+    "keys": [
+      "EmpCod",
+      "Especod"
+    ],
+    "indexes": [
+      "IEspecies:Unique:EmpCod+Especod",
+      "IEspecies1:Duplicate:EmpCod",
+      "IEspecies2:Duplicate:EspeCMP"
+    ]
+  },
+  {
+    "name": "Especies1",
+    "description": "Variedad",
+    "id": "83",
+    "keys": [
+      "EmpCod",
+      "Especod",
+      "VarCod"
+    ],
+    "indexes": [
+      "IEspecies11:Unique:EmpCod+Especod+VarCod",
+      "IEspecies12:Duplicate:EmpCod+Especod"
+    ]
+  },
+  {
+    "name": "ETIXCal",
+    "description": "Etiquetas de por Calibre-Proceso",
+    "id": "202",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "Ordpnum",
+      "Calibre"
+    ],
+    "indexes": [
+      "IETIXCal:Unique:EmpCod+TempCod+Ordpnum+Calibre",
+      "IETIXCal1:Duplicate:EmpCod+TempCod+Ordpnum"
+    ]
+  },
+  {
+    "name": "Export1",
+    "description": "Exportadoras",
+    "id": "84",
+    "keys": [
+      "EmpCod",
+      "ExpCod"
+    ],
+    "indexes": [
+      "IExport1:Unique:EmpCod+ExpCod",
+      "IExport12:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "ExpProd",
+    "description": "Exportadora V/S Productores",
+    "id": "85",
+    "keys": [
+      "EmpCod",
+      "ExpCod",
+      "ProdCod"
+    ],
+    "indexes": [
+      "IExpProd:Unique:EmpCod+ExpCod+ProdCod",
+      "IExpProd2:Duplicate:EmpCod+ExpCod",
+      "IExpProd3:Duplicate:EmpCod+ProdCod"
+    ]
+  },
+  {
+    "name": "factura",
+    "description": "factura",
+    "id": "203",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "FacNum"
+    ],
+    "indexes": [
+      "Ifactura:Unique:EmpCod+TempCod+FacNum",
+      "Ifactura1:Duplicate:EmpCod+CliCod",
+      "Ifactura2:Duplicate:EmpCod+TempCod",
+      "Ifactura3:Duplicate:FacViaTraCod",
+      "Ifactura4:Duplicate:FacClauVenCod",
+      "Ifactura5:Duplicate:FacModvenCod",
+      "Ifactura6:Duplicate:FacForPcod",
+      "idx_1:Duplicate:EmpCod+TempCod+FacNum+FacTipDoc"
+    ]
+  },
+  {
+    "name": "factura1",
+    "description": "factura1",
+    "id": "204",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "FacNum",
+      "Fac1Corr"
+    ],
+    "indexes": [
+      "Ifactura11:Unique:EmpCod+TempCod+FacNum+Fac1Corr",
+      "Ifactura12:Duplicate:EmpCod+TempCod+FacNum"
+    ]
+  },
+  {
+    "name": "FComercial",
+    "description": "FComercial",
+    "id": "196",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "FCOProceso",
+      "FCONumI"
+    ],
+    "indexes": [
+      "IFComercial:Unique:EmpCod+TempCod+FCOProceso+FCONumI",
+      "IFComercial2:Duplicate:EmpCod+TMcod+TMSCod",
+      "IFComercial3:Duplicate:EmpCod+TempCod",
+      "ind_FCOfecha:Duplicate:EmpCod+TempCod+FCOFecha+FCOProceso+Especod",
+      "IFComercial4:Duplicate:EmpCod+Especod"
+    ]
+  },
+  {
+    "name": "Foldiagrama",
+    "description": "Foldiagrama",
+    "id": "214",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "FolDNdoc"
+    ],
+    "indexes": [
+      "IFoldiagrama:Unique:EmpCod+TempCod+FolDNdoc",
+      "IFoldiagrama1:Duplicate:EmpCod+TempCod",
+      "IFoldiagrama2:Duplicate:EmpCod+Especod"
+    ]
+  },
+  {
+    "name": "Foldiagrama1",
+    "description": "Foldiagrama1",
+    "id": "215",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "FolDNdoc",
+      "FolD1Corr"
+    ],
+    "indexes": [
+      "IFoldiagrama11:Unique:EmpCod+TempCod+FolDNdoc+FolD1Corr",
+      "IFoldiagrama13:Duplicate:EmpCod+TempCod+FolDNdoc",
+      "IFoldiagrama12:Duplicate:EmpCod+TBPCod"
+    ]
+  },
+  {
+    "name": "FoliosProc",
+    "description": "Folios Procesados",
+    "id": "132",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "FPFolio"
+    ],
+    "indexes": [
+      "IFoliosProc:Unique:EmpCod+TempCod+FPFolio",
+      "IFoliosProc1:Duplicate:EmpCod+FPEspe",
+      "IFoliosProc2:Duplicate:EmpCod+ExpCod",
+      "IFoliosProc3:Duplicate:EmpCod+TempCod",
+      "IFoliosProc4:Duplicate:EmpCod+TBPCod",
+      "IFoliosProc5:Duplicate:EmpCod+TAlCod",
+      "IFoliosProc6:Duplicate:EmpCod+TEtCod"
+    ]
+  },
+  {
+    "name": "FoliosProc1",
+    "description": "Detalle de Folios Procesados",
+    "id": "133",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "FPFolio",
+      "FP2NProc",
+      "FP2Cor"
+    ],
+    "indexes": [
+      "IFoliosProc11:Unique:EmpCod+TempCod+FPFolio+FP2NProc+FP2Cor",
+      "IFoliosProc12:Duplicate:EmpCod+fp2especod+fp2varcod",
+      "IFoliosProc13:Duplicate:EmpCod+fp2especod+Calibre",
+      "IFoliosProc14:Duplicate:EmpCod+EnvCod+Catcod",
+      "IFoliosProc16:Duplicate:EmpCod+TempCod+FPFolio",
+      "ind_verifolio:Duplicate:EmpCod+TempCod+FPFolio+FP2Fecha+fp2especod+fp2varcod+ProdCod+EnvCod+Catcod+Calibre",
+      "ind_CorFol:Duplicate:EmpCod+TempCod+FPFolio+FP2NProc+FP2Cor",
+      "ind_FolFecha:Duplicate:EmpCod+TempCod+FP2Fecha+fp2especod+fp2varcod+FPFolio",
+      "Ind_FolProc:Duplicate:EmpCod+TempCod+fp2especod+fp2varcod+FPFolio+FP2Fecha",
+      "Ind_EspeFol:Duplicate:EmpCod+TempCod+fp2especod+FPFolio+FP2Fecha",
+      "IND_InfCal:Duplicate:EmpCod+TempCod+fp2expcod+ProdCod+fp2especod+fp2varcod+EnvCod+Catcod+Calibre",
+      "IFoliosProc17:Duplicate:EmpCod+fp2expcod+ProdCod",
+      "IFoliosProc15:Duplicate:EmpCod+ProdCod+CuarCod"
+    ]
+  },
+  {
+    "name": "Gen_ETIXCal",
+    "description": "Grupos de Etiquetas",
+    "id": "200",
+    "keys": [
+      "EmpCod",
+      "GETxCCodigo",
+      "Especod"
+    ],
+    "indexes": [
+      "IGen_ETIXCal:Unique:EmpCod+GETxCCodigo+Especod",
+      "IGen_ETIXCal1:Duplicate:EmpCod+Especod"
+    ]
+  },
+  {
+    "name": "Gen_ETIXCal1",
+    "description": "Grupos Etiquetas por Calibre",
+    "id": "201",
+    "keys": [
+      "EmpCod",
+      "GETxCCodigo",
+      "Especod",
+      "Calibre"
+    ],
+    "indexes": [
+      "IGen_ETIXCal11:Unique:EmpCod+GETxCCodigo+Especod+Calibre",
+      "IGen_ETIXCal12:Duplicate:EmpCod+Especod+Calibre",
+      "IGen_ETIXCal13:Duplicate:EmpCod+GETxCCodigo+Especod"
+    ]
+  },
+  {
+    "name": "GenCor",
+    "description": "GenCor",
+    "id": "86",
+    "keys": [
+      "EmpCod",
+      "GenCod"
+    ],
+    "indexes": [
+      "IGenCor:Unique:EmpCod+GenCod",
+      "IGenCor1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "GuiasD",
+    "description": "Guias de Despacho",
+    "id": "187",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "GuiNumInt"
+    ],
+    "indexes": [
+      "IGuiasD:Unique:EmpCod+TempCod+GuiNumInt",
+      "IGuiasD1:Duplicate:EmpCod+CliCod",
+      "IGuiasD2:Duplicate:EmpCod+TempCod",
+      "ind_guias02:Duplicate:EmpCod+TempCod+GuiFecha+GuiNumLeg",
+      "ind_guianleg:Duplicate:EmpCod+GuiNumLeg+GuiEmisor",
+      "IGuiasD3:Duplicate:PackPuDe",
+      "IGuiasD4:Duplicate:PackPuOr"
+    ]
+  },
+  {
+    "name": "GuiasD1",
+    "description": "Detalle de Guias de Despacho",
+    "id": "188",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "GuiNumInt",
+      "Gui1Corr"
+    ],
+    "indexes": [
+      "IGuiasD11:Unique:EmpCod+TempCod+GuiNumInt+Gui1Corr",
+      "IGuiasD12:Duplicate:EmpCod+TempCod+GuiNumInt",
+      "IGuiasD13:Duplicate:EmpCod+Especod",
+      "IGuiasD14:Duplicate:EmpCod+EnvCod"
+    ]
+  },
+  {
+    "name": "HHSemanas",
+    "description": "HHSemanas",
+    "id": "167",
+    "keys": [
+      "HHSEMP",
+      "HHSCor",
+      "HHSTIPO"
+    ],
+    "indexes": [
+      "IHHSemanas:Unique:HHSEMP+HHSCor+HHSTIPO"
+    ]
+  },
+  {
+    "name": "HisIN",
+    "description": "HisIN",
+    "id": "104",
+    "keys": [
+      "EmpCod",
+      "HisAAMM",
+      "HisTipo",
+      "HisOricod",
+      "HisCuar",
+      "HisProd",
+      "Hisespe",
+      "HisVar",
+      "HisEnv",
+      "HisCondi"
+    ],
+    "indexes": [
+      "IHisIN:Unique:EmpCod+HisAAMM+HisTipo+HisOricod+HisCuar+HisProd+Hisespe+HisVar+HisEnv+HisCondi",
+      "IHisIN1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "Horarios",
+    "description": "Horarios",
+    "id": "162",
+    "keys": [
+      "HRini",
+      "HRFin",
+      "HRpausa"
+    ],
+    "indexes": [
+      "IHorarios:Unique:HRini+HRFin+HRpausa"
+    ]
+  },
+  {
+    "name": "IngActivo",
+    "description": "IngActivo",
+    "id": "212",
+    "keys": [
+      "INACCod"
+    ],
+    "indexes": [
+      "IIngActivo:Unique:INACCod"
+    ]
+  },
+  {
+    "name": "LinConfig",
+    "description": "LinConfig",
+    "id": "219",
+    "keys": [
+      "EmpCod",
+      "LinMaquina",
+      "LinID",
+      "ConfID"
+    ],
+    "indexes": [
+      "ILinConfig:Unique:EmpCod+LinMaquina+LinID+ConfID",
+      "ILinConfig1:Duplicate:EmpCod+EnvCod+Catcod",
+      "ILinConfig2:Duplicate:EmpCod+Especod+Calibre",
+      "ILinConfig3:Duplicate:EmpCod+LinMaquina+LinID"
+    ]
+  },
+  {
+    "name": "Lineas",
+    "description": "Lineas",
+    "id": "220",
+    "keys": [
+      "EmpCod",
+      "LinMaquina",
+      "LinID"
+    ],
+    "indexes": [
+      "ILineas:Unique:EmpCod+LinMaquina+LinID",
+      "ILineas1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "ListPrecios",
+    "description": "ListPrecios",
+    "id": "206",
+    "keys": [
+      "EmpCod",
+      "CliCod",
+      "Especod",
+      "Calibre",
+      "EnvCod",
+      "LSPFecD",
+      "LSPFecH",
+      "MonCod"
+    ],
+    "indexes": [
+      "IListPrecios:Unique:EmpCod+CliCod+Especod+Calibre+EnvCod+LSPFecD+LSPFecH+MonCod",
+      "IListPrecios1:Duplicate:MonCod",
+      "IListPrecios2:Duplicate:EmpCod+EnvCod",
+      "IListPrecios3:Duplicate:EmpCod+Especod+Calibre",
+      "IListPrecios4:Duplicate:EmpCod+CliCod"
+    ]
+  },
+  {
+    "name": "MaeClauVenta",
+    "description": "MaeClauVenta",
+    "id": "222",
+    "keys": [
+      "MaeClauCod"
+    ],
+    "indexes": [
+      "IMaeClauVenta:Unique:MaeClauCod"
+    ]
+  },
+  {
+    "name": "MaeForPag",
+    "description": "MaeForPag",
+    "id": "223",
+    "keys": [
+      "ForPaCod"
+    ],
+    "indexes": [
+      "IMaeForPag:Unique:ForPaCod"
+    ]
+  },
+  {
+    "name": "MaeLineaEmbalaje",
+    "description": "MaeLineaEmbalaje",
+    "id": "221",
+    "keys": [
+      "MaeLinCod"
+    ],
+    "indexes": [
+      "IMaeLineaEmbalaje:Unique:MaeLinCod"
+    ]
+  },
+  {
+    "name": "MaeModVenta",
+    "description": "MaeModVenta",
+    "id": "224",
+    "keys": [
+      "ModVenCod"
+    ],
+    "indexes": [
+      "IMaeModVenta:Unique:ModVenCod"
+    ]
+  },
+  {
+    "name": "MaeViaTran",
+    "description": "MaeViaTran",
+    "id": "225",
+    "keys": [
+      "MaeViaCod"
+    ],
+    "indexes": [
+      "IMaeViaTran:Unique:MaeViaCod"
+    ]
+  },
+  {
+    "name": "Modulos",
+    "description": "Modulos",
+    "id": "171",
+    "keys": [
+      "SistCod",
+      "Modcod"
+    ],
+    "indexes": [
+      "IModulos:Unique:SistCod+Modcod",
+      "IModulos1:Duplicate:SistCod"
+    ]
+  },
+  {
+    "name": "Monedas",
+    "description": "Monedas",
+    "id": "207",
+    "keys": [
+      "MonCod"
+    ],
+    "indexes": [
+      "IMonedas:Unique:MonCod"
+    ]
+  },
+  {
+    "name": "MovFrut",
+    "description": "MovFrut",
+    "id": "178",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "OriCod",
+      "MovTDoc",
+      "MovNGuia",
+      "MovProd"
+    ],
+    "indexes": [
+      "IMovFrut:Unique:EmpCod+TempCod+OriCod+MovTDoc+MovNGuia+MovProd",
+      "IMovFrut1:Duplicate:EmpCod+MovProd",
+      "IMovFrut2:Duplicate:MovTDoc",
+      "IMovFrut3:Duplicate:EmpCod+TMcod+TMSCod",
+      "IMovFrut4:Duplicate:EmpCod+OriCod",
+      "IMovFrut5:Duplicate:EmpCod+TempCod",
+      "ind_fecha:Duplicate:EmpCod+TempCod+TMcod+TMSCod+MovFecha"
+    ]
+  },
+  {
+    "name": "MovFrut1",
+    "description": "MovFrut1",
+    "id": "179",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "OriCod",
+      "MovTDoc",
+      "MovNGuia",
+      "MovProd",
+      "Mov1Nlote"
+    ],
+    "indexes": [
+      "IMovFrut11:Unique:EmpCod+TempCod+OriCod+MovTDoc+MovNGuia+MovProd+Mov1Nlote",
+      "IMovFrut12:Duplicate:Mov1Condi",
+      "IMovFrut13:Duplicate:EmpCod+Mov1TEnv",
+      "IMovFrut14:Duplicate:EmpCod+Mov1Espe+Mov1Var",
+      "IMovFrut15:Duplicate:EmpCod+MovProd+Mov1Cuar",
+      "IMovFrut16:Duplicate:EmpCod+TempCod+OriCod+MovTDoc+MovNGuia+MovProd",
+      "Ind_StockLote:Duplicate:EmpCod+TempCod+MovProd+Mov1Espe+Mov1Nlote",
+      "BusLote:Duplicate:EmpCod+TempCod+Mov1Nlote",
+      "Ind_OriProd:Duplicate:EmpCod+TempCod+OriCod+MovProd+Mov1Espe"
+    ]
+  },
+  {
+    "name": "NivSeg",
+    "description": "NivSeg",
+    "id": "5",
+    "keys": [
+      "NSegMod",
+      "NSegProg"
+    ],
+    "indexes": [
+      "INivSeg:Unique:NSegMod+NSegProg"
+    ]
+  },
+  {
+    "name": "OrdProc",
+    "description": "Orden de Proceso",
+    "id": "180",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "Ordpnum"
+    ],
+    "indexes": [
+      "IOrdProc:Unique:EmpCod+TempCod+Ordpnum",
+      "IOrdProc1:Duplicate:EmpCod+Especod+VarCod",
+      "IOrdProc2:Duplicate:EmpCod+TempCod",
+      "ind_fecord:Duplicate:EmpCod+TempCod+OrdpFecha+Especod",
+      "IOrdProc4:Duplicate:EmpCod+ExpCod+ProdCod",
+      "IOrdProc3:Duplicate:EmpCod+OrdpTipEnv"
+    ]
+  },
+  {
+    "name": "OrdProc1",
+    "description": "Detalle de Orden de Proceso",
+    "id": "181",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "Ordpnum",
+      "Ordp1Nlote"
+    ],
+    "indexes": [
+      "IOrdProc11:Unique:EmpCod+TempCod+Ordpnum+Ordp1Nlote",
+      "IOrdProc12:Duplicate:EmpCod+TempCod+Ordpnum"
+    ]
+  },
+  {
+    "name": "Origen",
+    "description": "Origen",
+    "id": "87",
+    "keys": [
+      "EmpCod",
+      "OriCod"
+    ],
+    "indexes": [
+      "IOrigen:Unique:EmpCod+OriCod",
+      "IOrigen1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "PackList",
+    "description": "PackList",
+    "id": "139",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "PackNumI"
+    ],
+    "indexes": [
+      "IPackList:Unique:EmpCod+TempCod+PackNumI",
+      "IPackList1:Duplicate:EmpCod+DACod",
+      "IPackList2:Duplicate:EmpCod+TempCod",
+      "IPackList3:Duplicate:EmpCod+AgeCod",
+      "IPackList4:Duplicate:DestCod",
+      "IPackList5:Duplicate:EmpCod+ConsCod",
+      "IPackList6:Duplicate:EmpCod+ExpCod",
+      "IPackList7:Duplicate:PackPuOr",
+      "IPackList8:Duplicate:PackPuDe",
+      "ind_packFecha:Duplicate:EmpCod+TempCod+PackFecha",
+      "IPackList9:Duplicate:EmpCod+CliCod",
+      "ind_packnumplani:Duplicate:EmpCod+TempCod+PackNumG"
+    ]
+  },
+  {
+    "name": "Paletiza01",
+    "description": "Paletizado",
+    "id": "192",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "PALFolio"
+    ],
+    "indexes": [
+      "IPaletiza01:Unique:EmpCod+TempCod+PALFolio",
+      "IPaletiza011:Duplicate:EmpCod+ExpCod",
+      "IPaletiza013:Duplicate:EmpCod+TempCod",
+      "IPaletiza012:Duplicate:EmpCod+PALEspe",
+      "Ind_paletizaFecha:Duplicate:EmpCod+TempCod+PALFecha"
+    ]
+  },
+  {
+    "name": "Paletiza011",
+    "description": "Detalle de Paletizado",
+    "id": "193",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "PALFolio",
+      "PAL2NCaja"
+    ],
+    "indexes": [
+      "IPaletiza0111:Unique:EmpCod+TempCod+PALFolio+PAL2NCaja",
+      "IPaletiza0112:Duplicate:EmpCod+TempCod+PALFolio",
+      "IPaletiza0113:Duplicate:EmpCod+Especod+Calibre",
+      "IPaletiza0114:Duplicate:EmpCod+EnvCod+Catcod",
+      "IPaletiza0115:Duplicate:EmpCod+ProdCod",
+      "IPaletiza0116:Duplicate:EmpCod+Especod+VarCod"
+    ]
+  },
+  {
+    "name": "paramge1",
+    "description": "paramge1",
+    "id": "190",
+    "keys": [
+      "EmpCod",
+      "PARCod",
+      "PAR1Cod"
+    ],
+    "indexes": [
+      "Iparamg2:Unique:EmpCod+PARCod+PAR1Cod",
+      "Iparamg3:Duplicate:EmpCod+PARCod"
+    ]
+  },
+  {
+    "name": "paramgen",
+    "description": "paramgen",
+    "id": "189",
+    "keys": [
+      "EmpCod",
+      "PARCod"
+    ],
+    "indexes": [
+      "Iparamgen:Unique:EmpCod+PARCod",
+      "Iparamg1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "PasoSol",
+    "description": "PasoSol",
+    "id": "191",
+    "keys": [
+      "EmpCod",
+      "PSSoluser",
+      "PSSolprod",
+      "PSSolCuar"
+    ],
+    "indexes": [
+      "IPasoSol:Unique:EmpCod+PSSoluser+PSSolprod+PSSolCuar",
+      "IPasoSol1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "Pausas",
+    "description": "Pausas",
+    "id": "163",
+    "keys": [
+      "PAUCod"
+    ],
+    "indexes": [
+      "IPausas:Unique:PAUCod"
+    ]
+  },
+  {
+    "name": "Procedencia",
+    "description": "Procedencia",
+    "id": "88",
+    "keys": [
+      "EmpCod",
+      "ProcCod"
+    ],
+    "indexes": [
+      "IProcedencia:Unique:EmpCod+ProcCod",
+      "IProcedencia1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "ProcUSDA",
+    "description": "Procesos Usda",
+    "id": "149",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "PUSTipo",
+      "PUSNum"
+    ],
+    "indexes": [
+      "IProcUSDA:Unique:EmpCod+TempCod+PUSTipo+PUSNum",
+      "IProcUSDA2:Duplicate:EmpCod+TempCod",
+      "IProcUSDA1:Duplicate:EmpCod+PUSEspe"
+    ]
+  },
+  {
+    "name": "ProcUSDA1",
+    "description": "Detalle Procesos Usda",
+    "id": "150",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "PUSTipo",
+      "PUSNum",
+      "PUS1Folio"
+    ],
+    "indexes": [
+      "IProcUSDA11:Unique:EmpCod+TempCod+PUSTipo+PUSNum+PUS1Folio",
+      "IProcUSDA12:Duplicate:EmpCod+TempCod+PUSTipo+PUSNum",
+      "IProcUSDA13:Duplicate:EmpCod+PUS1Espe",
+      "IProcUSDA14:Duplicate:EmpCod+TBPCod",
+      "IProcUSDA15:Duplicate:EmpCod+TAlCod",
+      "IProcUSDA16:Duplicate:EmpCod+TEtCod"
+    ]
+  },
+  {
+    "name": "ProcUSDA2",
+    "description": "Detalle de Folios USDA",
+    "id": "151",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "PUSTipo",
+      "PUSNum",
+      "PUS1Folio",
+      "PUS2Cor"
+    ],
+    "indexes": [
+      "IProcUSDA21:Unique:EmpCod+TempCod+PUSTipo+PUSNum+PUS1Folio+PUS2Cor",
+      "IProcUSDA22:Duplicate:EmpCod+Especod+Calibre",
+      "IProcUSDA23:Duplicate:EmpCod+Especod+VarCod",
+      "IProcUSDA24:Duplicate:EmpCod+EnvCod+Catcod",
+      "IProcUSDA25:Duplicate:EmpCod+ProdCod",
+      "IProcUSDA26:Duplicate:EmpCod+TempCod+PUSTipo+PUSNum+PUS1Folio"
+    ]
+  },
+  {
+    "name": "ProdGen",
+    "description": "ProdGen",
+    "id": "159",
+    "keys": [
+      "PRGCod"
+    ],
+    "indexes": [
+      "IProdGen:Unique:PRGCod"
+    ]
+  },
+  {
+    "name": "Productores",
+    "description": "Productores",
+    "id": "89",
+    "keys": [
+      "EmpCod",
+      "ProdCod"
+    ],
+    "indexes": [
+      "IProductores:Unique:EmpCod+ProdCod",
+      "IProductores1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "Productores1",
+    "description": "Cuarteles",
+    "id": "90",
+    "keys": [
+      "EmpCod",
+      "ProdCod",
+      "CuarCod"
+    ],
+    "indexes": [
+      "IProductores11:Unique:EmpCod+ProdCod+CuarCod",
+      "IProductores12:Duplicate:EmpCod+ProdCod"
+    ]
+  },
+  {
+    "name": "Program",
+    "description": "Program",
+    "id": "172",
+    "keys": [
+      "SistCod",
+      "Modcod",
+      "ProgCod"
+    ],
+    "indexes": [
+      "IProgram:Unique:SistCod+Modcod+ProgCod",
+      "IProgram1:Duplicate:SistCod+Modcod"
+    ]
+  },
+  {
+    "name": "Program1",
+    "description": "Program1",
+    "id": "173",
+    "keys": [
+      "SistCod",
+      "Modcod",
+      "ProgCod",
+      "ProgOPCod"
+    ],
+    "indexes": [
+      "IProgram11:Unique:SistCod+Modcod+ProgCod+ProgOPCod",
+      "IProgram12:Duplicate:SistCod+Modcod+ProgCod"
+    ]
+  },
+  {
+    "name": "PS_Diagramas",
+    "description": "PS Diagramas",
+    "id": "216",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "PSD_Login",
+      "PSD_ID",
+      "PSD_Folio",
+      "PSD_Corr"
+    ],
+    "indexes": [
+      "IPS_Diagramas:Unique:EmpCod+TempCod+PSD_Login+PSD_ID+PSD_Folio+PSD_Corr",
+      "IPS_Diagramas1:Duplicate:EmpCod+TempCod"
+    ]
+  },
+  {
+    "name": "PS_InfCal",
+    "description": "PS InfCal",
+    "id": "148",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "PSC_login",
+      "PSC_Expor",
+      "PSC_Dest",
+      "PSC_Prod",
+      "PSC_Espe",
+      "PSC_Var",
+      "PSC_Env",
+      "PSC_Cor"
+    ],
+    "indexes": [
+      "IPS_InfCal:Unique:EmpCod+TempCod+PSC_login+PSC_Expor+PSC_Dest+PSC_Prod+PSC_Espe+PSC_Var+PSC_Env+PSC_Cor",
+      "IPS_InfCal1:Duplicate:EmpCod+PSC_Env",
+      "IPS_InfCal2:Duplicate:EmpCod+PSC_Espe+PSC_Var",
+      "IPS_InfCal3:Duplicate:EmpCod+PSC_Prod",
+      "IPS_InfCal4:Duplicate:PSC_Dest",
+      "IPS_InfCal5:Duplicate:EmpCod+PSC_Expor",
+      "IPS_InfCal6:Duplicate:EmpCod+TempCod"
+    ]
+  },
+  {
+    "name": "PS_InfG001",
+    "description": "PS InfG001",
+    "id": "186",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "PSI_Login",
+      "PSI_Fecha",
+      "PSI_Texto",
+      "PSI_Num",
+      "PSI_ID"
+    ],
+    "indexes": [
+      "IPS_InfG001:Unique:EmpCod+TempCod+PSI_Login+PSI_Fecha+PSI_Texto+PSI_Num+PSI_ID",
+      "IPS_InfG0011:Duplicate:EmpCod+TempCod",
+      "Ind_PSGuias:Duplicate:EmpCod+TempCod+PSI_Login+PSI_Fecha+PSI_Texto+PSI_Num+PSI_ID+PSI_Text02"
+    ]
+  },
+  {
+    "name": "PS_SalRep01",
+    "description": "PS SalRep01",
+    "id": "130",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "PSR_Login",
+      "PSR_NREp",
+      "PSR_Espe",
+      "PSR_Var",
+      "PSR_Prod",
+      "PSR_Env",
+      "PSR_Cat",
+      "PSR_Cal"
+    ],
+    "indexes": [
+      "IPS_SalRep01:Unique:EmpCod+TempCod+PSR_Login+PSR_NREp+PSR_Espe+PSR_Var+PSR_Prod+PSR_Env+PSR_Cat+PSR_Cal",
+      "IPS_SalRep011:Duplicate:EmpCod+PSR_Env+PSR_Cat",
+      "IPS_SalRep012:Duplicate:EmpCod+PSR_Prod",
+      "IPS_SalRep013:Duplicate:EmpCod+PSR_Espe+PSR_Var",
+      "IPS_SalRep014:Duplicate:EmpCod+TempCod"
+    ]
+  },
+  {
+    "name": "PS_Salrep02",
+    "description": "PS Salrep02",
+    "id": "131",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "PSRM_Login",
+      "PSRM_Repa",
+      "PSRM_Folio",
+      "PSRM_Corr"
+    ],
+    "indexes": [
+      "IPS_Salrep02:Unique:EmpCod+TempCod+PSRM_Login+PSRM_Repa+PSRM_Folio+PSRM_Corr",
+      "IPS_Salrep021:Duplicate:EmpCod+TempCod"
+    ]
+  },
+  {
+    "name": "PS_Stock",
+    "description": "PS Stock",
+    "id": "102",
+    "keys": [
+      "EmpCod",
+      "PLogin",
+      "POricod",
+      "PProd",
+      "PCuar",
+      "PEspe",
+      "PVar",
+      "PEnv",
+      "PCond"
+    ],
+    "indexes": [
+      "IPS_Stock:Unique:EmpCod+PLogin+POricod+PProd+PCuar+PEspe+PVar+PEnv+PCond",
+      "IPS_Stock1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "Puertos",
+    "description": "Puertos",
+    "id": "135",
+    "keys": [
+      "PuCod"
+    ],
+    "indexes": [
+      "IPuertos:Unique:PuCod"
+    ]
+  },
+  {
+    "name": "RecPesaje",
+    "description": "RecPesaje",
+    "id": "226",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "RPSTdoc",
+      "RPSNdoc",
+      "RPSID"
+    ],
+    "indexes": [
+      "IRecPesaje:Unique:EmpCod+TempCod+RPSTdoc+RPSNdoc+RPSID",
+      "IRecPesaje1:Duplicate:ConCod",
+      "IRecPesaje2:Duplicate:EmpCod+EnvCod",
+      "IRecPesaje3:Duplicate:EmpCod+Especod+VarCod",
+      "IRecPesaje4:Duplicate:EmpCod+ProdCod+CuarCod",
+      "IRecPesaje5:Duplicate:EmpCod+TempCod"
+    ]
+  },
+  {
+    "name": "Repaletizaje",
+    "description": "Repaletizaje",
+    "id": "127",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "REPNum"
+    ],
+    "indexes": [
+      "IRepaletizaje:Unique:EmpCod+TempCod+REPNum",
+      "IRepaletizaje1:Duplicate:EmpCod+TempCod",
+      "IRepaletizaje3:Duplicate:EmpCod+DACod"
+    ]
+  },
+  {
+    "name": "Repaletizaje1",
+    "description": "Repaletizaje1",
+    "id": "128",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "REPNum",
+      "REP0Fol"
+    ],
+    "indexes": [
+      "IRepaletizaje11:Unique:EmpCod+TempCod+REPNum+REP0Fol",
+      "IRepaletizaje12:Duplicate:EmpCod+REp0Espe",
+      "IRepaletizaje13:Duplicate:EmpCod+TempCod+REPNum",
+      "IRepaletizaje14:Duplicate:EmpCod+REP0CBase",
+      "IRepaletizaje15:Duplicate:EmpCod+REP0Calt"
+    ]
+  },
+  {
+    "name": "Repaletizaje2",
+    "description": "Repaletizaje2",
+    "id": "129",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "REPNum",
+      "REP0Fol",
+      "Rep1Corr",
+      "REP1Mov"
+    ],
+    "indexes": [
+      "IRepaletizaje2:Unique:EmpCod+TempCod+REPNum+REP0Fol+Rep1Corr+REP1Mov",
+      "IRepaletizaje21:Duplicate:EmpCod+REP1Env+REP1Cat",
+      "IRepaletizaje22:Duplicate:EmpCod+REP1Espe+Rep1Var",
+      "IRepaletizaje23:Duplicate:EmpCod+REP1Prod",
+      "IRepaletizaje24:Duplicate:EmpCod+TempCod+REPNum+REP0Fol",
+      "ind_datosCajas:Duplicate:EmpCod+TempCod+REP0Fol+Rep1Var+REP1Prod+REP1Env+REP1Cat+REP1Cal"
+    ]
+  },
+  {
+    "name": "RepFolProc",
+    "description": "RepFolProc",
+    "id": "155",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "FR0NumI"
+    ],
+    "indexes": [
+      "IRepFolProc:Unique:EmpCod+TempCod+FR0NumI",
+      "IRepFolProc1:Duplicate:EmpCod+TempCod"
+    ]
+  },
+  {
+    "name": "RepFolProc1",
+    "description": "RepFolProc1",
+    "id": "156",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "FR0NumI",
+      "FR1Folio"
+    ],
+    "indexes": [
+      "IRepFolProc11:Unique:EmpCod+TempCod+FR0NumI+FR1Folio",
+      "IRepFolProc12:Duplicate:EmpCod+TempCod+FR0NumI",
+      "IRepFolProc13:Duplicate:EmpCod+FR1CBase",
+      "IRepFolProc14:Duplicate:EmpCod+FR1Calt",
+      "IRepFolProc15:Duplicate:EmpCod+FR1Espe"
+    ]
+  },
+  {
+    "name": "RepFolProc2",
+    "description": "RepFolProc2",
+    "id": "157",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "FR0NumI",
+      "FR1Folio",
+      "FR2Corr"
+    ],
+    "indexes": [
+      "IRepFolProc2:Unique:EmpCod+TempCod+FR0NumI+FR1Folio+FR2Corr",
+      "IRepFolProc21:Duplicate:EmpCod+TempCod+FR0NumI+FR1Folio",
+      "IRepFolProc22:Duplicate:EmpCod+FR2Env+FR2Cat",
+      "IRepFolProc23:Duplicate:EmpCod+FR2Espe+FR2Var",
+      "IRepFolProc24:Duplicate:EmpCod+FR2PRod"
+    ]
+  },
+  {
+    "name": "Secciones",
+    "description": "Secciones",
+    "id": "91",
+    "keys": [
+      "EmpCod",
+      "Seccod"
+    ],
+    "indexes": [
+      "ISecciones:Unique:EmpCod+Seccod",
+      "ISecciones1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "Sistemas",
+    "description": "Sistemas",
+    "id": "174",
+    "keys": [
+      "SistCod"
+    ],
+    "indexes": [
+      "ISistemas:Unique:SistCod"
+    ]
+  },
+  {
+    "name": "Solicitudes1",
+    "description": "Encabezado Solicitudes",
+    "id": "124",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "SolNum"
+    ],
+    "indexes": [
+      "ISolicitudes3:Unique:EmpCod+TempCod+SolNum",
+      "ISolicitudes6:Duplicate:EmpCod+TempCod",
+      "ISolicitudes:Duplicate:EmpCod+solespe",
+      "ISolicitudes1:Duplicate:SolDest",
+      "IND_SolFec:Duplicate:EmpCod+TempCod+Solfecha+solespe"
+    ]
+  },
+  {
+    "name": "Solicitudes2",
+    "description": "TAB Solicitudes",
+    "id": "125",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "SolNum",
+      "Sol2Folio"
+    ],
+    "indexes": [
+      "ITAB_Solicitudes:Unique:EmpCod+TempCod+SolNum+Sol2Folio",
+      "ITAB_Solicitud1:Duplicate:EmpCod+Sol2Espe",
+      "ITAB_Solicitud2:Duplicate:EmpCod+TempCod+SolNum",
+      "Ind_espe:Duplicate:EmpCod+TempCod+Sol2Espe+Sol2Folio",
+      "ind_SolFolAnu:Duplicate:EmpCod+TempCod+Sol2NumAnu",
+      "ISolicitudes2:Duplicate:EmpCod+Sol2Ceti",
+      "ISolicitudes21:Duplicate:EmpCod+Sol2CBase",
+      "ISolicitudes22:Duplicate:EmpCod+Sol2CAlt"
+    ]
+  },
+  {
+    "name": "Solicitudes3",
+    "description": "TAB Solicitude1",
+    "id": "126",
+    "keys": [
+      "EmpCod",
+      "TempCod",
+      "SolNum",
+      "Sol2Folio",
+      "Sol3Corr"
+    ],
+    "indexes": [
+      "ISolicitudes31:Unique:EmpCod+TempCod+SolNum+Sol2Folio+Sol3Corr",
+      "ISolicitudes32:Duplicate:EmpCod+Sol3Env+Sol3CaT",
+      "ISolicitudes33:Duplicate:EmpCod+Sol3prod",
+      "ISolicitudes34:Duplicate:EmpCod+Sol3espe+Sol3Var",
+      "ISolicitudes35:Duplicate:EmpCod+TempCod+SolNum+Sol2Folio",
+      "ind_SolDatosCajas:Duplicate:EmpCod+TempCod+Sol2Folio+Sol3Var+Sol3prod+Sol3Env+Sol3CaT+Sol3Cal"
+    ]
+  },
+  {
+    "name": "Temp01",
+    "description": "Temp01",
+    "id": "123",
+    "keys": [
+      "EmpCod",
+      "TempCod"
+    ],
+    "indexes": [
+      "ITemp01:Unique:EmpCod+TempCod",
+      "ITemp011:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "TipAlt",
+    "description": "TipAlt",
+    "id": "152",
+    "keys": [
+      "EmpCod",
+      "TAlCod"
+    ],
+    "indexes": [
+      "ITipAlt:Unique:EmpCod+TAlCod",
+      "ITipAlt1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "TipBPa",
+    "description": "TipBPa",
+    "id": "153",
+    "keys": [
+      "EmpCod",
+      "TBPCod"
+    ],
+    "indexes": [
+      "ITipBPa:Unique:EmpCod+TBPCod",
+      "ITipBPa1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "Tipdoc",
+    "description": "Tipos de Documentos",
+    "id": "38",
+    "keys": [
+      "TdCod"
+    ],
+    "indexes": [
+      "ITipdoc:Unique:TdCod"
+    ]
+  },
+  {
+    "name": "TipEti",
+    "description": "TipEti",
+    "id": "154",
+    "keys": [
+      "EmpCod",
+      "TEtCod"
+    ],
+    "indexes": [
+      "ITipEti:Unique:EmpCod+TEtCod",
+      "ITipEti1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "TipMov",
+    "description": "TipMov",
+    "id": "92",
+    "keys": [
+      "EmpCod",
+      "TMcod"
+    ],
+    "indexes": [
+      "ITipMov:Unique:EmpCod+TMcod",
+      "ITipMov1:Duplicate:EmpCod"
+    ]
+  },
+  {
+    "name": "TipMov1",
+    "description": "TipMov1",
+    "id": "93",
+    "keys": [
+      "EmpCod",
+      "TMcod",
+      "TMSCod"
+    ],
+    "indexes": [
+      "ITipMov11:Unique:EmpCod+TMcod+TMSCod",
+      "ITipMov12:Duplicate:EmpCod+TMcod"
+    ]
+  },
+  {
+    "name": "TipoTransMP",
+    "description": "TipoTransMP",
+    "id": "211",
+    "keys": [
+      "TTMPCod"
+    ],
+    "indexes": [
+      "ITipoTransMP:Unique:TTMPCod"
+    ]
+  },
+  {
+    "name": "TrataMP",
+    "description": "TrataMP",
+    "id": "213",
+    "keys": [
+      "TRACod"
+    ],
+    "indexes": [
+      "ITrataMP:Unique:TRACod"
+    ]
+  },
+  {
+    "name": "Usuarios",
+    "description": "Usuarios",
+    "id": "175",
+    "keys": [
+      "UsuLogin"
+    ],
+    "indexes": [
+      "IUsuarios:Unique:UsuLogin"
+    ]
+  },
+  {
+    "name": "ValMExt",
+    "description": "ValMExt",
+    "id": "205",
+    "keys": [
+      "MonCod",
+      "VMEFec"
+    ],
+    "indexes": [
+      "IValMExt:Unique:MonCod+VMEFec",
+      "IValMExt1:Duplicate:MonCod"
+    ]
+  }
+]

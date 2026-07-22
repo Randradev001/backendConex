@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "catalog:gx8": "node scripts/catalog-gx8-procedures.js",
+    "catalog:gx8:project": "node scripts/catalog-gx8-project.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
   },
