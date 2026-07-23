@@ -1,8 +1,8 @@
 const router = require('express').Router();
 const MaestrosController = require('../controllers/maestrosController');
-const tenantContext = require('../middleware/tenantContext');
+const authContext = require('../middleware/authContext');
 
-router.use(tenantContext);
+router.use(authContext);
 
 const bindReadRoute = (path, handler) => {
   router.get(path, handler);

@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const routes = require('./src/Router')
@@ -15,13 +16,16 @@ app.get('/ping', (req, res) => {
 });
 
 
-app.listen(process.env.PORT, () => {
-  console.log(`Servidor corriendo en puerto: ${process.env.PORT}`);
-});
-  
-const whiteList = ['http://appsgobm.com'];
-//app.use(cors({origin:whiteList}));
-app.use(cors({origin:"*"}));
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173,http://127.0.0.1:5173')
+  .split(',')
+  .map((origin) => origin.trim());
+app.use(cors({
+  credentials: true,
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Origen no permitido por CORS'));
+  }
+}));
 
 app.use('/backendDocker',routes);
 
@@ -67,4 +71,9 @@ timezone: "America/Santiago"
  scheduled: true,
  timezone: "America/Santiago"
  }); 
+
+const port = Number(process.env.PORT || 3000);
+app.listen(port, () => {
+  console.log(`Servidor corriendo en puerto: ${port}`);
+});
 
