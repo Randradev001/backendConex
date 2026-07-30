@@ -42,8 +42,11 @@ const session = (req, res) => res.json({
   user: req.auth.user,
   company: req.auth.company,
   permissions: req.auth.permissions,
+  menu: req.auth.menu,
   expiresAt: req.auth.expiresAt
 });
+
+const menu = (req, res) => res.json({ data: req.auth.menu || [] });
 
 const logout = async (req, res) => {
   try {
@@ -57,11 +60,11 @@ const logout = async (req, res) => {
 
 const changePassword = async (req, res) => {
   try {
-    await SeguridadService.changePassword(req.auth.user.login, req.body?.currentPassword, req.body?.newPassword);
+    await SeguridadService.changePassword(req.auth.user.login, req.auth.company.empCod, req.body?.currentPassword, req.body?.newPassword);
     return res.status(204).send();
   } catch (error) {
     return sendError(res, error);
   }
 };
 
-module.exports = { login, session, logout, changePassword };
+module.exports = { login, session, menu, logout, changePassword };

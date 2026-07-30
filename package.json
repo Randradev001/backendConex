@@ -6,7 +6,9 @@
   "scripts": {
     "catalog:gx8": "node scripts/catalog-gx8-procedures.js",
     "catalog:gx8:project": "node scripts/catalog-gx8-project.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:sql": "node scripts/run-sql-file.js",
+    "verify:conex": "node scripts/verify-conex-migration.js",
+    "test": "node --test",
     "start": "node index.js"
   },
   "keywords": [],

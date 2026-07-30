@@ -1,0 +1,1543 @@
+[
+  {
+    "gxName": "DEFEMP",
+    "screen": "Empresas",
+    "menuVisible": true,
+    "table": "DEFEMP",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod"
+    ],
+    "dbColumnCount": 19,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "EmpNom char(50) NULL",
+      "EmpGiro char(35) NULL",
+      "Empdir char(30) NULL",
+      "EmpRut int(10,0) NULL",
+      "EmpDV char(1) NULL",
+      "EmpRepre char(20) NULL",
+      "EmpSw smallint(5,0) NULL",
+      "EmpPar1 smallint(5,0) NULL",
+      "EmpPar2 smallint(5,0) NULL",
+      "empreg char(4) NULL",
+      "empSisProd smallint(5,0) NULL",
+      "EmpTempLot smallint(5,0) NULL",
+      "EmpCodSAG decimal(10,0) NULL",
+      "EmpCodCom char(20) NULL",
+      "EmpRutIMG char(100) NULL",
+      "EmpTReg smallint(5,0) NULL",
+      "Empcom char(20) NULL",
+      "Empprov char(20) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "EmpCod*",
+      "EmpNom",
+      "EmpGiro",
+      "Empdir",
+      "EmpRut",
+      "EmpDV",
+      "EmpRepre",
+      "EmpSw",
+      "EmpPar1",
+      "EmpPar2",
+      "empreg",
+      "Empprov",
+      "Empcom",
+      "empSisProd",
+      "EmpTempLot",
+      "EmpCodSAG",
+      "EmpCodCom",
+      "EmpRutIMG",
+      "EmpTReg"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "EmpNom",
+      "EmpGiro",
+      "Empdir",
+      "EmpRut",
+      "EmpDV",
+      "EmpRepre"
+    ],
+    "formFields": [
+      "EmpCod",
+      "EmpNom",
+      "EmpGiro",
+      "Empdir",
+      "EmpRut",
+      "EmpDV",
+      "EmpRepre",
+      "EmpSw",
+      "EmpPar1",
+      "EmpPar2",
+      "empreg",
+      "Empprov",
+      "Empcom",
+      "empSisProd",
+      "EmpTempLot",
+      "EmpCodSAG",
+      "EmpCodCom",
+      "EmpRutIMG",
+      "EmpTReg"
+    ],
+    "procedures": [],
+    "referencedFields": [
+      "EmpNom"
+    ],
+    "missingInventoryColumns": [],
+    "note": "Raiz multiempresa; no filtra por EmpCod de sesion.",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Temp01",
+    "screen": "Temporadas",
+    "menuVisible": true,
+    "table": "Temp01",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "TempCod"
+    ],
+    "dbColumnCount": 8,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "TempCod char(9) NOT NULL",
+      "TempDes char(20) NULL",
+      "TempFecAbre datetime NULL",
+      "TempLogA char(10) NULL",
+      "TempFecCierra datetime NULL",
+      "TempLogC char(10) NULL",
+      "TempActiva smallint(5,0) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "EmpCod*",
+      "TempCod*",
+      "TempDes",
+      "TempFecAbre",
+      "TempLogA",
+      "TempFecCierra",
+      "TempLogC",
+      "TempActiva"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "TempCod",
+      "TempDes",
+      "TempActiva",
+      "TempFecAbre",
+      "TempFecCierra"
+    ],
+    "formFields": [
+      "EmpCod",
+      "TempCod",
+      "TempDes",
+      "TempFecAbre",
+      "TempLogA",
+      "TempFecCierra",
+      "TempLogC",
+      "TempActiva"
+    ],
+    "procedures": [],
+    "referencedFields": [],
+    "missingInventoryColumns": [],
+    "note": "Maestro por empresa de sesion.",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Especies",
+    "screen": "Especies",
+    "menuVisible": true,
+    "table": "Especies",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "Especod"
+    ],
+    "dbColumnCount": 10,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "Especod smallint(5,0) NOT NULL",
+      "EspeNom char(20) NULL",
+      "EspeDiaV smallint(5,0) NULL",
+      "EspeSag int(10,0) NULL",
+      "EspeNomC char(4) NULL",
+      "EspePLU char(15) NULL",
+      "EspeCMP smallint(5,0) NULL",
+      "EspeNomExt char(20) NULL",
+      "EspeSECod char(10) NULL"
+    ],
+    "workPanel": true,
+    "report": false,
+    "structureHeader": [
+      "EmpCod*",
+      "EmpNom",
+      "Especod*",
+      "EspeNom",
+      "EspeNomExt",
+      "EspeNomC",
+      "EspeDiaV",
+      "EspeSag",
+      "EspePLU",
+      "EspeCMP",
+      "EspeNMP",
+      "EspeSECod"
+    ],
+    "structureDetails": [
+      [
+        "VarCod*",
+        "VarNom",
+        "varnomC",
+        "VarPLU",
+        "VarSECod"
+      ]
+    ],
+    "detailSections": [
+      "Especies1",
+      "Calibres"
+    ],
+    "listColumns": [
+      "Especod",
+      "EspeNom",
+      "EspeDiaV"
+    ],
+    "formFields": [
+      "EmpCod",
+      "EmpNom",
+      "Especod",
+      "EspeNom",
+      "EspeNomExt",
+      "EspeNomC",
+      "EspeDiaV",
+      "EspeSag",
+      "EspePLU",
+      "EspeCMP",
+      "EspeNMP",
+      "EspeSECod"
+    ],
+    "procedures": [],
+    "referencedFields": [
+      "EmpNom",
+      "EspeNom"
+    ],
+    "missingInventoryColumns": [
+      "EspeNMP"
+    ],
+    "note": "Calibres es detalle relacionado por Especod, aunque no sea nivel 2 de la Transaction Especies.",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "EnvCat",
+    "screen": "Envases",
+    "menuVisible": true,
+    "table": "EnvCat",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "EnvCod"
+    ],
+    "dbColumnCount": 11,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "EnvCod smallint(5,0) NOT NULL",
+      "EnvNom char(20) NULL",
+      "EnvPeso smallmoney(10,4) NULL",
+      "EnvDestare smallmoney(10,4) NULL",
+      "EnvUso smallint(5,0) NULL",
+      "EnvnomC char(10) NULL",
+      "EnvCMP smallint(5,0) NULL",
+      "EnvNomExt char(20) NULL",
+      "EnvSECod char(10) NULL",
+      "ENVPesoB smallmoney(10,4) NULL"
+    ],
+    "workPanel": true,
+    "report": true,
+    "structureHeader": [
+      "EmpCod*",
+      "EmpNom",
+      "EnvCod*",
+      "EnvNom",
+      "EnvNomExt",
+      "EnvnomC",
+      "EnvPeso",
+      "EnvDestare",
+      "EnvPesoB",
+      "EnvUso",
+      "EnvSECod",
+      "EnvCMP",
+      "EnvNMP"
+    ],
+    "structureDetails": [
+      [
+        "Catcod*",
+        "CatNom",
+        "CatnomExt",
+        "CatNomC",
+        "CatSECod"
+      ]
+    ],
+    "detailSections": [
+      "EnvCat1"
+    ],
+    "listColumns": [
+      "EnvCod",
+      "EnvNom",
+      "EnvNomExt"
+    ],
+    "formFields": [
+      "EmpCod",
+      "EmpNom",
+      "EnvCod",
+      "EnvNom",
+      "EnvNomExt",
+      "EnvnomC",
+      "EnvPeso",
+      "EnvDestare",
+      "EnvPesoB",
+      "EnvUso",
+      "EnvSECod",
+      "EnvCMP",
+      "EnvNMP"
+    ],
+    "procedures": [],
+    "referencedFields": [
+      "EmpNom"
+    ],
+    "missingInventoryColumns": [
+      "EnvNMP"
+    ],
+    "note": "Categorias se mantienen dentro del modal de envase.",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Productores",
+    "screen": "Productores",
+    "menuVisible": true,
+    "table": "Productores",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "ProdCod"
+    ],
+    "dbColumnCount": 14,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "ProdCod char(6) NOT NULL",
+      "ProdNom char(35) NULL",
+      "ProdRut int(10,0) NULL",
+      "ProdDv char(1) NULL",
+      "ProdComuna char(20) NULL",
+      "ProdProvincia char(20) NULL",
+      "ProdPack char(30) NULL",
+      "ProdPackCom char(20) NULL",
+      "ProdPackProv char(20) NULL",
+      "ProdCodExt char(10) NULL",
+      "Prodnom2 char(20) NULL",
+      "Prodcodsag char(10) NULL",
+      "ProdSECod char(10) NULL"
+    ],
+    "workPanel": true,
+    "report": true,
+    "structureHeader": [
+      "EmpCod*",
+      "EmpNom",
+      "ProdCod*",
+      "ProdNom",
+      "ProdRut",
+      "ProdDv",
+      "ProdComuna",
+      "ProdProvincia",
+      "ProdPack",
+      "ProdPackCom",
+      "ProdPackProv",
+      "ProdCodExt",
+      "Prodnom2",
+      "ProdCodSAG",
+      "ProdSECod"
+    ],
+    "structureDetails": [
+      [
+        "CuarCod*",
+        "CuarNom",
+        "CuarnomC"
+      ]
+    ],
+    "detailSections": [
+      "Productores1"
+    ],
+    "listColumns": [
+      "ProdCod",
+      "ProdNom",
+      "ProdRut",
+      "ProdDv",
+      "ProdComuna",
+      "ProdProvincia"
+    ],
+    "formFields": [
+      "EmpCod",
+      "EmpNom",
+      "ProdCod",
+      "ProdNom",
+      "ProdRut",
+      "ProdDv",
+      "ProdComuna",
+      "ProdProvincia",
+      "ProdPack",
+      "ProdPackCom",
+      "ProdPackProv",
+      "ProdCodExt",
+      "Prodnom2",
+      "ProdCodSAG",
+      "ProdSECod"
+    ],
+    "procedures": [
+      "Verirut"
+    ],
+    "referencedFields": [
+      "EmpNom"
+    ],
+    "missingInventoryColumns": [],
+    "note": "Cuarteles se mantienen dentro del modal de productor.",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Calibres",
+    "screen": "Especies",
+    "menuVisible": false,
+    "table": "Calibres",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "Especod",
+      "Calibre"
+    ],
+    "dbColumnCount": 4,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "Especod smallint(5,0) NOT NULL",
+      "Calibre char(10) NOT NULL",
+      "CalCod smallint(5,0) NULL"
+    ],
+    "workPanel": true,
+    "report": false,
+    "structureHeader": [
+      "EmpCod*",
+      "EmpNom",
+      "Especod*",
+      "EspeNom",
+      "Calibre*",
+      "CalCod"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "Especod",
+      "EspeNom",
+      "Calibre",
+      "CalCod"
+    ],
+    "formFields": [
+      "EmpCod",
+      "EmpNom",
+      "Especod",
+      "EspeNom",
+      "Calibre",
+      "CalCod"
+    ],
+    "procedures": [
+      "AgCeros",
+      "TraeCor"
+    ],
+    "referencedFields": [
+      "EmpNom",
+      "EspeNom"
+    ],
+    "missingInventoryColumns": [],
+    "note": "No va al menu; se administra desde Especies.",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Agentes",
+    "screen": "Agentes",
+    "menuVisible": true,
+    "table": "Agentes",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "AgeCod"
+    ],
+    "dbColumnCount": 6,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "AgeCod smallint(5,0) NOT NULL",
+      "Agerut int(10,0) NULL",
+      "AgeDv char(1) NULL",
+      "AgeNom char(30) NULL",
+      "AgecodMP int(10,0) NULL"
+    ],
+    "workPanel": true,
+    "report": true,
+    "structureHeader": [
+      "EmpCod*",
+      "EmpNom",
+      "AgeCod*",
+      "Agerut",
+      "AgeDv",
+      "AgeNom",
+      "AgecodMP"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "AgeCod",
+      "Agerut",
+      "AgeDv",
+      "AgeNom"
+    ],
+    "formFields": [
+      "EmpCod",
+      "EmpNom",
+      "AgeCod",
+      "Agerut",
+      "AgeDv",
+      "AgeNom",
+      "AgecodMP"
+    ],
+    "procedures": [
+      "Verirut"
+    ],
+    "referencedFields": [
+      "EmpNom"
+    ],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Clientes",
+    "screen": "Clientes",
+    "menuVisible": true,
+    "table": "Clientes",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "CliCod"
+    ],
+    "dbColumnCount": 11,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "CliCod int(10,0) NOT NULL",
+      "Clirut int(10,0) NULL",
+      "CliDv char(1) NULL",
+      "CliNom char(40) NULL",
+      "Clidirec char(40) NULL",
+      "CliGiro char(30) NULL",
+      "Cliciu char(30) NULL",
+      "CliCom char(30) NULL",
+      "CliFono char(30) NULL",
+      "CliRegion char(20) NULL"
+    ],
+    "workPanel": true,
+    "report": true,
+    "structureHeader": [
+      "EmpCod*",
+      "EmpNom",
+      "CliCod*",
+      "Clirut",
+      "CliDv",
+      "CliNom",
+      "Clidirec",
+      "CliGiro",
+      "Cliciu",
+      "CliCom",
+      "CliFono",
+      "CliRegion"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "CliCod",
+      "Clirut",
+      "CliDv",
+      "CliNom"
+    ],
+    "formFields": [
+      "EmpCod",
+      "EmpNom",
+      "CliCod",
+      "Clirut",
+      "CliDv",
+      "CliNom",
+      "Clidirec",
+      "CliGiro",
+      "Cliciu",
+      "CliCom",
+      "CliFono",
+      "CliRegion"
+    ],
+    "procedures": [
+      "Verirut"
+    ],
+    "referencedFields": [
+      "EmpNom"
+    ],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Comunas",
+    "screen": "Comunas",
+    "menuVisible": true,
+    "table": "Comunas",
+    "tableExistsInConex": true,
+    "keys": [
+      "ComCod"
+    ],
+    "dbColumnCount": 2,
+    "dbColumns": [
+      "ComCod char(10) NOT NULL",
+      "Comdesc char(20) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "ComCod*",
+      "Comdesc"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "Comdesc"
+    ],
+    "formFields": [
+      "ComCod",
+      "Comdesc"
+    ],
+    "procedures": [],
+    "referencedFields": [],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Condicion",
+    "screen": "Condicion",
+    "menuVisible": true,
+    "table": "Condicion",
+    "tableExistsInConex": true,
+    "keys": [
+      "ConCod"
+    ],
+    "dbColumnCount": 4,
+    "dbColumns": [
+      "ConCod smallint(5,0) NOT NULL",
+      "ConNom char(15) NULL",
+      "ConEst smallint(5,0) NULL",
+      "ConNomC char(4) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "ConCod*",
+      "ConNom",
+      "ConNomC",
+      "ConEst"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "ConNom",
+      "ConNomC",
+      "ConEst"
+    ],
+    "formFields": [
+      "ConCod",
+      "ConNom",
+      "ConNomC",
+      "ConEst"
+    ],
+    "procedures": [],
+    "referencedFields": [],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Consig",
+    "screen": "Consig",
+    "menuVisible": true,
+    "table": "Consig",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "ConsCod"
+    ],
+    "dbColumnCount": 5,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "ConsCod smallint(5,0) NOT NULL",
+      "ConsRut int(10,0) NULL",
+      "ConsDV char(1) NULL",
+      "ConsNom char(30) NULL"
+    ],
+    "workPanel": true,
+    "report": true,
+    "structureHeader": [
+      "EmpCod*",
+      "EmpNom",
+      "ConsCod*",
+      "ConsRut",
+      "ConsDV",
+      "ConsNom"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "ConsCod",
+      "ConsRut",
+      "ConsDV",
+      "ConsNom"
+    ],
+    "formFields": [
+      "EmpCod",
+      "EmpNom",
+      "ConsCod",
+      "ConsRut",
+      "ConsDV",
+      "ConsNom"
+    ],
+    "procedures": [
+      "Verirut"
+    ],
+    "referencedFields": [
+      "EmpNom"
+    ],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Destinos",
+    "screen": "Destinos",
+    "menuVisible": true,
+    "table": "Destinos",
+    "tableExistsInConex": true,
+    "keys": [
+      "DestCod"
+    ],
+    "dbColumnCount": 3,
+    "dbColumns": [
+      "DestCod smallint(5,0) NOT NULL",
+      "DestNom char(20) NULL",
+      "DestCMP smallint(5,0) NULL"
+    ],
+    "workPanel": false,
+    "report": true,
+    "structureHeader": [
+      "DestCod*",
+      "DestNom",
+      "DestCMP",
+      "DestNMP"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "DestNom",
+      "DestCMP",
+      "DestNMP"
+    ],
+    "formFields": [
+      "DestCod",
+      "DestNom",
+      "DestCMP",
+      "DestNMP"
+    ],
+    "procedures": [],
+    "referencedFields": [],
+    "missingInventoryColumns": [
+      "DestNMP"
+    ],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Export",
+    "screen": "Exportadoras",
+    "menuVisible": true,
+    "table": "EXPORT1",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "ExpCod"
+    ],
+    "dbColumnCount": 7,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "ExpCod smallint(5,0) NOT NULL",
+      "ExpRut int(10,0) NULL",
+      "ExpDv char(1) NULL",
+      "ExpNom char(40) NULL",
+      "ExpCodMP int(10,0) NULL",
+      "ExpSECod char(10) NULL"
+    ],
+    "workPanel": true,
+    "report": false,
+    "structureHeader": [
+      "EmpCod*",
+      "EmpNom",
+      "ExpCod*",
+      "ExpNom",
+      "ExpRut",
+      "ExpDv",
+      "EXPCodMP",
+      "EXPSECod"
+    ],
+    "structureDetails": [],
+    "detailSections": [
+      "ExpProd"
+    ],
+    "listColumns": [
+      "ExpCod",
+      "ExpNom",
+      "ExpRut",
+      "ExpDv"
+    ],
+    "formFields": [
+      "EmpCod",
+      "EmpNom",
+      "ExpCod",
+      "ExpNom",
+      "ExpRut",
+      "ExpDv",
+      "EXPCodMP",
+      "EXPSECod"
+    ],
+    "procedures": [
+      "Verirut"
+    ],
+    "referencedFields": [
+      "EmpNom",
+      "ExpNom"
+    ],
+    "missingInventoryColumns": [],
+    "note": "ExpProd es relacion exportadora-productor.",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Origen",
+    "screen": "Origen",
+    "menuVisible": true,
+    "table": "Origen",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "OriCod"
+    ],
+    "dbColumnCount": 4,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "OriCod smallint(5,0) NOT NULL",
+      "Orinom char(35) NULL",
+      "OriEst smallint(5,0) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "EmpCod*",
+      "EmpNom",
+      "OriCod*",
+      "Orinom",
+      "OriEst"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "EmpNom",
+      "Orinom",
+      "OriEst"
+    ],
+    "formFields": [
+      "EmpCod",
+      "EmpNom",
+      "OriCod",
+      "Orinom",
+      "OriEst"
+    ],
+    "procedures": [],
+    "referencedFields": [
+      "EmpNom"
+    ],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Tipdoc",
+    "screen": "Tipdoc",
+    "menuVisible": true,
+    "table": "Tipdoc",
+    "tableExistsInConex": true,
+    "keys": [
+      "TdCod"
+    ],
+    "dbColumnCount": 4,
+    "dbColumns": [
+      "TdCod smallint(5,0) NOT NULL",
+      "TdNom char(20) NULL",
+      "TdInter smallint(5,0) NULL",
+      "TdBloq smallint(5,0) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "TdCod*",
+      "TdNom",
+      "TdInter",
+      "TdBloq"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "TdNom",
+      "TdInter",
+      "TdBloq"
+    ],
+    "formFields": [
+      "TdCod",
+      "TdNom",
+      "TdInter",
+      "TdBloq"
+    ],
+    "procedures": [],
+    "referencedFields": [],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "CausaAnul",
+    "screen": "CausaAnul",
+    "menuVisible": true,
+    "table": "CausaAnul",
+    "tableExistsInConex": true,
+    "keys": [
+      "CAnCod"
+    ],
+    "dbColumnCount": 5,
+    "dbColumns": [
+      "CAnCod smallint(5,0) NOT NULL",
+      "CanNom char(20) NULL",
+      "CanPE smallint(5,0) NULL",
+      "CanLoginC char(10) NULL",
+      "CanFecC datetime NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "CAnCod*",
+      "CanNom",
+      "CanPE",
+      "CanLoginC",
+      "CanFecC"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "CanNom",
+      "CanPE",
+      "CanLoginC",
+      "CanFecC"
+    ],
+    "formFields": [
+      "CAnCod",
+      "CanNom",
+      "CanPE",
+      "CanLoginC",
+      "CanFecC"
+    ],
+    "procedures": [],
+    "referencedFields": [],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "DespaAuto",
+    "screen": "DespaAuto",
+    "menuVisible": true,
+    "table": "DespaAuto",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "DACod"
+    ],
+    "dbColumnCount": 4,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "DACod smallint(5,0) NOT NULL",
+      "DANombre char(30) NULL",
+      "DAVig smallint(5,0) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "EmpCod*",
+      "DACod*",
+      "DANombre",
+      "DAVig"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "DANombre",
+      "DAVig"
+    ],
+    "formFields": [
+      "EmpCod",
+      "DACod",
+      "DANombre",
+      "DAVig"
+    ],
+    "procedures": [],
+    "referencedFields": [],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "DestMP",
+    "screen": "DestMP",
+    "menuVisible": true,
+    "table": "DestMP",
+    "tableExistsInConex": true,
+    "keys": [
+      "DesMPCod"
+    ],
+    "dbColumnCount": 2,
+    "dbColumns": [
+      "DesMPCod smallint(5,0) NOT NULL",
+      "DesMPNom char(30) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "DesMPCod*",
+      "DesMPNom"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "DesMPNom"
+    ],
+    "formFields": [
+      "DesMPCod",
+      "DesMPNom"
+    ],
+    "procedures": [],
+    "referencedFields": [],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "EnvMP",
+    "screen": "EnvMP",
+    "menuVisible": true,
+    "table": "EnvMP",
+    "tableExistsInConex": true,
+    "keys": [
+      "ENMTCod"
+    ],
+    "dbColumnCount": 2,
+    "dbColumns": [
+      "ENMTCod smallint(5,0) NOT NULL",
+      "ENMTDesc char(20) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "ENMTCod*",
+      "ENMTDesc"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "ENMTDesc"
+    ],
+    "formFields": [
+      "ENMTCod",
+      "ENMTDesc"
+    ],
+    "procedures": [],
+    "referencedFields": [],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "ExpProd",
+    "screen": "Exportadoras",
+    "menuVisible": false,
+    "table": "ExpProd",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "ExpCod",
+      "ProdCod"
+    ],
+    "dbColumnCount": 3,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "ExpCod smallint(5,0) NOT NULL",
+      "ProdCod char(6) NOT NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "EmpCod*",
+      "EmpNom",
+      "ExpCod*",
+      "ExpNom"
+    ],
+    "structureDetails": [
+      [
+        "ProdCod*",
+        "ProdNom",
+        "ProdComuna"
+      ]
+    ],
+    "detailSections": [],
+    "listColumns": [
+      "ExpCod",
+      "ExpNom",
+      "ProdCod",
+      "ProdNom"
+    ],
+    "formFields": [
+      "EmpCod",
+      "EmpNom",
+      "ExpCod",
+      "ExpNom"
+    ],
+    "procedures": [],
+    "referencedFields": [
+      "EmpNom",
+      "ExpNom"
+    ],
+    "missingInventoryColumns": [],
+    "note": "No va al menu; se administra desde Exportadoras.",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "MaeLineaEmbalaje",
+    "screen": "MaeLineaEmbalaje",
+    "menuVisible": true,
+    "table": "MaeLineaEmbalaje",
+    "tableExistsInConex": false,
+    "keys": [
+      "MaeLinCod"
+    ],
+    "dbColumnCount": 0,
+    "dbColumns": [],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "MaeLinCod*",
+      "MaeLinDes"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "MaeLinDes"
+    ],
+    "formFields": [
+      "MaeLinCod",
+      "MaeLinDes"
+    ],
+    "procedures": [],
+    "referencedFields": [],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Monedas",
+    "screen": "Monedas",
+    "menuVisible": true,
+    "table": "Monedas",
+    "tableExistsInConex": true,
+    "keys": [
+      "MonCod"
+    ],
+    "dbColumnCount": 3,
+    "dbColumns": [
+      "MonCod smallint(5,0) NOT NULL",
+      "MonDes char(20) NULL",
+      "MonLogC char(10) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "MonCod*",
+      "MonDes",
+      "MonLogC"
+    ],
+    "structureDetails": [],
+    "detailSections": [
+      "ValMExt"
+    ],
+    "listColumns": [
+      "MonDes",
+      "MonLogC"
+    ],
+    "formFields": [
+      "MonCod",
+      "MonDes",
+      "MonLogC"
+    ],
+    "procedures": [],
+    "referencedFields": [
+      "MonDes"
+    ],
+    "missingInventoryColumns": [],
+    "note": "ValMExt incluye importacion Excel a estudiar contra GX8.",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "paramgen",
+    "screen": "Parametros generales",
+    "menuVisible": true,
+    "table": "paramgen",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "PARCod"
+    ],
+    "dbColumnCount": 6,
+    "dbColumns": [
+      "empcod smallint(5,0) NOT NULL",
+      "parcod smallint(5,0) NOT NULL",
+      "PARDes char(30) NULL",
+      "PARValor1 money(19,4) NULL",
+      "PARValor2 money(19,4) NULL",
+      "PARValor3 money(19,4) NULL"
+    ],
+    "workPanel": true,
+    "report": false,
+    "structureHeader": [
+      "EmpCod*",
+      "PARCod*",
+      "PARDes",
+      "PARValor1",
+      "PARValor2",
+      "PARValor3"
+    ],
+    "structureDetails": [
+      [
+        "PAR1Cod*",
+        "PAR1Des",
+        "PAR1Valor1",
+        "PAR1Valor2",
+        "PAR1Valor3",
+        "Par1Texto"
+      ]
+    ],
+    "detailSections": [
+      "paramge1"
+    ],
+    "listColumns": [
+      "PARCod",
+      "PARDes",
+      "PARValor1",
+      "PARValor2",
+      "PARValor3"
+    ],
+    "formFields": [
+      "EmpCod",
+      "PARCod",
+      "PARDes",
+      "PARValor1",
+      "PARValor2",
+      "PARValor3"
+    ],
+    "procedures": [],
+    "referencedFields": [],
+    "missingInventoryColumns": [],
+    "note": "Detalle de parametro se edita desde cabecera.",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Procedencia",
+    "screen": "Procedencia",
+    "menuVisible": true,
+    "table": "Procedencia",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "ProcCod"
+    ],
+    "dbColumnCount": 4,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "ProcCod smallint(5,0) NOT NULL",
+      "ProcNom char(35) NULL",
+      "ProcEst smallint(5,0) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "EmpCod*",
+      "EmpNom",
+      "ProcCod*",
+      "ProcNom",
+      "ProcEst"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "EmpNom",
+      "ProcNom",
+      "ProcEst"
+    ],
+    "formFields": [
+      "EmpCod",
+      "EmpNom",
+      "ProcCod",
+      "ProcNom",
+      "ProcEst"
+    ],
+    "procedures": [],
+    "referencedFields": [
+      "EmpNom"
+    ],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "ProdGen",
+    "screen": "ProdGen",
+    "menuVisible": true,
+    "table": "ProdGen",
+    "tableExistsInConex": true,
+    "keys": [
+      "PRGCod"
+    ],
+    "dbColumnCount": 2,
+    "dbColumns": [
+      "PRGCod smallint(5,0) NOT NULL",
+      "PRGDesc char(100) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "PRGCod*",
+      "PRGDesc"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "PRGDesc"
+    ],
+    "formFields": [
+      "PRGCod",
+      "PRGDesc"
+    ],
+    "procedures": [],
+    "referencedFields": [],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Puertos",
+    "screen": "Puertos",
+    "menuVisible": true,
+    "table": "Puertos",
+    "tableExistsInConex": true,
+    "keys": [
+      "PuCod"
+    ],
+    "dbColumnCount": 4,
+    "dbColumns": [
+      "PuCod smallint(5,0) NOT NULL",
+      "PuNombre char(25) NULL",
+      "PuNac smallint(5,0) NULL",
+      "PUCodHomo smallint(5,0) NULL"
+    ],
+    "workPanel": true,
+    "report": true,
+    "structureHeader": [
+      "PuCod*",
+      "PuNombre",
+      "PuNac",
+      "PuCodHomo"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "PuCod",
+      "PuNombre",
+      "PuNac"
+    ],
+    "formFields": [
+      "PuCod",
+      "PuNombre",
+      "PuNac",
+      "PuCodHomo"
+    ],
+    "procedures": [],
+    "referencedFields": [],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "Secciones",
+    "screen": "Secciones",
+    "menuVisible": true,
+    "table": "Secciones",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "Seccod"
+    ],
+    "dbColumnCount": 3,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "Seccod smallint(5,0) NOT NULL",
+      "SecNom char(20) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "EmpCod*",
+      "EmpNom",
+      "Seccod*",
+      "SecNom"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "EmpNom",
+      "SecNom"
+    ],
+    "formFields": [
+      "EmpCod",
+      "EmpNom",
+      "Seccod",
+      "SecNom"
+    ],
+    "procedures": [],
+    "referencedFields": [
+      "EmpNom"
+    ],
+    "missingInventoryColumns": [],
+    "note": "",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "TipMov",
+    "screen": "Tipos de movimiento",
+    "menuVisible": true,
+    "table": "TipMov",
+    "tableExistsInConex": true,
+    "keys": [
+      "EmpCod",
+      "TMcod"
+    ],
+    "dbColumnCount": 3,
+    "dbColumns": [
+      "EmpCod smallint(5,0) NOT NULL",
+      "TMcod smallint(5,0) NOT NULL",
+      "TMNom char(20) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "EmpCod*",
+      "EmpNom",
+      "TMcod*",
+      "TMNom"
+    ],
+    "structureDetails": [
+      [
+        "TMSCod*",
+        "TMSNom"
+      ]
+    ],
+    "detailSections": [
+      "TipMov1"
+    ],
+    "listColumns": [
+      "EmpNom",
+      "TMNom"
+    ],
+    "formFields": [
+      "EmpCod",
+      "EmpNom",
+      "TMcod",
+      "TMNom"
+    ],
+    "procedures": [],
+    "referencedFields": [
+      "EmpNom"
+    ],
+    "missingInventoryColumns": [],
+    "note": "Subtipos se editan desde cabecera.",
+    "status": "GX_TRANSACTION_FOUND"
+  },
+  {
+    "gxName": "ValMExt",
+    "screen": "Monedas",
+    "menuVisible": false,
+    "table": "ValMExt",
+    "tableExistsInConex": true,
+    "keys": [
+      "MonCod",
+      "VMEFec"
+    ],
+    "dbColumnCount": 3,
+    "dbColumns": [
+      "MonCod smallint(5,0) NOT NULL",
+      "VMEFec datetime NOT NULL",
+      "VMEVal smallmoney(10,4) NULL"
+    ],
+    "workPanel": false,
+    "report": false,
+    "structureHeader": [
+      "MonCod*",
+      "MonDes",
+      "VMEFec*",
+      "VMEVal"
+    ],
+    "structureDetails": [],
+    "detailSections": [],
+    "listColumns": [
+      "MonCod",
+      "MonDes",
+      "VMEFec",
+      "VMEVal"
+    ],
+    "formFields": [
+      "MonCod",
+      "MonDes",
+      "VMEFec",
+      "VMEVal"
+    ],
+    "procedures": [],
+    "referencedFields": [
+      "MonDes"
+    ],
+    "missingInventoryColumns": [],
+    "note": "No va al menu; se administra desde Monedas.",
+    "status": "GX_TRANSACTION_FOUND"
+  }
+]

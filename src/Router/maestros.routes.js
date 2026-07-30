@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const MaestrosController = require('../controllers/maestrosController');
 const authContext = require('../middleware/authContext');
+const { requirePermission } = require('../middleware/securityAuthorization');
 
 router.use(authContext);
 
@@ -16,6 +17,19 @@ const bindCrudRoutes = (path, handlers) => {
   router.post(`${path}/update`, handlers.update);
   router.delete(`${path}/delete`, handlers.remove);
   router.post(`${path}/delete`, handlers.remove);
+};
+
+const bindAuthorizedMaster = (path, handlers, programCode) => {
+  const permission = requirePermission({ sistema: 100, modulo: 1, programa: programCode });
+
+  router.get(path, permission, handlers.list);
+  router.post(path, permission, handlers.list);
+  router.post(`${path}/insert`, permission, handlers.insert);
+  router.put(`${path}/update`, permission, handlers.update);
+  router.patch(`${path}/update`, permission, handlers.update);
+  router.post(`${path}/update`, permission, handlers.update);
+  router.delete(`${path}/delete`, permission, handlers.remove);
+  router.post(`${path}/delete`, permission, handlers.remove);
 };
 
 router.get('/', MaestrosController.getCatalogos);
@@ -83,10 +97,25 @@ bindCrudRoutes('/cuarteles', {
   update: MaestrosController.updateCuartel,
   remove: MaestrosController.deleteCuartel
 });
-bindReadRoute('/clientes', MaestrosController.listClientes);
+bindAuthorizedMaster('/clientes', {
+  list: MaestrosController.listClientes,
+  insert: MaestrosController.insertCliente,
+  update: MaestrosController.updateCliente,
+  remove: MaestrosController.deleteCliente
+}, 12);
 bindReadRoute('/exportadoras', MaestrosController.listExportadoras);
-bindReadRoute('/consignatarios', MaestrosController.listConsignatarios);
-bindReadRoute('/agentes', MaestrosController.listAgentes);
+bindAuthorizedMaster('/consignatarios', {
+  list: MaestrosController.listConsignatarios,
+  insert: MaestrosController.insertConsignatario,
+  update: MaestrosController.updateConsignatario,
+  remove: MaestrosController.deleteConsignatario
+}, 14);
+bindAuthorizedMaster('/agentes', {
+  list: MaestrosController.listAgentes,
+  insert: MaestrosController.insertAgente,
+  update: MaestrosController.updateAgente,
+  remove: MaestrosController.deleteAgente
+}, 13);
 bindReadRoute('/origenes', MaestrosController.listOrigenes);
 bindReadRoute('/condiciones', MaestrosController.listCondiciones);
 bindReadRoute('/destinos', MaestrosController.listDestinos);

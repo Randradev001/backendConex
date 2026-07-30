@@ -1,11 +1,15 @@
-/* Modulo Seguridad CONEX. Ejecutar en SQL Server con una cuenta que pueda crear la BD. */
-IF DB_ID(N'conex') IS NULL
+/*
+  Script historico del modulo completo.
+  Para la base real BDCONEXCO ejecutar 20260723_BDCONEXCO_security_support.sql,
+  que conserva las tablas de negocio ya existentes.
+*/
+IF DB_ID(N'BDCONEXCO') IS NULL
 BEGIN
-  CREATE DATABASE [conex];
+  THROW 50001, 'La base BDCONEXCO no esta adjunta en SQL Server.', 1;
 END;
 GO
 
-USE [conex];
+USE [BDCONEXCO];
 GO
 
 IF OBJECT_ID(N'dbo.SISTEMAS', N'U') IS NULL
@@ -25,8 +29,8 @@ BEGIN
     SistCod numeric(4,0) NOT NULL,
     Modcod numeric(3,0) NOT NULL,
     ModDes varchar(30) NOT NULL,
-    ModTipo varchar(10) NULL,
-    Modprg varchar(30) NULL,
+    ModTipo numeric(1,0) NULL,
+    Modprg varchar(15) NULL,
     ModFcrea date NULL,
     CONSTRAINT PK_MODULOS PRIMARY KEY (SistCod, Modcod)
   );
@@ -40,10 +44,9 @@ BEGIN
     Modcod numeric(3,0) NOT NULL,
     ProgCod numeric(3,0) NOT NULL,
     ProgDes varchar(35) NOT NULL,
-    ProgNomGX varchar(40) NULL,
-    ProgTipo varchar(10) NULL,
+    ProgNomGX varchar(20) NULL,
+    ProgTipo numeric(1,0) NULL,
     ProgFcrea date NULL,
-    ProgUsuC varchar(10) NULL,
     CONSTRAINT PK_PROGRAM PRIMARY KEY (SistCod, Modcod, ProgCod)
   );
 END;
@@ -85,12 +88,14 @@ IF OBJECT_ID(N'dbo.NIVSEG', N'U') IS NULL
 BEGIN
   CREATE TABLE dbo.NIVSEG (
     NSegMod numeric(3,0) NOT NULL,
+    NSegDMod varchar(30) NULL,
     NSegProg numeric(3,0) NOT NULL,
     NsegDes varchar(35) NULL,
     NsegIns numeric(3,0) NULL,
     NsegUPD numeric(3,0) NULL,
     NsegDel numeric(3,0) NULL,
     NsegPRC numeric(3,0) NULL,
+    NsegLogA varchar(10) NULL,
     CONSTRAINT PK_NIVSEG PRIMARY KEY (NSegMod, NSegProg)
   );
 END;
@@ -114,7 +119,8 @@ BEGIN
     AsigUsu varchar(10) NOT NULL,
     SistCod numeric(4,0) NOT NULL,
     AsigMod numeric(3,0) NOT NULL,
-    AsigDes varchar(35) NULL,
+    AsigDes varchar(30) NULL,
+    AsigAsig varchar(10) NULL,
     CONSTRAINT PK_ASIG PRIMARY KEY (GECODEMP, AsigUsu, SistCod, AsigMod)
   );
 END;
@@ -128,9 +134,17 @@ BEGIN
     SistCod numeric(4,0) NOT NULL,
     Modcod numeric(3,0) NOT NULL,
     ProgCod numeric(3,0) NOT NULL,
+    ProgUsuC varchar(10) NULL,
     CONSTRAINT PK_ASIGPROG PRIMARY KEY (GECODEMP, UsuLogin, SistCod, Modcod, ProgCod)
   );
 END;
+GO
+
+/* Alineacion no destructiva si se ejecuto una version preliminar del script. */
+IF COL_LENGTH('dbo.NIVSEG', 'NSegDMod') IS NULL ALTER TABLE dbo.NIVSEG ADD NSegDMod varchar(30) NULL;
+IF COL_LENGTH('dbo.NIVSEG', 'NsegLogA') IS NULL ALTER TABLE dbo.NIVSEG ADD NsegLogA varchar(10) NULL;
+IF COL_LENGTH('dbo.ASIG', 'AsigAsig') IS NULL ALTER TABLE dbo.ASIG ADD AsigAsig varchar(10) NULL;
+IF COL_LENGTH('dbo.ASIGPROG', 'ProgUsuC') IS NULL ALTER TABLE dbo.ASIGPROG ADD ProgUsuC varchar(10) NULL;
 GO
 
 /* Segundo nivel de la transaccion GeneXus AsigProg; equivale a las acciones de VA2. */
@@ -152,12 +166,13 @@ GO
 IF OBJECT_ID(N'dbo.SEGUSUCRED', N'U') IS NULL
 BEGIN
   CREATE TABLE dbo.SEGUSUCRED (
+    GECODEMP numeric(10,0) NOT NULL,
     UsuLogin varchar(10) NOT NULL,
     PasswordSalt varchar(64) NOT NULL,
     PasswordHash varchar(256) NOT NULL,
     MigradoDesdeGX bit NOT NULL CONSTRAINT DF_SEGUSUCRED_Migrado DEFAULT (0),
     FechaCambio datetime2(0) NOT NULL,
-    CONSTRAINT PK_SEGUSUCRED PRIMARY KEY (UsuLogin)
+    CONSTRAINT PK_SEGUSUCRED PRIMARY KEY (GECODEMP, UsuLogin)
   );
 END;
 GO
@@ -167,7 +182,7 @@ BEGIN
   CREATE TABLE dbo.SEGSESION (
     TokenHash varchar(64) NOT NULL,
     UsuLogin varchar(10) NOT NULL,
-    EmpCod numeric(3,0) NOT NULL,
+    EmpCod numeric(10,0) NOT NULL,
     FechaCreacion datetime2(0) NOT NULL,
     FechaExpiracion datetime2(0) NOT NULL,
     UltimoUso datetime2(0) NOT NULL,
@@ -179,11 +194,11 @@ END;
 GO
 
 /*
-Datos minimos opcionales para una instalacion vacia. Cambie la clave al ingresar.
-Requiere que DEFEMP tenga EmpCod=1.
+Datos minimos opcionales para una instalacion vacia. No ejecutar sobre BDCONEXCO
+sin reemplazar los valores por una empresa real.
 
-INSERT INTO USUARIOS (UsuLogin, Usunom, UsuClave, UsuNseg)
-VALUES ('MIGRACION', 'Usuario de migracion', 'CONEX123', 1);
+INSERT INTO USUARIOS (GECODEMP, UsuLogin, Usunom, UsuClave, UsuRut, UsuDV, UsuCargo, usucrea, UsuCorreo, UsuEstado, UsuPerfil, UsuTipo)
+VALUES (100, 'MIGRACION', 'Usuario de migracion', 'CONEX123', 0, ' ', ' ', 'MIGRACION', ' ', 1, ' ', 1);
 INSERT INTO SISTEMAS (SistCod, SistNombre) VALUES (1, 'CONEX');
-INSERT INTO ASIGSIST (GECODEMP, AsgSisLogin, SistCod) VALUES (1, 'MIGRACION', 1);
+INSERT INTO ASIGSIST (GECODEMP, AsgSisLogin, SistCod) VALUES (100, 'MIGRACION', 1);
 */

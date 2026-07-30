@@ -8,32 +8,23 @@ const catalogos = {
   empresas: {
     table: 'DEFEMP',
     gxLevel: 1,
-    requiresEmpCod: true,
+    // DEFEMP es la raiz multiempresa; sus hijos usan EmpCod desde la sesion.
+    requiresEmpCod: false,
     rutFields: { number: 'EmpRut', verifier: 'EmpDV' },
     primaryKey: ['EmpCod'],
-    columns: ['EmpCod', 'EmpNom', 'EmpGiro', 'Empdir', 'EmpRut', 'EmpDV', 'EmpRepre', 'EmpSw', 'EmpPar1', 'EmpPar2', 'empreg', 'empSisProd', 'EmpTempLot', 'EmpCodSAG', 'EmpCodCom', 'EmpRutIMG', 'EmpTReg', 'Empprov', 'Empcom'],
+    columns: ['EmpCod', 'EmpNom', 'EmpGiro', 'Empdir', 'EmpRut', 'EmpDV', 'EmpSw', 'empreg', 'Empcom'],
     orderBy: ['EmpCod'],
     searchColumns: ['EmpNom', 'EmpRut'],
     fields: {
       EmpCod: { type: 'int', required: true, min: 1 },
       EmpNom: { type: 'text', length: 50, required: true },
-      EmpGiro: { type: 'text', length: 35 },
-      Empdir: { type: 'text', length: 30 },
-      EmpRut: { type: 'int' },
-      EmpDV: { type: 'text', length: 1 },
-      EmpRepre: { type: 'text', length: 20 },
-      EmpSw: { type: 'int' },
-      EmpPar1: { type: 'int' },
-      EmpPar2: { type: 'int' },
-      empreg: { type: 'text', length: 4, choices: ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'RM'] },
-      empSisProd: { type: 'int', choices: [0, 1] },
-      EmpTempLot: { type: 'int' },
-      EmpCodSAG: { type: 'int' },
-      EmpCodCom: { type: 'text', length: 20 },
-      EmpRutIMG: { type: 'text', length: 100 },
-      EmpTReg: { type: 'int', choices: [0, 1] },
-      Empprov: { type: 'text', length: 20 },
-      Empcom: { type: 'text', length: 20 }
+      EmpGiro: { type: 'text', length: 35, required: true },
+      Empdir: { type: 'text', length: 30, required: true },
+      EmpRut: { type: 'int', required: true },
+      EmpDV: { type: 'text', length: 1, required: true },
+      EmpSw: { type: 'int', required: true, choices: [0, 1], insertDefault: 0 },
+      empreg: { type: 'text', length: 4, required: true },
+      Empcom: { type: 'text', length: 20, required: true }
     }
   },
   temporadas: {
@@ -64,7 +55,7 @@ const catalogos = {
     parentKey: ['EmpCod'],
     requiresEmpCod: true,
     primaryKey: ['EmpCod', 'Especod'],
-    columns: ['EmpCod', 'Especod', 'EspeNom', 'EspeDiaV', 'EspeSag', 'EspeNomC', 'EspePLU', 'EspeCMP', 'EspeNomExt', 'EspeNMP', 'EspeSECod'],
+    columns: ['EmpCod', 'Especod', 'EspeNom', 'EspeDiaV', 'EspeSag', 'EspeNomC', 'EspePLU', 'EspeCMP', 'EspeNomExt', 'EspeSECod'],
     orderBy: ['Especod'],
     searchColumns: ['EspeNom', 'EspeNomC', 'EspeNomExt'],
     fields: {
@@ -77,7 +68,6 @@ const catalogos = {
       EspePLU: { type: 'text', length: 15 },
       EspeCMP: { type: 'int' },
       EspeNomExt: { type: 'text', length: 20 },
-      EspeNMP: { type: 'text', length: 100 },
       EspeSECod: { type: 'text', length: 10 }
     }
   },
@@ -109,6 +99,8 @@ const catalogos = {
     parentKey: ['EmpCod', 'Especod'],
     requiresEmpCod: true,
     primaryKey: ['EmpCod', 'Especod', 'Calibre'],
+    // Calibre es clave fisica, pero GeneXus permite corregirlo conservando la clave anterior.
+    mutablePrimaryKey: { Calibre: 'OriginalCalibre' },
     columns: ['EmpCod', 'Especod', 'Calibre', 'CalCod'],
     orderBy: ['Especod', 'CalCod', 'Calibre'],
     filters: [{ param: 'Especod', column: 'Especod', type: 'int', required: true }],
@@ -127,21 +119,20 @@ const catalogos = {
     parentKey: ['EmpCod'],
     requiresEmpCod: true,
     primaryKey: ['EmpCod', 'EnvCod'],
-    columns: ['EmpCod', 'EnvCod', 'EnvNom', 'EnvPeso', 'EnvDestare', 'EnvPesoB', 'EnvUso', 'EnvnomC', 'EnvCMP', 'EnvNomExt', 'EnvNMP', 'EnvSECod'],
+    columns: ['EmpCod', 'EnvCod', 'EnvNom', 'EnvPeso', 'EnvDestare', 'EnvPesoB', 'EnvUso', 'EnvnomC', 'EnvCMP', 'EnvNomExt', 'EnvSECod'],
     orderBy: ['EnvCod'],
     searchColumns: ['EnvNom', 'EnvnomC', 'EnvNomExt'],
     fields: {
       EmpCod: { type: 'int', required: true, min: 1 },
       EnvCod: { type: 'int', required: true, min: 1 },
       EnvNom: { type: 'text', length: 20, required: true },
-      EnvPeso: { type: 'decimal', precision: 6, scale: 2, required: true, exclusiveMin: 0 },
-      EnvDestare: { type: 'decimal', precision: 5, scale: 2 },
-      EnvPesoB: { type: 'decimal', precision: 5, scale: 2 },
+      EnvPeso: { type: 'decimal', precision: 10, scale: 4, required: true, exclusiveMin: 0 },
+      EnvDestare: { type: 'decimal', precision: 10, scale: 4 },
+      EnvPesoB: { type: 'decimal', precision: 10, scale: 4 },
       EnvUso: { type: 'int', required: true, min: 1, insertDefault: 1 },
       EnvnomC: { type: 'text', length: 10 },
       EnvCMP: { type: 'int' },
       EnvNomExt: { type: 'text', length: 20 },
-      EnvNMP: { type: 'text', length: 20 },
       EnvSECod: { type: 'text', length: 10 }
     }
   },
@@ -175,7 +166,7 @@ const catalogos = {
   productores: {
     table: 'PRODUCTORES',
     gxLevel: 1,
-    parentTable: 'DEFEMP',
+    parentTable: 'Empresas',
     parentKey: ['EmpCod'],
     requiresEmpCod: true,
     rutFields: { number: 'ProdRut', verifier: 'ProdDv' },
@@ -221,10 +212,39 @@ const catalogos = {
   },
   clientes: {
     table: 'CLIENTES',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
     requiresEmpCod: true,
+    rutFields: { number: 'Clirut', verifier: 'CliDv' },
+    primaryKey: ['EmpCod', 'CliCod'],
     columns: ['EmpCod', 'CliCod', 'Clirut', 'CliDv', 'CliNom', 'Clidirec', 'CliGiro', 'Cliciu', 'CliCom', 'CliFono', 'CliRegion'],
     orderBy: ['CliCod'],
-    searchColumns: ['CliNom', 'Clirut']
+    filters: [{ param: 'CliNom', column: 'CliNom', type: 'text', length: 40, operator: 'like' }],
+    searchColumns: ['CliCod', 'Clirut', 'CliDv', 'CliNom', 'Clidirec', 'CliGiro', 'Cliciu', 'CliCom', 'CliFono', 'CliRegion'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      CliCod: { type: 'int', required: true, min: 1, max: 99999 },
+      Clirut: { type: 'int', max: 999999999 },
+      CliDv: { type: 'text', length: 1, uppercase: true },
+      CliNom: { type: 'text', length: 40, required: true },
+      Clidirec: { type: 'text', length: 40 },
+      CliGiro: { type: 'text', length: 30 },
+      Cliciu: { type: 'text', length: 30 },
+      CliCom: { type: 'text', length: 30 },
+      CliFono: { type: 'text', length: 30 },
+      CliRegion: { type: 'text', length: 20 }
+    },
+    deleteDependencies: [
+      { table: 'CAP001', fields: ['EmpCod', 'CliCod'] },
+      { table: 'DESCLI_FP', fields: ['EmpCod', 'CliCod'] },
+      { table: 'DESPCAJS', fields: ['EmpCod', 'CliCod'] },
+      { table: 'FACTURA', fields: ['EmpCod', 'CliCod'] },
+      { table: 'GUIASD', fields: ['EmpCod', 'CliCod'] },
+      { table: 'GUIASD_Back', fields: ['EmpCod', 'CliCod'] },
+      { table: 'LISTPRECIOS', fields: ['EmpCod', 'CliCod'] },
+      { table: 'PACKLIST', fields: ['EmpCod', 'CliCod'] }
+    ]
   },
   exportadoras: {
     table: 'EXPORT1',
@@ -235,17 +255,50 @@ const catalogos = {
   },
   consignatarios: {
     table: 'CONSIG',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
     requiresEmpCod: true,
+    rutFields: { number: 'ConsRut', verifier: 'ConsDV' },
+    primaryKey: ['EmpCod', 'ConsCod'],
     columns: ['EmpCod', 'ConsCod', 'ConsRut', 'ConsDV', 'ConsNom'],
     orderBy: ['ConsCod'],
-    searchColumns: ['ConsNom', 'ConsRut']
+    searchColumns: ['ConsCod', 'ConsRut', 'ConsDV', 'ConsNom'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      ConsCod: { type: 'int', required: true, min: 1, max: 999 },
+      ConsRut: { type: 'int', max: 999999999 },
+      ConsDV: { type: 'text', length: 1, uppercase: true },
+      ConsNom: { type: 'text', length: 30, required: true }
+    },
+    deleteDependencies: [
+      { table: 'DESORIGEN', fields: ['EmpCod', 'ConsCod'] },
+      { table: 'PACKLIST', fields: ['EmpCod', 'ConsCod'] }
+    ]
   },
   agentes: {
     table: 'AGENTES',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
     requiresEmpCod: true,
+    rutFields: { number: 'Agerut', verifier: 'AgeDv' },
+    primaryKey: ['EmpCod', 'AgeCod'],
     columns: ['EmpCod', 'AgeCod', 'Agerut', 'AgeDv', 'AgeNom', 'AgecodMP'],
     orderBy: ['AgeCod'],
-    searchColumns: ['AgeNom', 'Agerut']
+    searchColumns: ['AgeCod', 'Agerut', 'AgeDv', 'AgeNom', 'AgecodMP'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      AgeCod: { type: 'int', required: true, min: 1, max: 999 },
+      Agerut: { type: 'int', required: true, min: 1, max: 999999999 },
+      AgeDv: { type: 'text', length: 1, required: true, uppercase: true },
+      AgeNom: { type: 'text', length: 30, required: true },
+      AgecodMP: { type: 'int', max: 99999 }
+    },
+    deleteDependencies: [
+      { table: 'DESORIGEN', fields: ['EmpCod', 'AgeCod'] },
+      { table: 'PACKLIST', fields: ['EmpCod', 'AgeCod'] }
+    ]
   },
   origenes: {
     table: 'ORIGEN',
@@ -288,6 +341,13 @@ const findParam = (source, name) => {
 };
 
 const quoteName = (name) => `[${name}]`;
+
+const getDbColumn = (config, fieldName) => config.columnMap?.[fieldName] || fieldName;
+
+const getSelectColumn = (config, fieldName) => {
+  const dbColumn = getDbColumn(config, fieldName);
+  return dbColumn === fieldName ? quoteName(fieldName) : `${quoteName(dbColumn)} AS ${quoteName(fieldName)}`;
+};
 
 const getParam = (req, name) => {
   const queryParam = findParam(req.query, name);
@@ -358,14 +418,16 @@ const bindFilter = (request, filter, value) => {
     return;
   }
 
-  request.input(filter.param, sql.VarChar(filter.length || 50), String(value).trim());
+  const textValue = String(value).trim();
+  const boundValue = filter.operator === 'like' ? `%${textValue}%` : textValue;
+  request.input(filter.param, sql.VarChar((filter.length || 50) + (filter.operator === 'like' ? 2 : 0)), boundValue);
 };
 
 const buildSearchClause = (request, config, q) => {
   if (!q || !config.searchColumns || config.searchColumns.length === 0) return null;
 
   request.input('q', sql.NVarChar(120), `%${q}%`);
-  return `(${config.searchColumns.map((column) => `CAST(${quoteName(column)} AS NVARCHAR(120)) LIKE @q`).join(' OR ')})`;
+  return `(${config.searchColumns.map((column) => `CAST(${quoteName(getDbColumn(config, column))} AS NVARCHAR(120)) LIKE @q`).join(' OR ')})`;
 };
 
 const listCatalog = (catalogName) => async (req, res) => {
@@ -381,7 +443,7 @@ const listCatalog = (catalogName) => async (req, res) => {
 
     if (config.requiresEmpCod) {
       request.input('empCod', sql.Int, getContextEmpCod(req));
-      where.push('[EmpCod] = @empCod');
+      where.push(`${quoteName(getDbColumn(config, 'EmpCod'))} = @empCod`);
     }
 
     for (const filter of config.filters || []) {
@@ -395,7 +457,8 @@ const listCatalog = (catalogName) => async (req, res) => {
       if (!hasValue) continue;
 
       bindFilter(request, filter, value);
-      where.push(`${quoteName(filter.column)} = @${filter.param}`);
+      const operator = filter.operator === 'like' ? 'LIKE' : '=';
+      where.push(`${quoteName(getDbColumn(config, filter.column))} ${operator} @${filter.param}`);
     }
 
     const q = getTextParam(req, 'q');
@@ -405,10 +468,10 @@ const listCatalog = (catalogName) => async (req, res) => {
     const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
     const query = `
       SELECT TOP (@limit)
-        ${config.columns.map(quoteName).join(',\n        ')}
+        ${config.columns.map((column) => getSelectColumn(config, column)).join(',\n        ')}
       FROM ${quoteName(config.table)}
       ${whereSql}
-      ORDER BY ${config.orderBy.map(quoteName).join(', ')}
+      ORDER BY ${config.orderBy.map((column) => quoteName(getDbColumn(config, column))).join(', ')}
     `;
 
     const result = await request.query(query);
@@ -510,6 +573,10 @@ const validateRange = (fieldName, field, value) => {
   if (field.exclusiveMin !== undefined && value <= field.exclusiveMin) {
     throw httpError(400, `Campo invalido: ${fieldName} debe ser mayor a ${field.exclusiveMin}`);
   }
+
+  if (field.max !== undefined && value > field.max) {
+    throw httpError(400, `Campo invalido: ${fieldName} debe ser menor o igual a ${field.max}`);
+  }
 };
 
 const normalizeValue = (fieldName, field, value, required = false) => {
@@ -554,9 +621,10 @@ const normalizeValue = (fieldName, field, value, required = false) => {
   if (field.length && textValue.length > field.length) {
     throw httpError(400, `Campo invalido: ${fieldName} maximo ${field.length} caracteres`);
   }
-  validateChoice(fieldName, field, textValue);
+  const normalizedText = field.uppercase ? textValue.toUpperCase() : textValue;
+  validateChoice(fieldName, field, normalizedText);
 
-  return textValue;
+  return normalizedText;
 };
 
 const bindField = (request, paramName, fieldName, field, value, required = false) => {
@@ -586,6 +654,11 @@ const getInsertValue = (req, config, column, field) => {
   if (suppliedValue !== undefined && suppliedValue !== null && suppliedValue !== '') return suppliedValue;
 
   return field.insertDefault !== undefined ? field.insertDefault : suppliedValue;
+};
+
+const getConfiguredDefault = (definition) => {
+  if (definition.serverValue === 'serverDate') return new Date();
+  return definition.value;
 };
 
 const calculateRutVerifier = (rut) => {
@@ -662,11 +735,22 @@ const insertCatalog = (catalogName) => async (req, res) => {
 
     validateRut(config, normalizedValues);
 
+    const extraColumns = Object.entries(config.insertDefaults || {});
+    for (const [column, definition] of extraColumns) {
+      bindField(request, `default_${column}`, column, definition, getConfiguredDefault(definition), true);
+    }
+
     const query = `
       INSERT INTO ${quoteName(config.table)}
-        (${columns.map(quoteName).join(', ')})
+        (${[
+          ...columns.map((column) => quoteName(getDbColumn(config, column))),
+          ...extraColumns.map(([column]) => quoteName(column))
+        ].join(', ')})
       VALUES
-        (${columns.map((column) => `@${column}`).join(', ')})
+        (${[
+          ...columns.map((column) => `@${column}`),
+          ...extraColumns.map(([column]) => `@default_${column}`)
+        ].join(', ')})
     `;
 
     await request.query(query);
@@ -689,12 +773,17 @@ const updateCatalog = (catalogName) => async (req, res) => {
     const request = pool.request();
     const normalizedValues = {};
 
+    const mutablePrimaryKey = config.mutablePrimaryKey || {};
+
     for (const column of config.primaryKey) {
-      bindField(request, `key_${column}`, column, config.fields[column], getCatalogWriteParam(req, config, column), true);
+      const originalParam = mutablePrimaryKey[column];
+      const originalValue = originalParam ? getWriteParam(req, originalParam) : undefined;
+      const keyValue = originalValue === undefined ? getCatalogWriteParam(req, config, column) : originalValue;
+      bindField(request, `key_${column}`, column, config.fields[column], keyValue, true);
     }
 
     const updateColumns = Object.keys(config.fields).filter((column) => (
-      !config.primaryKey.includes(column) &&
+      (!config.primaryKey.includes(column) || Boolean(mutablePrimaryKey[column])) &&
       !config.fields[column].serverGenerated &&
       !config.fields[column].serverManaged &&
       hasCatalogWriteParam(req, config, column)
@@ -711,7 +800,7 @@ const updateCatalog = (catalogName) => async (req, res) => {
         column,
         config.fields[column],
         getCatalogWriteParam(req, config, column),
-        false
+        config.fields[column].required === true
       );
     }
 
@@ -719,8 +808,8 @@ const updateCatalog = (catalogName) => async (req, res) => {
 
     const query = `
       UPDATE ${quoteName(config.table)}
-      SET ${updateColumns.map((column) => `${quoteName(column)} = @${column}`).join(', ')}
-      WHERE ${config.primaryKey.map((column) => `${quoteName(column)} = @key_${column}`).join(' AND ')}
+      SET ${updateColumns.map((column) => `${quoteName(getDbColumn(config, column))} = @${column}`).join(', ')}
+      WHERE ${config.primaryKey.map((column) => `${quoteName(getDbColumn(config, column))} = @key_${column}`).join(' AND ')}
     `;
 
     const result = await request.query(query);
@@ -737,11 +826,38 @@ const updateCatalog = (catalogName) => async (req, res) => {
   }
 };
 
+const assertDeleteDependencies = async (pool, req, config) => {
+  for (const dependency of config.deleteDependencies || []) {
+    const request = pool.request();
+    const where = [];
+
+    for (const fieldName of dependency.fields) {
+      const field = config.fields[fieldName];
+      const paramName = `dependency_${fieldName}`;
+      bindField(request, paramName, fieldName, field, getCatalogWriteParam(req, config, fieldName), true);
+      where.push(`${quoteName(fieldName)} = @${paramName}`);
+    }
+
+    // La base GX8 no declara estas relaciones como FK; se conservan antes de eliminar.
+    const result = await request.query(`
+      SELECT TOP (1) 1 AS [Exists]
+      FROM ${quoteName(dependency.table)}
+      WHERE ${where.join(' AND ')}
+    `);
+
+    if (result.recordset.length > 0) {
+      throw httpError(409, `No se puede eliminar: el registro esta utilizado en ${dependency.table}`);
+    }
+  }
+};
+
 const deleteCatalog = (catalogName) => async (req, res) => {
   try {
     const config = getWritableCatalog(catalogName);
     const pool = await getPool();
     const request = pool.request();
+
+    await assertDeleteDependencies(pool, req, config);
 
     for (const column of config.primaryKey) {
       bindField(request, `key_${column}`, column, config.fields[column], getCatalogWriteParam(req, config, column), true);
@@ -749,7 +865,7 @@ const deleteCatalog = (catalogName) => async (req, res) => {
 
     const query = `
       DELETE FROM ${quoteName(config.table)}
-      WHERE ${config.primaryKey.map((column) => `${quoteName(column)} = @key_${column}`).join(' AND ')}
+      WHERE ${config.primaryKey.map((column) => `${quoteName(getDbColumn(config, column))} = @key_${column}`).join(' AND ')}
     `;
 
     const result = await request.query(query);
@@ -874,9 +990,18 @@ module.exports = {
   updateCuartel: updateCatalog('cuarteles'),
   deleteCuartel: deleteCatalog('cuarteles'),
   listClientes: listCatalog('clientes'),
+  insertCliente: insertCatalog('clientes'),
+  updateCliente: updateCatalog('clientes'),
+  deleteCliente: deleteCatalog('clientes'),
   listExportadoras: listCatalog('exportadoras'),
   listConsignatarios: listCatalog('consignatarios'),
+  insertConsignatario: insertCatalog('consignatarios'),
+  updateConsignatario: updateCatalog('consignatarios'),
+  deleteConsignatario: deleteCatalog('consignatarios'),
   listAgentes: listCatalog('agentes'),
+  insertAgente: insertCatalog('agentes'),
+  updateAgente: updateCatalog('agentes'),
+  deleteAgente: deleteCatalog('agentes'),
   listOrigenes: listCatalog('origenes'),
   listCondiciones: listCatalog('condiciones'),
   listDestinos: listCatalog('destinos'),

@@ -1,0 +1,2284 @@
+{
+  "sheetReport": {
+    "Resumen": {
+      "rows": 19,
+      "cols": 8,
+      "headers": [
+        "Inventario General GeneXus 8 - Conex",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "sampleRows": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "Dato",
+          "Valor",
+          null,
+          "Objetos GX",
+          "Procedimientos",
+          "Tablas",
+          "Atributos",
+          null
+        ],
+        [
+          "Modelo",
+          "ConexSQL2000",
+          null,
+          774,
+          225,
+          114,
+          1063,
+          null
+        ],
+        [
+          "Tipo de modelo",
+          "Prototype",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ]
+    },
+    "Todos Objetos": {
+      "rows": 775,
+      "cols": 16,
+      "headers": [
+        "Tipo",
+        "Nombre GX",
+        "Descripcion",
+        "Carpeta",
+        "Ultima actualizacion",
+        "ID",
+        "Variables",
+        "Claves",
+        "Detalle de claves",
+        "Indices",
+        "Subniveles",
+        "Largo fuente",
+        "Largo reglas",
+        "Dependencias",
+        "Hash fuente",
+        "Estructura"
+      ],
+      "sampleRows": [
+        [
+          "Folder",
+          "Anulaciones",
+          "Anulaciones",
+          "Procesos_SAG",
+          "2014-01-03 16:39:52GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          0,
+          0
+        ],
+        [
+          "Folder",
+          "Cajas_Leidas",
+          "Cajas_Leidas",
+          "Despachos_Varios",
+          "2009-09-09 20:16:54GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          0,
+          0
+        ],
+        [
+          "Folder",
+          "CapturaCajas",
+          "Captura Cajas",
+          null,
+          "2015-09-23 20:26:56GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          0,
+          0
+        ],
+        [
+          "Folder",
+          "ConfiguracionLineas",
+          "Configuracion Lineas",
+          null,
+          "2014-11-05 02:41:30GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          0,
+          0
+        ],
+        [
+          "Folder",
+          "Consultas",
+          "Consultas",
+          null,
+          "2011-12-01 02:37:58GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "Procedimientos": {
+      "rows": 226,
+      "cols": 20,
+      "headers": [
+        "Nombre GX",
+        "Descripcion",
+        "Proposito de negocio sugerido",
+        "Carpeta",
+        "Ultima actualizacion",
+        "Parametros",
+        "Llamadas",
+        "Largo fuente",
+        "Tiene fuente",
+        "Usa New",
+        "Usa Delete",
+        "Usa Commit",
+        "Usa Rollback",
+        "Usa EmpCod",
+        "Usa TempCod",
+        "Empresa fija",
+        "Dependencia UI",
+        "Destino recomendado",
+        "Estado migracion",
+        "Hash fuente"
+      ],
+      "sampleRows": [
+        [
+          "Efact01",
+          "efact xml",
+          "Proceso transversal o integracion por confirmar: apoya la operacion de \"efact xml\".",
+          "(sin carpeta)",
+          "2015-11-27 22:00:54GMT",
+          null,
+          null,
+          0,
+          "NO",
+          "NO",
+          "NO",
+          "NO"
+        ],
+        [
+          "LineaEmbalaje",
+          "Linea Embalaje",
+          "Proceso transversal o integracion por confirmar: apoya la operacion de \"Linea Embalaje\".",
+          "(sin carpeta)",
+          "2015-10-09 19:59:04GMT",
+          "&empcod | &lineaEMB",
+          null,
+          184,
+          "SI",
+          "NO",
+          "NO",
+          "NO"
+        ],
+        [
+          "ValRutXML",
+          "Valida Rut XML",
+          "Proceso transversal o integracion por confirmar: consulta, calcula o valida informacion para \"Valida Rut XML\".",
+          "(sin carpeta)",
+          "2016-11-14 13:05:52GMT",
+          "&PackRutChofer | &sw",
+          "Verirut",
+          324,
+          "SI",
+          "NO",
+          "NO",
+          "NO"
+        ],
+        [
+          "ArchiDET",
+          "Archivo Anulaciones",
+          "Gestion de anulaciones: anula, elimina o revierte registros asociados a \"Archivo Anulaciones\".",
+          "Anulaciones",
+          "2012-12-06 23:54:04GMT",
+          "&empcod | &tempcod | &AnuFolio | &TotFol",
+          "TraeParametro | gxSelDir",
+          1401,
+          "SI",
+          "NO",
+          "NO",
+          "NO"
+        ],
+        [
+          "BajFoliosAnu",
+          "Baja Folios Anulacion",
+          "Gestion de anulaciones: anula, elimina o revierte registros asociados a \"Baja Folios Anulacion\".",
+          "Anulaciones",
+          "2007-10-10 20:06:08GMT",
+          "&empcod | &tempcod | &Solnum | &Folio | &FolAnu | &PE",
+          null,
+          420,
+          "SI",
+          "NO",
+          "NO",
+          "NO"
+        ]
+      ]
+    },
+    "Transacciones": {
+      "rows": 106,
+      "cols": 16,
+      "headers": [
+        "Tipo",
+        "Nombre GX",
+        "Descripcion",
+        "Carpeta",
+        "Ultima actualizacion",
+        "ID",
+        "Variables",
+        "Claves",
+        "Detalle de claves",
+        "Indices",
+        "Subniveles",
+        "Largo fuente",
+        "Largo reglas",
+        "Dependencias",
+        "Hash fuente",
+        "Estructura"
+      ],
+      "sampleRows": [
+        [
+          "Transaction",
+          "Agentes",
+          "Agentes",
+          "Maestros",
+          "2012-01-27 13:12:58GMT",
+          null,
+          10,
+          0,
+          null,
+          0,
+          0,
+          274
+        ],
+        [
+          "Transaction",
+          "AnuINS",
+          "Anular Inspecciones",
+          "Anulaciones",
+          "2014-01-03 16:46:38GMT",
+          null,
+          11,
+          0,
+          null,
+          0,
+          0,
+          573
+        ],
+        [
+          "Transaction",
+          "Asig",
+          "Asignaciones",
+          "Seguridad",
+          "2009-08-11 15:12:16GMT",
+          null,
+          9,
+          0,
+          null,
+          0,
+          0,
+          255
+        ],
+        [
+          "Transaction",
+          "AsigProg",
+          "AsigProg",
+          "Seguridad",
+          "2009-08-11 15:12:10GMT",
+          null,
+          9,
+          0,
+          null,
+          0,
+          0,
+          349
+        ],
+        [
+          "Transaction",
+          "AsigSist",
+          "Asigna Sistemas",
+          "Seguridad",
+          "2008-10-29 02:55:02GMT",
+          null,
+          6,
+          0,
+          null,
+          0,
+          0,
+          165
+        ]
+      ]
+    },
+    "Paneles": {
+      "rows": 175,
+      "cols": 16,
+      "headers": [
+        "Tipo",
+        "Nombre GX",
+        "Descripcion",
+        "Carpeta",
+        "Ultima actualizacion",
+        "ID",
+        "Variables",
+        "Claves",
+        "Detalle de claves",
+        "Indices",
+        "Subniveles",
+        "Largo fuente",
+        "Largo reglas",
+        "Dependencias",
+        "Hash fuente",
+        "Estructura"
+      ],
+      "sampleRows": [
+        [
+          "WorkPanel",
+          "ADMDespCS",
+          "Despachos Cajas Embaladas",
+          "Cajas_Leidas",
+          "2011-12-02 21:00:12GMT",
+          null,
+          19,
+          0,
+          null,
+          0,
+          0,
+          59
+        ],
+        [
+          "WorkPanel",
+          "ADMOrdProc",
+          "ADM Ordenes de Proceso",
+          "Orden_Proceso",
+          "2011-11-21 19:53:34GMT",
+          null,
+          22,
+          0,
+          null,
+          0,
+          0,
+          82
+        ],
+        [
+          "WorkPanel",
+          "Agentes",
+          "Agentes",
+          "Maestros",
+          "2009-08-14 01:57:00GMT",
+          null,
+          13,
+          0,
+          null,
+          0,
+          0,
+          29
+        ],
+        [
+          "WorkPanel",
+          "AgrFol_Anu",
+          "Agregar Folios Anulacion",
+          "Anulaciones",
+          "2010-12-14 13:10:12GMT",
+          null,
+          19,
+          0,
+          null,
+          0,
+          0,
+          68
+        ],
+        [
+          "WorkPanel",
+          "AgrFol_DesOT",
+          "Agrega Folios Despacho Clientes",
+          "Despachos_Varios",
+          "2007-10-11 20:36:58GMT",
+          null,
+          20,
+          0,
+          null,
+          0,
+          0,
+          59
+        ]
+      ]
+    },
+    "Reportes": {
+      "rows": 56,
+      "cols": 16,
+      "headers": [
+        "Tipo",
+        "Nombre GX",
+        "Descripcion",
+        "Carpeta",
+        "Ultima actualizacion",
+        "ID",
+        "Variables",
+        "Claves",
+        "Detalle de claves",
+        "Indices",
+        "Subniveles",
+        "Largo fuente",
+        "Largo reglas",
+        "Dependencias",
+        "Hash fuente",
+        "Estructura"
+      ],
+      "sampleRows": [
+        [
+          "Report",
+          "Agentes",
+          "Agentes",
+          "Maestros",
+          "2007-11-23 19:58:08GMT",
+          null,
+          13,
+          0,
+          null,
+          0,
+          0,
+          336
+        ],
+        [
+          "Report",
+          "AnuFolios",
+          "Anulacion de Folios",
+          "Anulaciones",
+          "2010-12-28 00:20:20GMT",
+          null,
+          26,
+          0,
+          null,
+          0,
+          0,
+          1267
+        ],
+        [
+          "Report",
+          "AnuFolios14",
+          "Anulaciones de Folios",
+          "Anulaciones",
+          "2014-01-03 16:48:48GMT",
+          null,
+          27,
+          0,
+          null,
+          0,
+          0,
+          1241
+        ],
+        [
+          "Report",
+          "Clientes",
+          "Clientes",
+          "Maestros",
+          "2007-11-23 19:58:28GMT",
+          null,
+          13,
+          0,
+          null,
+          0,
+          0,
+          338
+        ],
+        [
+          "Report",
+          "Consig",
+          "Consig",
+          "Maestros",
+          "2007-11-23 21:41:34GMT",
+          null,
+          13,
+          0,
+          null,
+          0,
+          0,
+          336
+        ]
+      ]
+    },
+    "Tablas": {
+      "rows": 115,
+      "cols": 9,
+      "headers": [
+        "Nombre GX",
+        "Descripcion",
+        "ID",
+        "Cantidad claves",
+        "Claves",
+        "Cantidad indices",
+        "Indices",
+        "Clave empresa",
+        "Multiempresa en clave"
+      ],
+      "sampleRows": [
+        [
+          "Agentes",
+          "Agentes",
+          "76",
+          2,
+          "EmpCod | AgeCod",
+          2,
+          "IAgentes:Unique:EmpCod+AgeCod | IAgentes1:Duplicate:EmpCod",
+          "EmpCod",
+          "SI"
+        ],
+        [
+          "AnuINS",
+          "Anulaciones",
+          "144",
+          3,
+          "EmpCod | TempCod | ANUFolio",
+          4,
+          "IAnuINS:Unique:EmpCod+TempCod+ANUFolio | IAnuINS1:Duplicate:CAnCod | IAnuINS2:Duplicate:EmpCod+TempCod | IAnuINS3:Duplicate:EmpCod+DACod",
+          "EmpCod",
+          "SI"
+        ],
+        [
+          "Asig",
+          "Asig",
+          "176",
+          4,
+          "GECODEMP | AsigUsu | SistCod | AsigMod",
+          2,
+          "IAsig:Unique:GECODEMP+AsigUsu+SistCod+AsigMod | IAsig1:Duplicate:SistCod+AsigMod",
+          "GECODEMP",
+          "SI"
+        ],
+        [
+          "AsigProg",
+          "AsigProg",
+          "168",
+          5,
+          "GECODEMP | UsuLogin | SistCod | Modcod | ProgCod",
+          3,
+          "IAsigProg:Unique:GECODEMP+UsuLogin+SistCod+Modcod+ProgCod | IAsigProg1:Duplicate:SistCod+Modcod+ProgCod | IAsigProg2:Duplicate:UsuLogin",
+          "GECODEMP",
+          "SI"
+        ],
+        [
+          "AsigProg1",
+          "AsigProg1",
+          "169",
+          6,
+          "GECODEMP | UsuLogin | SistCod | Modcod | ProgCod | ProgOPCod",
+          3,
+          "IAsigProg11:Unique:GECODEMP+UsuLogin+SistCod+Modcod+ProgCod+ProgOPCod | IAsigProg12:Duplicate:SistCod+Modcod+ProgCod+ProgOPCod | IAsigProg13:Duplicate:GECODEMP+UsuLogin+SistCod+Modcod+ProgCod",
+          "GECODEMP",
+          "SI"
+        ]
+      ]
+    },
+    "Atributos": {
+      "rows": 1064,
+      "cols": 9,
+      "headers": [
+        "ID",
+        "Nombre GX",
+        "Titulo",
+        "Tipo",
+        "Largo",
+        "Decimales",
+        "Picture",
+        "Formula",
+        "Control desde dominio"
+      ],
+      "sampleRows": [
+        [
+          "228",
+          "_AA",
+          "AA",
+          "Numeric",
+          "4",
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "338",
+          "_Cajas",
+          "Cajas",
+          "Numeric",
+          "4",
+          null,
+          null,
+          null,
+          "N"
+        ],
+        [
+          "78",
+          "_Calibre",
+          "Calibre",
+          "Character",
+          "10",
+          null,
+          null,
+          null,
+          "N"
+        ],
+        [
+          "242",
+          "_Cat",
+          "Cat",
+          "Numeric",
+          "3",
+          null,
+          null,
+          null,
+          "N"
+        ],
+        [
+          "779",
+          "_Ccosto",
+          "Ccosto",
+          "Numeric",
+          "5",
+          null,
+          null,
+          null,
+          "N"
+        ]
+      ]
+    },
+    "Dependencias": {
+      "rows": 194,
+      "cols": 7,
+      "headers": [
+        "Tipo origen",
+        "Objeto origen",
+        "Referencia original",
+        "Tipo destino",
+        "Objeto destino",
+        "Resuelta",
+        "Ocurrencias"
+      ],
+      "sampleRows": [
+        [
+          "Transaction",
+          "Agentes",
+          "PVerirut",
+          "Procedure",
+          "Verirut",
+          "SI",
+          1
+        ],
+        [
+          "Transaction",
+          "AnuINS",
+          "PTraeCor",
+          "Procedure",
+          "TraeCor",
+          "SI",
+          1
+        ],
+        [
+          "Transaction",
+          "AnuINS",
+          "WDetAnu",
+          "WorkPanel",
+          "DetAnu",
+          "SI",
+          1
+        ],
+        [
+          "Procedure",
+          "AnulaFactura",
+          "PDesmarcaPrefactura",
+          "Procedure",
+          "DesmarcaPrefactura",
+          "SI",
+          1
+        ],
+        [
+          "Procedure",
+          "ArchiDES",
+          "PTraeParametro",
+          "Procedure",
+          "TraeParametro",
+          "SI",
+          1
+        ]
+      ]
+    },
+    "Grupos": {
+      "rows": 62,
+      "cols": 16,
+      "headers": [
+        "Tipo",
+        "Nombre GX",
+        "Descripcion",
+        "Carpeta",
+        "Ultima actualizacion",
+        "ID",
+        "Variables",
+        "Claves",
+        "Detalle de claves",
+        "Indices",
+        "Subniveles",
+        "Largo fuente",
+        "Largo reglas",
+        "Dependencias",
+        "Hash fuente",
+        "Estructura"
+      ],
+      "sampleRows": [
+        [
+          "Group",
+          "Asig",
+          "Asig",
+          null,
+          "2008-10-27 03:07:48GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          3,
+          0
+        ],
+        [
+          "Group",
+          "Clauventa",
+          "Clauventa",
+          null,
+          "2016-11-25 21:49:26GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          2,
+          0
+        ],
+        [
+          "Group",
+          "DesMan_PuertoD",
+          "DesMan PuertoD",
+          null,
+          "2011-11-22 19:34:16GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          2,
+          0
+        ],
+        [
+          "Group",
+          "DesMan_PuertoE",
+          "DesMan PuertoE",
+          null,
+          "2011-11-22 19:30:20GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          2,
+          0
+        ],
+        [
+          "Group",
+          "DesOri_PuertoE",
+          "DesOri PuertoE",
+          null,
+          "2007-05-23 15:42:36GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          2,
+          0
+        ]
+      ]
+    },
+    "Carpetas": {
+      "rows": 39,
+      "cols": 16,
+      "headers": [
+        "Tipo",
+        "Nombre GX",
+        "Descripcion",
+        "Carpeta",
+        "Ultima actualizacion",
+        "ID",
+        "Variables",
+        "Claves",
+        "Detalle de claves",
+        "Indices",
+        "Subniveles",
+        "Largo fuente",
+        "Largo reglas",
+        "Dependencias",
+        "Hash fuente",
+        "Estructura"
+      ],
+      "sampleRows": [
+        [
+          "Folder",
+          "Anulaciones",
+          "Anulaciones",
+          "Procesos_SAG",
+          "2014-01-03 16:39:52GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          0,
+          0
+        ],
+        [
+          "Folder",
+          "Cajas_Leidas",
+          "Cajas_Leidas",
+          "Despachos_Varios",
+          "2009-09-09 20:16:54GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          0,
+          0
+        ],
+        [
+          "Folder",
+          "CapturaCajas",
+          "Captura Cajas",
+          null,
+          "2015-09-23 20:26:56GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          0,
+          0
+        ],
+        [
+          "Folder",
+          "ConfiguracionLineas",
+          "Configuracion Lineas",
+          null,
+          "2014-11-05 02:41:30GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          0,
+          0
+        ],
+        [
+          "Folder",
+          "Consultas",
+          "Consultas",
+          null,
+          "2011-12-01 02:37:58GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "Otros GX": {
+      "rows": 3,
+      "cols": 16,
+      "headers": [
+        "Tipo",
+        "Nombre GX",
+        "Descripcion",
+        "Carpeta",
+        "Ultima actualizacion",
+        "ID",
+        "Variables",
+        "Claves",
+        "Detalle de claves",
+        "Indices",
+        "Subniveles",
+        "Largo fuente",
+        "Largo reglas",
+        "Dependencias",
+        "Hash fuente",
+        "Estructura"
+      ],
+      "sampleRows": [
+        [
+          "Menubar",
+          "MenuConex",
+          "MenuConex",
+          "Seguridad",
+          "2003-09-22 20:34:10GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          0,
+          27
+        ],
+        [
+          "Theme",
+          "Thm01",
+          "Thm01",
+          null,
+          "2005-03-17 20:06:12GMT",
+          null,
+          0,
+          0,
+          null,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "Revision general": {
+      "rows": 775,
+      "cols": 9,
+      "headers": [
+        "Tipo",
+        "Nombre GX",
+        "Carpeta",
+        "Area de negocio",
+        "Rol de negocio",
+        "Decision de migracion",
+        "Ruta destino",
+        "Estado",
+        "Notas"
+      ],
+      "sampleRows": [
+        [
+          "Folder",
+          "Anulaciones",
+          "Procesos_SAG",
+          "Procesos_SAG",
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ],
+        [
+          "Folder",
+          "Cajas_Leidas",
+          "Despachos_Varios",
+          "Despachos_Varios",
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ],
+        [
+          "Folder",
+          "CapturaCajas",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ],
+        [
+          "Folder",
+          "ConfiguracionLineas",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ],
+        [
+          "Folder",
+          "Consultas",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ]
+      ]
+    },
+    "Migracion procedimientos": {
+      "rows": 226,
+      "cols": 15,
+      "headers": [
+        "Nombre GX",
+        "Carpeta",
+        "Proposito de negocio",
+        "Entradas",
+        "Salidas",
+        "Tablas leidas",
+        "Tablas escritas",
+        "Multiempresa validada",
+        "Estrategia transaccional",
+        "Tipo destino",
+        "Ruta destino",
+        "Evidencia de pruebas",
+        "Decision",
+        "Estado",
+        "Notas"
+      ],
+      "sampleRows": [
+        [
+          "Efact01",
+          "(sin carpeta)",
+          "Proceso transversal o integracion por confirmar: apoya la operacion de \"efact xml\".",
+          null,
+          null,
+          null,
+          null,
+          "REVIEW_REQUIRED",
+          null,
+          "REVIEW_OR_RETIRE",
+          null,
+          null
+        ],
+        [
+          "LineaEmbalaje",
+          "(sin carpeta)",
+          "Proceso transversal o integracion por confirmar: apoya la operacion de \"Linea Embalaje\".",
+          "&empcod | &lineaEMB",
+          null,
+          null,
+          null,
+          "PENDING_CONFIRMATION",
+          null,
+          "NODE_QUERY_SERVICE",
+          null,
+          null
+        ],
+        [
+          "ValRutXML",
+          "(sin carpeta)",
+          "Proceso transversal o integracion por confirmar: consulta, calcula o valida informacion para \"Valida Rut XML\".",
+          "&PackRutChofer | &sw",
+          null,
+          null,
+          null,
+          "REVIEW_REQUIRED",
+          null,
+          "SHARED_UTILITY",
+          null,
+          null
+        ],
+        [
+          "ArchiDET",
+          "Anulaciones",
+          "Gestion de anulaciones: anula, elimina o revierte registros asociados a \"Archivo Anulaciones\".",
+          "&empcod | &tempcod | &AnuFolio | &TotFol",
+          null,
+          null,
+          null,
+          "PENDING_CONFIRMATION",
+          null,
+          "INTEGRATION_OR_REPORT_SERVICE",
+          null,
+          null
+        ],
+        [
+          "BajFoliosAnu",
+          "Anulaciones",
+          "Gestion de anulaciones: anula, elimina o revierte registros asociados a \"Baja Folios Anulacion\".",
+          "&empcod | &tempcod | &Solnum | &Folio | &FolAnu | &PE",
+          null,
+          null,
+          null,
+          "PENDING_CONFIRMATION",
+          null,
+          "NODE_QUERY_SERVICE",
+          null,
+          null
+        ]
+      ]
+    }
+  },
+  "totals": {
+    "allObjects": 774,
+    "procedures": 225,
+    "transactions": 105,
+    "panels": 174,
+    "reports": 55,
+    "tables": 114
+  },
+  "byType": [
+    {
+      "name": "Procedure",
+      "count": 225
+    },
+    {
+      "name": "WorkPanel",
+      "count": 174
+    },
+    {
+      "name": "Table",
+      "count": 114
+    },
+    {
+      "name": "Transaction",
+      "count": 105
+    },
+    {
+      "name": "Group",
+      "count": 61
+    },
+    {
+      "name": "Report",
+      "count": 55
+    },
+    {
+      "name": "Folder",
+      "count": 38
+    },
+    {
+      "name": "Menubar",
+      "count": 1
+    },
+    {
+      "name": "Theme",
+      "count": 1
+    }
+  ],
+  "topFolders": [
+    {
+      "name": "(sin carpeta)",
+      "count": 204
+    },
+    {
+      "name": "Maestros",
+      "count": 61
+    },
+    {
+      "name": "Factura",
+      "count": 35
+    },
+    {
+      "name": "Guias_Despacho",
+      "count": 31
+    },
+    {
+      "name": "Orden_Proceso",
+      "count": 30
+    },
+    {
+      "name": "Seguridad",
+      "count": 30
+    },
+    {
+      "name": "Ingreso_de_Folios",
+      "count": 27
+    },
+    {
+      "name": "Inspecciones",
+      "count": 27
+    },
+    {
+      "name": "Despachos",
+      "count": 23
+    },
+    {
+      "name": "Repaletizaje",
+      "count": 23
+    },
+    {
+      "name": "USDA",
+      "count": 20
+    },
+    {
+      "name": "Paletizado",
+      "count": 17
+    },
+    {
+      "name": "Packing_List",
+      "count": 16
+    },
+    {
+      "name": "SAG",
+      "count": 16
+    },
+    {
+      "name": "ConfiguracionLineas",
+      "count": 15
+    },
+    {
+      "name": "Consultas",
+      "count": 14
+    },
+    {
+      "name": "Despachos_Varios",
+      "count": 14
+    },
+    {
+      "name": "ETIQUETAS",
+      "count": 14
+    },
+    {
+      "name": "Menus",
+      "count": 14
+    },
+    {
+      "name": "Ingresos",
+      "count": 13
+    },
+    {
+      "name": "Diagrama",
+      "count": 12
+    },
+    {
+      "name": "Proce_General",
+      "count": 12
+    },
+    {
+      "name": "Procesos",
+      "count": 12
+    },
+    {
+      "name": "Multipuerto",
+      "count": 11
+    },
+    {
+      "name": "Anulaciones",
+      "count": 10
+    },
+    {
+      "name": "Cajas_Leidas",
+      "count": 9
+    },
+    {
+      "name": "Estilos",
+      "count": 9
+    },
+    {
+      "name": "Exportadora",
+      "count": 9
+    },
+    {
+      "name": "Procesos_SAG",
+      "count": 8
+    },
+    {
+      "name": "TM",
+      "count": 8
+    },
+    {
+      "name": "CapturaCajas",
+      "count": 7
+    },
+    {
+      "name": "Interplanta",
+      "count": 5
+    },
+    {
+      "name": "Fruta_Comercial",
+      "count": 3
+    },
+    {
+      "name": "LecturaCajas",
+      "count": 3
+    },
+    {
+      "name": "Recepciones",
+      "count": 3
+    },
+    {
+      "name": "Tablas_Paso",
+      "count": 3
+    },
+    {
+      "name": "Varios",
+      "count": 3
+    },
+    {
+      "name": "Stock",
+      "count": 2
+    },
+    {
+      "name": "Historicos",
+      "count": 1
+    }
+  ],
+  "procedureFolders": [
+    {
+      "name": "Guias_Despacho",
+      "count": 20
+    },
+    {
+      "name": "Factura",
+      "count": 18
+    },
+    {
+      "name": "Inspecciones",
+      "count": 18
+    },
+    {
+      "name": "Orden_Proceso",
+      "count": 14
+    },
+    {
+      "name": "Ingreso_de_Folios",
+      "count": 13
+    },
+    {
+      "name": "Repaletizaje",
+      "count": 12
+    },
+    {
+      "name": "ETIQUETAS",
+      "count": 11
+    },
+    {
+      "name": "Proce_General",
+      "count": 11
+    },
+    {
+      "name": "Despachos",
+      "count": 9
+    },
+    {
+      "name": "Paletizado",
+      "count": 9
+    },
+    {
+      "name": "ConfiguracionLineas",
+      "count": 8
+    },
+    {
+      "name": "Seguridad",
+      "count": 8
+    },
+    {
+      "name": "Diagrama",
+      "count": 7
+    },
+    {
+      "name": "USDA",
+      "count": 7
+    },
+    {
+      "name": "Despachos_Varios",
+      "count": 6
+    },
+    {
+      "name": "Ingresos",
+      "count": 6
+    },
+    {
+      "name": "Packing_List",
+      "count": 6
+    },
+    {
+      "name": "Cajas_Leidas",
+      "count": 5
+    },
+    {
+      "name": "Maestros",
+      "count": 5
+    },
+    {
+      "name": "Anulaciones",
+      "count": 4
+    },
+    {
+      "name": "Consultas",
+      "count": 4
+    },
+    {
+      "name": "Multipuerto",
+      "count": 4
+    },
+    {
+      "name": "SAG",
+      "count": 4
+    },
+    {
+      "name": "(sin carpeta)",
+      "count": 3
+    },
+    {
+      "name": "TM",
+      "count": 3
+    },
+    {
+      "name": "CapturaCajas",
+      "count": 2
+    },
+    {
+      "name": "Estilos",
+      "count": 1
+    },
+    {
+      "name": "Fruta_Comercial",
+      "count": 1
+    },
+    {
+      "name": "Interplanta",
+      "count": 1
+    },
+    {
+      "name": "LecturaCajas",
+      "count": 1
+    }
+  ],
+  "transactionFolders": [
+    {
+      "name": "Maestros",
+      "count": 29
+    },
+    {
+      "name": "Seguridad",
+      "count": 10
+    },
+    {
+      "name": "Factura",
+      "count": 6
+    },
+    {
+      "name": "Despachos",
+      "count": 5
+    },
+    {
+      "name": "Guias_Despacho",
+      "count": 5
+    },
+    {
+      "name": "Multipuerto",
+      "count": 5
+    },
+    {
+      "name": "Exportadora",
+      "count": 3
+    },
+    {
+      "name": "Ingreso_de_Folios",
+      "count": 3
+    },
+    {
+      "name": "Ingresos",
+      "count": 3
+    },
+    {
+      "name": "Orden_Proceso",
+      "count": 3
+    },
+    {
+      "name": "Repaletizaje",
+      "count": 3
+    },
+    {
+      "name": "Tablas_Paso",
+      "count": 3
+    },
+    {
+      "name": "TM",
+      "count": 3
+    },
+    {
+      "name": "USDA",
+      "count": 3
+    },
+    {
+      "name": "ConfiguracionLineas",
+      "count": 2
+    },
+    {
+      "name": "Despachos_Varios",
+      "count": 2
+    },
+    {
+      "name": "Diagrama",
+      "count": 2
+    },
+    {
+      "name": "Estilos",
+      "count": 2
+    },
+    {
+      "name": "Inspecciones",
+      "count": 2
+    },
+    {
+      "name": "Paletizado",
+      "count": 2
+    },
+    {
+      "name": "Anulaciones",
+      "count": 1
+    },
+    {
+      "name": "Cajas_Leidas",
+      "count": 1
+    },
+    {
+      "name": "CapturaCajas",
+      "count": 1
+    },
+    {
+      "name": "ETIQUETAS",
+      "count": 1
+    },
+    {
+      "name": "Fruta_Comercial",
+      "count": 1
+    },
+    {
+      "name": "Historicos",
+      "count": 1
+    },
+    {
+      "name": "Interplanta",
+      "count": 1
+    },
+    {
+      "name": "Packing_List",
+      "count": 1
+    },
+    {
+      "name": "Stock",
+      "count": 1
+    }
+  ],
+  "panelFolders": [
+    {
+      "name": "Maestros",
+      "count": 17
+    },
+    {
+      "name": "Menus",
+      "count": 13
+    },
+    {
+      "name": "Orden_Proceso",
+      "count": 12
+    },
+    {
+      "name": "Factura",
+      "count": 11
+    },
+    {
+      "name": "Seguridad",
+      "count": 11
+    },
+    {
+      "name": "Ingreso_de_Folios",
+      "count": 10
+    },
+    {
+      "name": "Procesos",
+      "count": 7
+    },
+    {
+      "name": "Estilos",
+      "count": 6
+    },
+    {
+      "name": "Inspecciones",
+      "count": 6
+    },
+    {
+      "name": "Repaletizaje",
+      "count": 6
+    },
+    {
+      "name": "SAG",
+      "count": 6
+    },
+    {
+      "name": "USDA",
+      "count": 6
+    },
+    {
+      "name": "ConfiguracionLineas",
+      "count": 5
+    },
+    {
+      "name": "Consultas",
+      "count": 5
+    },
+    {
+      "name": "Despachos",
+      "count": 5
+    },
+    {
+      "name": "Guias_Despacho",
+      "count": 5
+    },
+    {
+      "name": "Paletizado",
+      "count": 5
+    },
+    {
+      "name": "CapturaCajas",
+      "count": 4
+    },
+    {
+      "name": "Despachos_Varios",
+      "count": 4
+    },
+    {
+      "name": "Anulaciones",
+      "count": 3
+    },
+    {
+      "name": "Cajas_Leidas",
+      "count": 3
+    },
+    {
+      "name": "Exportadora",
+      "count": 3
+    },
+    {
+      "name": "Packing_List",
+      "count": 3
+    },
+    {
+      "name": "ETIQUETAS",
+      "count": 2
+    },
+    {
+      "name": "Ingresos",
+      "count": 2
+    },
+    {
+      "name": "Interplanta",
+      "count": 2
+    },
+    {
+      "name": "LecturaCajas",
+      "count": 2
+    },
+    {
+      "name": "Multipuerto",
+      "count": 2
+    },
+    {
+      "name": "Recepciones",
+      "count": 2
+    },
+    {
+      "name": "TM",
+      "count": 2
+    }
+  ],
+  "reportFolders": [
+    {
+      "name": "Maestros",
+      "count": 10
+    },
+    {
+      "name": "Packing_List",
+      "count": 6
+    },
+    {
+      "name": "SAG",
+      "count": 6
+    },
+    {
+      "name": "Despachos",
+      "count": 4
+    },
+    {
+      "name": "Procesos",
+      "count": 4
+    },
+    {
+      "name": "USDA",
+      "count": 4
+    },
+    {
+      "name": "Exportadora",
+      "count": 3
+    },
+    {
+      "name": "Anulaciones",
+      "count": 2
+    },
+    {
+      "name": "Diagrama",
+      "count": 2
+    },
+    {
+      "name": "Ingresos",
+      "count": 2
+    },
+    {
+      "name": "Repaletizaje",
+      "count": 2
+    },
+    {
+      "name": "Consultas",
+      "count": 1
+    },
+    {
+      "name": "Despachos_Varios",
+      "count": 1
+    },
+    {
+      "name": "Guias_Despacho",
+      "count": 1
+    },
+    {
+      "name": "Ingreso_de_Folios",
+      "count": 1
+    },
+    {
+      "name": "Inspecciones",
+      "count": 1
+    },
+    {
+      "name": "Interplanta",
+      "count": 1
+    },
+    {
+      "name": "Orden_Proceso",
+      "count": 1
+    },
+    {
+      "name": "Paletizado",
+      "count": 1
+    },
+    {
+      "name": "Proce_General",
+      "count": 1
+    },
+    {
+      "name": "Recepciones",
+      "count": 1
+    }
+  ],
+  "tableFolders": [
+    {
+      "name": "(sin carpeta)",
+      "count": 114
+    }
+  ],
+  "migrationSheets": {
+    "Revision general": {
+      "rows": 775,
+      "headers": [
+        "Tipo",
+        "Nombre GX",
+        "Carpeta",
+        "Area de negocio",
+        "Rol de negocio",
+        "Decision de migracion",
+        "Ruta destino",
+        "Estado",
+        "Notas"
+      ],
+      "sampleRows": [
+        [
+          "Folder",
+          "Anulaciones",
+          "Procesos_SAG",
+          "Procesos_SAG",
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ],
+        [
+          "Folder",
+          "Cajas_Leidas",
+          "Despachos_Varios",
+          "Despachos_Varios",
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ],
+        [
+          "Folder",
+          "CapturaCajas",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ],
+        [
+          "Folder",
+          "ConfiguracionLineas",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ],
+        [
+          "Folder",
+          "Consultas",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ],
+        [
+          "Folder",
+          "Despachos",
+          "Procesos_SAG",
+          "Procesos_SAG",
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ],
+        [
+          "Folder",
+          "Despachos_Varios",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ],
+        [
+          "Folder",
+          "Diagrama",
+          "Procesos_SAG",
+          "Procesos_SAG",
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ],
+        [
+          "Folder",
+          "Estilos",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ],
+        [
+          "Folder",
+          "ETIQUETAS",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ],
+        [
+          "Folder",
+          "Exportadora",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "DISCOVERED",
+          null
+        ]
+      ]
+    },
+    "Migracion procedimientos": {
+      "rows": 226,
+      "headers": [
+        "Nombre GX",
+        "Carpeta",
+        "Proposito de negocio",
+        "Entradas",
+        "Salidas",
+        "Tablas leidas",
+        "Tablas escritas",
+        "Multiempresa validada",
+        "Estrategia transaccional",
+        "Tipo destino",
+        "Ruta destino",
+        "Evidencia de pruebas",
+        "Decision",
+        "Estado",
+        "Notas"
+      ],
+      "sampleRows": [
+        [
+          "Efact01",
+          "(sin carpeta)",
+          "Proceso transversal o integracion por confirmar: apoya la operacion de \"efact xml\".",
+          null,
+          null,
+          null,
+          null,
+          "REVIEW_REQUIRED",
+          null,
+          "REVIEW_OR_RETIRE",
+          null,
+          null,
+          null,
+          "PENDING_ANALYSIS",
+          "Descripcion funcional sugerida desde nombre, carpeta y descripcion GX; validar reglas, tablas y casos de prueba."
+        ],
+        [
+          "LineaEmbalaje",
+          "(sin carpeta)",
+          "Proceso transversal o integracion por confirmar: apoya la operacion de \"Linea Embalaje\".",
+          "&empcod | &lineaEMB",
+          null,
+          null,
+          null,
+          "PENDING_CONFIRMATION",
+          null,
+          "NODE_QUERY_SERVICE",
+          null,
+          null,
+          null,
+          "PENDING_ANALYSIS",
+          "Descripcion funcional sugerida desde nombre, carpeta y descripcion GX; validar reglas, tablas y casos de prueba."
+        ],
+        [
+          "ValRutXML",
+          "(sin carpeta)",
+          "Proceso transversal o integracion por confirmar: consulta, calcula o valida informacion para \"Valida Rut XML\".",
+          "&PackRutChofer | &sw",
+          null,
+          null,
+          null,
+          "REVIEW_REQUIRED",
+          null,
+          "SHARED_UTILITY",
+          null,
+          null,
+          null,
+          "PENDING_ANALYSIS",
+          "Descripcion funcional sugerida desde nombre, carpeta y descripcion GX; validar reglas, tablas y casos de prueba."
+        ],
+        [
+          "ArchiDET",
+          "Anulaciones",
+          "Gestion de anulaciones: anula, elimina o revierte registros asociados a \"Archivo Anulaciones\".",
+          "&empcod | &tempcod | &AnuFolio | &TotFol",
+          null,
+          null,
+          null,
+          "PENDING_CONFIRMATION",
+          null,
+          "INTEGRATION_OR_REPORT_SERVICE",
+          null,
+          null,
+          null,
+          "PENDING_ANALYSIS",
+          "Descripcion funcional sugerida desde nombre, carpeta y descripcion GX; validar reglas, tablas y casos de prueba."
+        ],
+        [
+          "BajFoliosAnu",
+          "Anulaciones",
+          "Gestion de anulaciones: anula, elimina o revierte registros asociados a \"Baja Folios Anulacion\".",
+          "&empcod | &tempcod | &Solnum | &Folio | &FolAnu | &PE",
+          null,
+          null,
+          null,
+          "PENDING_CONFIRMATION",
+          null,
+          "NODE_QUERY_SERVICE",
+          null,
+          null,
+          null,
+          "PENDING_ANALYSIS",
+          "Descripcion funcional sugerida desde nombre, carpeta y descripcion GX; validar reglas, tablas y casos de prueba."
+        ],
+        [
+          "CuentaFolAnu",
+          "Anulaciones",
+          "Gestion de anulaciones: consulta, calcula o valida informacion para \"Cuenta Fol Anu\".",
+          "&empcod | &Tempcod | &AnuFolio",
+          null,
+          null,
+          null,
+          "PENDING_CONFIRMATION",
+          null,
+          "NODE_QUERY_SERVICE",
+          null,
+          null,
+          null,
+          "PENDING_ANALYSIS",
+          "Descripcion funcional sugerida desde nombre, carpeta y descripcion GX; validar reglas, tablas y casos de prueba."
+        ],
+        [
+          "EliFoliosAnu",
+          "Anulaciones",
+          "Gestion de anulaciones: anula, elimina o revierte registros asociados a \"Elimina Folios Anulados\".",
+          "&empcod | &tempcod | &Solnum | &Folio | &FolAnu | &PE",
+          null,
+          null,
+          null,
+          "PENDING_CONFIRMATION",
+          null,
+          "NODE_QUERY_SERVICE",
+          null,
+          null,
+          null,
+          "PENDING_ANALYSIS",
+          "Descripcion funcional sugerida desde nombre, carpeta y descripcion GX; validar reglas, tablas y casos de prueba."
+        ],
+        [
+          "EliDespCS",
+          "Cajas_Leidas",
+          "Lectura y despacho de cajas: anula, elimina o revierte registros asociados a \"Elimina despacho CS\".",
+          "&Empcod | &Tempcod | &CAPNDesp",
+          null,
+          null,
+          null,
+          "PENDING_CONFIRMATION",
+          null,
+          "SHARED_UTILITY",
+          null,
+          null,
+          null,
+          "PENDING_ANALYSIS",
+          "Descripcion funcional sugerida desde nombre, carpeta y descripcion GX; validar reglas, tablas y casos de prueba."
+        ],
+        [
+          "ELIDETDCS",
+          "Cajas_Leidas",
+          "Lectura y despacho de cajas: anula, elimina o revierte registros asociados a \"Elimina det despacho cajas sueltas\".",
+          "&Empcod | &tempcod | &CAPCOD | &CAPNDesp | &SwE",
+          null,
+          null,
+          null,
+          "PENDING_CONFIRMATION",
+          null,
+          "NODE_QUERY_SERVICE",
+          null,
+          null,
+          null,
+          "PENDING_ANALYSIS",
+          "Descripcion funcional sugerida desde nombre, carpeta y descripcion GX; validar reglas, tablas y casos de prueba."
+        ],
+        [
+          "GrabaDespCS",
+          "Cajas_Leidas",
+          "Lectura y despacho de cajas: crea, actualiza o registra datos para \"Graba Desp CS\".",
+          "&Empcod | &Clicod | &Tdcod | &Ndoc | &FechA | &Glosa | &Login | &Sw | &DCSNumint",
+          null,
+          null,
+          null,
+          "PENDING_CONFIRMATION",
+          null,
+          "NODE_USE_CASE",
+          null,
+          null,
+          null,
+          "PENDING_ANALYSIS",
+          "Descripcion funcional sugerida desde nombre, carpeta y descripcion GX; validar reglas, tablas y casos de prueba."
+        ],
+        [
+          "GrabaDETDCS",
+          "Cajas_Leidas",
+          "Lectura y despacho de cajas: crea, actualiza o registra datos para \"Graba Detalle Despacho CS\".",
+          "&Empcod | &tempcod | &CAPCOD | &Fecha | &CAPNDesp | &CliCod | &SwE",
+          null,
+          null,
+          null,
+          "PENDING_CONFIRMATION",
+          null,
+          "NODE_QUERY_SERVICE",
+          null,
+          null,
+          null,
+          "PENDING_ANALYSIS",
+          "Descripcion funcional sugerida desde nombre, carpeta y descripcion GX; validar reglas, tablas y casos de prueba."
+        ]
+      ]
+    },
+    "Resumen": {
+      "rows": 19,
+      "headers": [
+        "Inventario General GeneXus 8 - Conex",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "sampleRows": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "Dato",
+          "Valor",
+          null,
+          "Objetos GX",
+          "Procedimientos",
+          "Tablas",
+          "Atributos",
+          null
+        ],
+        [
+          "Modelo",
+          "ConexSQL2000",
+          null,
+          774,
+          225,
+          114,
+          1063,
+          null
+        ],
+        [
+          "Tipo de modelo",
+          "Prototype",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "Origen",
+          "C:\\Users\\andre\\Downloads\\GXW.xpz",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "Inventario generado",
+          46225.625257465275,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "Clasificacion",
+          "Cantidad",
+          "Hoja de trabajo",
+          null,
+          "Como usar este inventario",
+          null,
+          null,
+          null
+        ],
+        [
+          "Procedure",
+          225,
+          "Procedimientos",
+          null,
+          "Las hojas de objetos conservan los nombres originales de GeneXus. Use Revision general para clasificar cada objeto y Migracion procedimientos para documentar entradas, salidas, tablas, estrategia transaccional, destino y evidencia de pruebas.",
+          null,
+          null,
+          null
+        ],
+        [
+          "Transaction",
+          105,
+          "Transacciones",
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ]
+    }
+  }
+}

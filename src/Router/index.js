@@ -1,17 +1,7 @@
 const router = require("express").Router();
 
- // const correoRouter = require("./enviarCorreo")
-const correoAprendizaje = require("./enviarCorreoAprendizaje")
-const correoAprendizajeStatus = require("./enviarCorreoStatusAprendizaje")
 const maestrosRouter = require("./maestros.routes")
 const seguridadRouter = require('./seguridad.routes')
-
-
-// router.use('/enviarCorreo',correoRouter)
-
-router.use('/enviarCorreoAprendizaje',correoAprendizaje)
-
-router.use('/enviarCorreoStatusAprendizaje',correoAprendizajeStatus)
 
 router.use('/maestros',maestrosRouter)
 router.use('/seguridad', seguridadRouter)

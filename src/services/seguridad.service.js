@@ -5,6 +5,7 @@ const {
   createSessionToken,
   hashSessionToken
 } = require('./password.service');
+const { getAuthorizedMenu } = require('./seguridadMenu.service');
 
 class SecurityError extends Error {
   constructor(status, code, message, details) {
@@ -18,24 +19,88 @@ class SecurityError extends Error {
 const normalizeLogin = (value) => String(value || '').trim().toUpperCase();
 const clean = (value) => (typeof value === 'string' ? value.trim() : value);
 
+const calculateRutDv = (rutNumber) => {
+  let sum = 0;
+  let multiplier = 2;
+
+  for (const digit of String(rutNumber).split('').reverse()) {
+    sum += Number(digit) * multiplier;
+    multiplier = multiplier === 7 ? 2 : multiplier + 1;
+  }
+
+  const result = 11 - (sum % 11);
+  if (result === 11) return '0';
+  if (result === 10) return 'K';
+  return String(result);
+};
+
+const parseRut = (value) => {
+  const normalized = String(value || '').trim().toUpperCase().replace(/\./g, '').replace(/\s/g, '');
+  const match = normalized.match(/^(\d{1,9})-?([0-9K])$/);
+  if (!match) throw new SecurityError(400, 'VALIDATION_ERROR', 'Ingrese un RUT valido con digito verificador.');
+
+  const rutNumber = Number(match[1]);
+  const rutDv = match[2];
+  if (!rutNumber || calculateRutDv(rutNumber) !== rutDv) {
+    throw new SecurityError(400, 'VALIDATION_ERROR', 'El RUT ingresado no es valido.');
+  }
+
+  return { rutNumber, rutDv };
+};
+
 const mapUser = (row) => ({
   login: clean(row.UsuLogin),
   nombre: clean(row.Usunom),
   correo: clean(row.UsuCorreo),
   cargo: clean(row.UsuCargo),
-  nivelSeguridad: row.UsuNseg,
-  expira: row.UsuExpira
+  estado: row.UsuEstado,
+  perfil: clean(row.UsuPerfil),
+  tipo: row.UsuTipo,
+  nivelSeguridad: Number(row.UsuNseg || 0),
+  roles: row.roles || []
 });
 
-const getUser = async (pool, login) => {
-  const result = await pool.request()
+const getUsers = async (pool, login, empCod) => {
+  const request = pool.request()
     .input('login', sql.VarChar(10), login)
-    .query(`
-      SELECT TOP (1) UsuLogin, Usunom, UsuClave, UsuCorreo, UsuCargo, UsuNseg, UsuExpira
-      FROM USUARIOS
-      WHERE RTRIM(UsuLogin) = @login
+  const whereCompany = empCod ? 'AND UE.GECODEMP=@empCod' : '';
+  if (empCod) request.input('empCod', sql.Int, empCod);
+  const result = await request.query(`
+      SELECT UE.GECODEMP, U.UsuLogin, U.Usunom, U.UsuClave, U.UsuCorreo, U.UsuCargo,
+             U.UsuNseg, UE.UsuEstado, UE.UsuPerfil, UE.UsuTipo, RTRIM(E.EmpNom) AS EmpNom
+      FROM USUARIOS U
+      INNER JOIN SEGUSUEMP UE ON UE.UsuLogin=U.UsuLogin
+      INNER JOIN DEFEMP E ON E.EmpCod=UE.GECODEMP
+      WHERE RTRIM(U.UsuLogin) = @login
+        ${whereCompany}
     `);
-  return result.recordset[0];
+  return result.recordset;
+};
+
+const getUsersByRut = async (pool, rutNumber, empCod) => {
+  const request = pool.request().input('rutNumber', sql.Decimal(9, 0), rutNumber);
+  const whereCompany = empCod ? 'AND UE.GECODEMP=@empCod' : '';
+  if (empCod) request.input('empCod', sql.Int, empCod);
+
+  const result = await request.query(`
+    SELECT UE.GECODEMP, U.UsuLogin, U.Usunom, U.UsuClave, U.UsuRut, U.UsuDV,
+           U.UsuCorreo, U.UsuCargo, U.UsuNseg, UE.UsuEstado, UE.UsuPerfil, UE.UsuTipo,
+           RTRIM(E.EmpNom) AS EmpNom
+    FROM USUARIOS U
+    INNER JOIN SEGUSUEMP UE ON UE.UsuLogin=U.UsuLogin
+    INNER JOIN DEFEMP E ON E.EmpCod=UE.GECODEMP
+    WHERE U.UsuRut=@rutNumber
+      ${whereCompany}
+  `);
+  return result.recordset;
+};
+
+const getRoles = async (pool, empCod, login) => {
+  const result = await pool.request().input('empCod', sql.Int, empCod).input('login', sql.VarChar(10), login).query(`
+    SELECT RTRIM(ROLCod) AS ROLCod FROM URolesPorUser
+    WHERE GECODEMP=@empCod AND RTRIM(UsuLogin)=@login
+  `);
+  return result.recordset.map((row) => clean(row.ROLCod));
 };
 
 const verifyCredentials = async (pool, user, password) => {
@@ -66,17 +131,12 @@ const verifyCredentials = async (pool, user, password) => {
   return true;
 };
 
-const getCompanies = async (pool, login) => {
-  const result = await pool.request()
-    .input('login', sql.VarChar(10), login)
-    .query(`
-      SELECT DISTINCT A.GECODEMP AS EmpCod, COALESCE(NULLIF(RTRIM(E.EmpNom), ''), CONCAT('Empresa ', A.GECODEMP)) AS EmpNom
-      FROM ASIGSIST A
-      LEFT JOIN DEFEMP E ON E.EmpCod = A.GECODEMP
-      WHERE RTRIM(A.AsgSisLogin) = @login
-      ORDER BY A.GECODEMP
-    `);
-  return result.recordset.map((row) => ({ empCod: row.EmpCod, nombre: clean(row.EmpNom) }));
+const getCompanies = async (pool, users) => {
+  const companies = new Map();
+  for (const user of users) {
+    companies.set(Number(user.GECODEMP), { empCod: Number(user.GECODEMP), nombre: clean(user.EmpNom) });
+  }
+  return [...companies.values()];
 };
 
 const getPermissions = async (pool, login, empCod) => {
@@ -85,13 +145,52 @@ const getPermissions = async (pool, login, empCod) => {
     .input('empCod', sql.Int, empCod);
 
   const [systems, modules, programs, actions] = await Promise.all([
-    request.query(`SELECT SistCod FROM ASIGSIST WHERE GECODEMP=@empCod AND RTRIM(AsgSisLogin)=@login`),
+    request.query(`
+      SELECT DISTINCT SistCod FROM (
+        SELECT SistCod FROM ASIGSIST WHERE GECODEMP=@empCod AND RTRIM(AsgSisLogin)=@login
+        UNION
+        SELECT T.SistCod FROM URolesPorUser R INNER JOIN ASIG T
+          ON T.GECODEMP=0 AND RTRIM(REPLACE(T.AsigUsu,CHAR(160),' '))=RTRIM(R.ROLCod)
+        WHERE R.GECODEMP=@empCod AND RTRIM(R.UsuLogin)=@login
+        UNION
+        SELECT T.SistCod FROM URolesPorUser R INNER JOIN ASIGPROG T
+          ON T.GECODEMP=0 AND RTRIM(T.UsuLogin)=RTRIM(R.ROLCod)
+        WHERE R.GECODEMP=@empCod AND RTRIM(R.UsuLogin)=@login
+      ) P
+    `),
     pool.request().input('login', sql.VarChar(10), login).input('empCod', sql.Int, empCod)
-      .query(`SELECT SistCod, AsigMod AS Modcod FROM ASIG WHERE GECODEMP=@empCod AND RTRIM(AsigUsu)=@login`),
+      .query(`
+        SELECT DISTINCT SistCod, Modcod FROM (
+          SELECT SistCod, AsigMod AS Modcod FROM ASIG
+          WHERE GECODEMP=@empCod AND RTRIM(REPLACE(AsigUsu,CHAR(160),' '))=@login
+          UNION
+          SELECT T.SistCod, T.AsigMod FROM URolesPorUser R INNER JOIN ASIG T
+            ON T.GECODEMP=0 AND RTRIM(REPLACE(T.AsigUsu,CHAR(160),' '))=RTRIM(R.ROLCod)
+          WHERE R.GECODEMP=@empCod AND RTRIM(R.UsuLogin)=@login
+        ) P
+      `),
     pool.request().input('login', sql.VarChar(10), login).input('empCod', sql.Int, empCod)
-      .query(`SELECT SistCod, Modcod, ProgCod FROM ASIGPROG WHERE GECODEMP=@empCod AND RTRIM(UsuLogin)=@login`),
+      .query(`
+        SELECT DISTINCT SistCod, Modcod, ProgCod FROM (
+          SELECT SistCod, Modcod, ProgCod FROM ASIGPROG
+          WHERE GECODEMP=@empCod AND RTRIM(UsuLogin)=@login
+          UNION
+          SELECT T.SistCod, T.Modcod, T.ProgCod FROM URolesPorUser R INNER JOIN ASIGPROG T
+            ON T.GECODEMP=0 AND RTRIM(T.UsuLogin)=RTRIM(R.ROLCod)
+          WHERE R.GECODEMP=@empCod AND RTRIM(R.UsuLogin)=@login
+        ) P
+      `),
     pool.request().input('login', sql.VarChar(10), login).input('empCod', sql.Int, empCod)
-      .query(`SELECT SistCod, Modcod, ProgCod, ProgOPCod FROM ASIGPROG1 WHERE GECODEMP=@empCod AND RTRIM(UsuLogin)=@login`)
+      .query(`
+        SELECT DISTINCT SistCod, Modcod, ProgCod, ProgOPCod FROM (
+          SELECT SistCod, Modcod, ProgCod, ProgOPCod FROM ASIGPROG1
+          WHERE GECODEMP=@empCod AND RTRIM(UsuLogin)=@login
+          UNION
+          SELECT T.SistCod, T.Modcod, T.ProgCod, T.ProgOPCod FROM URolesPorUser R INNER JOIN ASIGPROG1 T
+            ON T.GECODEMP=0 AND RTRIM(T.UsuLogin)=RTRIM(R.ROLCod)
+          WHERE R.GECODEMP=@empCod AND RTRIM(R.UsuLogin)=@login
+        ) P
+      `)
   ]);
 
   return {
@@ -121,38 +220,46 @@ const createSession = async (pool, login, empCod, remember) => {
   return { token, expiresAt };
 };
 
-const login = async ({ login: rawLogin, password, empCod, remember = false }) => {
-  const loginName = normalizeLogin(rawLogin);
-  if (!loginName || !password) throw new SecurityError(400, 'VALIDATION_ERROR', 'Usuario y clave son obligatorios.');
-  if (loginName.length > 10) throw new SecurityError(400, 'VALIDATION_ERROR', 'El usuario admite hasta 10 caracteres.');
+const login = async ({ rut, password, empCod, remember = false }) => {
+  const { rutNumber } = parseRut(rut);
+  if (!password) throw new SecurityError(400, 'VALIDATION_ERROR', 'RUT y clave son obligatorios.');
 
   const pool = await getPool();
-  const user = await getUser(pool, loginName);
-  if (!user || !(await verifyCredentials(pool, user, String(password)))) {
+  const candidates = await getUsersByRut(pool, rutNumber, empCod ? Number(empCod) : null);
+  const validUsers = [];
+  for (const candidate of candidates) {
+    if (candidate.UsuEstado === 1 && await verifyCredentials(pool, candidate, String(password))) validUsers.push(candidate);
+  }
+  if (!validUsers.length) {
     throw new SecurityError(401, 'INVALID_CREDENTIALS', 'Usuario o clave incorrectos.');
   }
-  if (user.UsuExpira && new Date(user.UsuExpira) < new Date()) {
-    throw new SecurityError(403, 'USER_EXPIRED', 'El usuario se encuentra vencido.');
-  }
 
-  const companies = await getCompanies(pool, loginName);
+  const companies = await getCompanies(pool, validUsers);
   if (!companies.length) throw new SecurityError(403, 'NO_COMPANY', 'El usuario no tiene empresas asignadas.');
   if (!empCod && companies.length > 1) {
-    return { requiresCompany: true, companies, user: mapUser(user) };
+    return { requiresCompany: true, companies, user: mapUser(validUsers[0]) };
   }
 
   const selected = Number(empCod || companies[0].empCod);
   const company = companies.find((item) => item.empCod === selected);
   if (!company) throw new SecurityError(403, 'INVALID_COMPANY', 'La empresa no esta asignada al usuario.');
 
+  const user = validUsers.find((item) => Number(item.GECODEMP) === selected);
+  const loginName = normalizeLogin(user.UsuLogin);
+  user.roles = await getRoles(pool, selected, loginName);
   const session = await createSession(pool, loginName, selected, Boolean(remember));
+  const [permissions, menu] = await Promise.all([
+    getPermissions(pool, loginName, selected),
+    getAuthorizedMenu(pool, selected, loginName)
+  ]);
   return {
     requiresCompany: false,
     token: session.token,
     expiresAt: session.expiresAt,
     user: mapUser(user),
     company,
-    permissions: await getPermissions(pool, loginName, selected)
+    permissions,
+    menu
   };
 };
 
@@ -163,11 +270,12 @@ const getSession = async (token) => {
     .input('tokenHash', sql.VarChar(64), hashSessionToken(token))
     .query(`
       SELECT S.TokenHash, S.UsuLogin, S.EmpCod, S.FechaExpiracion,
-             U.Usunom, U.UsuCorreo, U.UsuCargo, U.UsuNseg, U.UsuExpira,
-             E.EmpNom
+             U.Usunom, U.UsuCorreo, U.UsuCargo, U.UsuNseg,
+             UE.UsuEstado, UE.UsuPerfil, UE.UsuTipo, E.EmpNom
       FROM SEGSESION S
-      INNER JOIN USUARIOS U ON U.UsuLogin = S.UsuLogin
-      LEFT JOIN DEFEMP E ON E.EmpCod = S.EmpCod
+      INNER JOIN USUARIOS U ON U.UsuLogin=S.UsuLogin
+      INNER JOIN SEGUSUEMP UE ON UE.GECODEMP=S.EmpCod AND UE.UsuLogin=S.UsuLogin
+      LEFT JOIN DEFEMP E ON E.EmpCod=S.EmpCod
       WHERE S.TokenHash = @tokenHash AND S.Revocada = 0 AND S.FechaExpiracion > SYSUTCDATETIME()
     `);
   const row = result.recordset[0];
@@ -176,12 +284,19 @@ const getSession = async (token) => {
   await pool.request().input('tokenHash', sql.VarChar(64), row.TokenHash)
     .query('UPDATE SEGSESION SET UltimoUso=SYSUTCDATETIME() WHERE TokenHash=@tokenHash');
 
+  row.roles = await getRoles(pool, row.EmpCod, clean(row.UsuLogin));
+  const loginName = clean(row.UsuLogin);
+  const [permissions, menu] = await Promise.all([
+    getPermissions(pool, loginName, row.EmpCod),
+    getAuthorizedMenu(pool, row.EmpCod, loginName)
+  ]);
   return {
     tokenHash: row.TokenHash,
     expiresAt: row.FechaExpiracion,
     user: mapUser(row),
     company: { empCod: row.EmpCod, nombre: clean(row.EmpNom) || `Empresa ${row.EmpCod}` },
-    permissions: await getPermissions(pool, clean(row.UsuLogin), row.EmpCod)
+    permissions,
+    menu
   };
 };
 
@@ -192,12 +307,12 @@ const logout = async (token) => {
     .query('UPDATE SEGSESION SET Revocada=1 WHERE TokenHash=@tokenHash');
 };
 
-const changePassword = async (loginName, currentPassword, newPassword) => {
+const changePassword = async (loginName, empCod, currentPassword, newPassword) => {
   if (!currentPassword || !newPassword || String(newPassword).length < 8) {
     throw new SecurityError(400, 'VALIDATION_ERROR', 'La nueva clave debe tener al menos 8 caracteres.');
   }
   const pool = await getPool();
-  const user = await getUser(pool, loginName);
+  const user = (await getUsers(pool, loginName, empCod))[0];
   if (!user || !(await verifyCredentials(pool, user, String(currentPassword)))) {
     throw new SecurityError(401, 'INVALID_CREDENTIALS', 'La clave actual no es correcta.');
   }
@@ -213,4 +328,4 @@ const changePassword = async (loginName, currentPassword, newPassword) => {
     `);
 };
 
-module.exports = { SecurityError, login, getSession, logout, changePassword };
+module.exports = { SecurityError, login, getSession, logout, changePassword, parseRut };

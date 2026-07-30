@@ -18,12 +18,30 @@ app.get('/ping', (req, res) => {
 
 const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173,http://127.0.0.1:5173')
   .split(',')
-  .map((origin) => origin.trim());
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const isDevelopmentOrigin = (origin) => {
+  if (process.env.NODE_ENV === 'production') return false;
+
+  try {
+    const url = new URL(origin);
+    const host = url.hostname.toLowerCase();
+    const isLocalHost = host === 'localhost' || host === '::1' || host.startsWith('127.');
+    const isPrivateNetwork = host.startsWith('10.') || host.startsWith('192.168.')
+      || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+
+    return ['http:', 'https:'].includes(url.protocol) && (isLocalHost || isPrivateNetwork);
+  } catch {
+    return false;
+  }
+};
+
 app.use(cors({
   credentials: true,
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error('Origen no permitido por CORS'));
+    if (!origin || allowedOrigins.includes(origin) || isDevelopmentOrigin(origin)) return callback(null, true);
+    return callback(new Error(`Origen no permitido por CORS: ${origin}`));
   }
 }));
 
@@ -38,12 +56,6 @@ app.use('/backendDocker',routes);
 // });
 
 // tareasCron.start()
-
-const cron = require('node-cron');
-const { enviarCorreo } = require('./src/controllers/correoStatusAprendizaje');
-
-const dteRouter = require('./src/Router/dte.routes');
-app.use('/dte', dteRouter);
 
 /*
 // Turno 1
@@ -61,16 +73,6 @@ cron.schedule('0 0 20 * * *', () => {
 scheduled: true,
 timezone: "America/Santiago"
 }); */
-
-// Correo dias lunes aprendizaje '0 9 * * 1 '
-//10 10 18 3 1 
- cron.schedule('03 02 04 10 *', () => {
-  console.log('envio de correo 09:00')
-  enviarCorreo()
- },{
- scheduled: true,
- timezone: "America/Santiago"
- }); 
 
 const port = Number(process.env.PORT || 3000);
 app.listen(port, () => {
