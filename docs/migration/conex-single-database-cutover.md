@@ -1,5 +1,10 @@
 # Consolidacion en una base CONEX
 
+> Estado al 2026-07-31: `CONEX_MIGRACION` es la base unica de trabajo y el
+> cambio de nombre final a `CONEX` continua pendiente. Este documento describe
+> el corte futuro; no ejecutarlo como si ya hubiera ocurrido. Consultar
+> [CURRENT-STATE.md](CURRENT-STATE.md) antes de modificar la conexion.
+
 ## Objetivo
 
 La aplicacion React/Node debe usar una sola base que conserve el modelo y los datos

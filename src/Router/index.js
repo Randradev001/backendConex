@@ -2,9 +2,15 @@ const router = require("express").Router();
 
 const maestrosRouter = require("./maestros.routes")
 const seguridadRouter = require('./seguridad.routes')
+const recepcionFrutaRouter = require('./recepcionFruta.routes')
+const recepcionesIngresoRouter = require('./recepcionesIngreso.routes')
+const recepcionesCalidadRouter = require('./recepcionesCalidad.routes')
 
 router.use('/maestros',maestrosRouter)
 router.use('/seguridad', seguridadRouter)
+router.use('/recepcion-fruta', recepcionFrutaRouter)
+router.use('/recepciones-ingreso', recepcionesIngresoRouter)
+router.use('/recepciones-calidad', recepcionesCalidadRouter)
 
 // test para confirmar que este router está montado
 router.get('/test', (req, res) => res.send('Router raíz OK'));

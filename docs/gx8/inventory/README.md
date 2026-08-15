@@ -1,5 +1,10 @@
 # Inventario general GX8
 
+> Este inventario identifica objetos; no acredita que esten migrados. El estado
+> vigente se encuentra en
+> [CURRENT-STATE.md](../../migration/CURRENT-STATE.md), y las revisiones manuales
+> se registran en `project-review-register.csv`.
+
 Fuente: `C:\Users\andre\Downloads\GXW.xpz`
 
 Modelo: **ConexSQL2000** (Prototype)

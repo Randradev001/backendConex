@@ -1,5 +1,25 @@
 # Seguridad
 
+> Estado operativo: login por RUT, seleccion de empresa, sesion en cookie,
+> menu autorizado, roles y asignaciones directas estan implementados. La
+> cobertura de middleware por programa todavia debe completarse en los primeros
+> maestros migrados. El estado canonico y los pendientes estan en
+> [CURRENT-STATE.md](../migration/CURRENT-STATE.md).
+
+## Mapa de implementacion
+
+- `src/controllers/seguridadController.js`: autenticacion y sesion.
+- `src/services/seguridad.service.js`: identidad, empresas y permisos efectivos.
+- `src/services/seguridadAsignaciones.service.js`: accesos directos.
+- `src/services/seguridadRoles.service.js`: roles y sus plantillas.
+- `src/middleware/authContext.js`: contexto autenticado obligatorio.
+- `src/middleware/securityAuthorization.js`: autorizacion backend por programa.
+- `src/Router/seguridad.routes.js`: contrato HTTP del modulo.
+
+El menu oculto en React mejora la experiencia, pero no constituye una barrera
+de seguridad. Cada operacion sensible debe estar protegida tambien por
+middleware en el backend.
+
 ## Modelo de negocio
 
 La autorizacion sigue la jerarquia original de CONEX:

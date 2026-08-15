@@ -1,5 +1,15 @@
 # Migracion de Clientes, Agentes y Consignatarios
 
+Estado: implementado y verificado para la etapa de migracion.
+
+Implementacion principal:
+
+- backend: `src/controllers/maestrosController.js` y
+  `src/Router/maestros.routes.js`;
+- frontend: `src/pages/maestros/gxMaestrosConfig.js`,
+  `src/pages/maestros/gxMaestroCrud.jsx` y `src/api/maestrosApi.js`;
+- menu: `src/menu-items/authorizedMenu.jsx` con programas 12, 13 y 14.
+
 ## Alcance
 
 Primera ola posterior a los maestros ya cerrados. Los tres objetos son transacciones GeneXus 8 de nivel 1 y dependen de la empresa autenticada (`EmpCod`). No contienen tablas de segundo nivel.

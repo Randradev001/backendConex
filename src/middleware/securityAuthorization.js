@@ -26,6 +26,17 @@ const requirePermission = (resolveRequired) => (req, res, next) => {
   return next();
 };
 
+const requireAnyPermission = (resolveRequirements) => (req, res, next) => {
+  const requirements = typeof resolveRequirements === 'function' ? resolveRequirements(req) : resolveRequirements;
+  const allowed = Array.isArray(requirements)
+    && requirements.some((required) => hasPermission(req.auth?.permissions || {}, required || {}));
+
+  if (!allowed) {
+    return res.status(403).json({ code: 'FORBIDDEN', message: 'No tiene permisos para ejecutar esta accion.' });
+  }
+  return next();
+};
+
 const requireSecurityAdmin = (req, res, next) => {
   const configured = String(process.env.SECURITY_ADMIN_LOGINS || '').split(',').map((item) => item.trim().toUpperCase()).filter(Boolean);
   const adminRoles = String(process.env.SECURITY_ADMIN_ROLES || 'ADMINFULL').split(',').map((item) => item.trim().toUpperCase()).filter(Boolean);
@@ -46,4 +57,4 @@ const verifyPermission = (req, res, next) => {
   }
 };
 
-module.exports = { hasPermission, requirePermission, requireSecurityAdmin, verifyPermission };
+module.exports = { hasPermission, requirePermission, requireAnyPermission, requireSecurityAdmin, verifyPermission };

@@ -1,5 +1,9 @@
 # Estudio de maestros GX8 en CONEX
 
+> Matriz estructural derivada del XPZ y de SQL Server. Describe claves, niveles
+> y configuracion propuesta, pero no reemplaza el estado de implementacion de
+> [CURRENT-STATE.md](CURRENT-STATE.md).
+
 Fecha: 2026-07-29
 
 ## Decisiones de modalidad

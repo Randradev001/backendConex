@@ -1,5 +1,10 @@
 # Estudio de migracion de Maestros GX8
 
+> Documento de estudio y planificacion inicial. Sus cantidades y estados pueden
+> haber cambiado. Para continuar trabajo usar primero
+> [CURRENT-STATE.md](CURRENT-STATE.md); conservar este archivo como evidencia de
+> las brechas y decisiones analizadas.
+
 Fecha de revision: 2026-07-23
 
 ## 1. Objetivo
@@ -58,10 +63,10 @@ La carpeta GX8 `Maestros` contiene:
 | CausaAnul | Causales de anulacion | No | Nivel 1 | Ausente |
 | Clientes | Clientes | Si | Nivel 1 | Solo listado backend |
 | Comunas | Comunas | No | Catalogo global | Solo listado/lookup backend |
-| Condicion | Condiciones de fruta | No | Catalogo global | Solo listado backend |
+| Condicion | Condiciones de fruta | No | Catalogo global | CRUD React/Node |
 | Consig | Consignatarios | Si | Nivel 1 | Solo listado backend |
 | DespaAuto | Despachadores autorizados | Si | Nivel 1 | Ausente |
-| Destinos | Destinos | No | Catalogo global | Solo listado backend |
+| Destinos | Destinos | No | Catalogo global | CRUD React/Node; `DestNMP` requiere migracion SQL |
 | DestMP | Destinos Multipuerto | No | Catalogo global | Ausente |
 | EnvCat | Envases y categorias | Si | EnvCat1 es nivel 2 | CRUD React/Node en una pantalla con pestanas |
 | EnvMP | Envases Multipuerto | No | Catalogo global | Ausente |
@@ -71,7 +76,7 @@ La carpeta GX8 `Maestros` contiene:
 | GenCor | Correlativos | Si | Infraestructura critica | Servicio parcial; no tratar como CRUD comun |
 | MaeLineaEmbalaje | Lineas de embalaje | No detectado | Catalogo global | Ausente |
 | Monedas | Monedas | No | Padre de ValMExt | Ausente |
-| Origen | Origenes | Si | Nivel 1 | Solo listado backend |
+| Origen | Origenes | Si | Nivel 1 | CRUD React/Node |
 | paramgen | Parametros generales | Si | `paramge1` es nivel 2 | Ausente como maestro |
 | Procedencia | Procedencias | Si | Nivel 1 | Ausente |
 | ProdGen | Productos generales | No | Catalogo global | Ausente |

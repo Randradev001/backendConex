@@ -101,7 +101,7 @@ const catalogos = {
     primaryKey: ['EmpCod', 'Especod', 'Calibre'],
     // Calibre es clave fisica, pero GeneXus permite corregirlo conservando la clave anterior.
     mutablePrimaryKey: { Calibre: 'OriginalCalibre' },
-    columns: ['EmpCod', 'Especod', 'Calibre', 'CalCod'],
+    columns: ['EmpCod', 'Especod', 'Calibre', 'CalCod', 'calRecepcion'],
     orderBy: ['Especod', 'CalCod', 'Calibre'],
     filters: [{ param: 'Especod', column: 'Especod', type: 'int', required: true }],
     searchColumns: ['Calibre', 'CalCod'],
@@ -109,7 +109,8 @@ const catalogos = {
       EmpCod: { type: 'int', required: true, min: 1 },
       Especod: { type: 'int', required: true, min: 1 },
       Calibre: { type: 'text', length: 10, required: true },
-      CalCod: { type: 'int', min: 1, serverGenerated: true }
+      CalCod: { type: 'int', min: 1, serverGenerated: true },
+      calRecepcion: { type: 'int', choices: [0, 1], insertDefault: 0 }
     }
   },
   envases: {
@@ -248,10 +249,51 @@ const catalogos = {
   },
   exportadoras: {
     table: 'EXPORT1',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
     requiresEmpCod: true,
-    columns: ['EmpCod', 'ExpCod', 'ExpRut', 'ExpDv', 'ExpNom', 'EXPCodMP', 'EXPSECod'],
+    rutFields: { number: 'ExpRut', verifier: 'ExpDv' },
+    primaryKey: ['EmpCod', 'ExpCod'],
+    columns: ['EmpCod', 'ExpCod', 'ExpNom', 'ExpRut', 'ExpDv', 'EXPCodMP', 'EXPSECod'],
     orderBy: ['ExpCod'],
-    searchColumns: ['ExpNom', 'ExpRut']
+    searchColumns: ['ExpCod', 'ExpNom', 'ExpRut', 'ExpDv', 'EXPCodMP', 'EXPSECod'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      ExpCod: { type: 'int', required: true, min: 1, max: 9999 },
+      ExpNom: { type: 'text', length: 40, required: true },
+      ExpRut: { type: 'int', required: true, min: 1, max: 999999999 },
+      ExpDv: { type: 'text', length: 1, required: true, uppercase: true },
+      EXPCodMP: { type: 'int', min: 0, max: 99999 },
+      EXPSECod: { type: 'text', length: 10 }
+    },
+    deleteDependencies: [
+      { table: 'EXPPROD', fields: ['EmpCod', 'ExpCod'] },
+      { table: 'CAP001', fields: ['EmpCod', 'ExpCod'] },
+      { table: 'CNTFOLIOS', fields: ['EmpCod', 'ExpCod'] },
+      { table: 'DESORIGEN', fields: ['EmpCod', 'ExpCod'] },
+      { table: 'FOLIOSPROC', fields: ['EmpCod', 'ExpCod'] },
+      { table: 'ORDPROC', fields: ['EmpCod', 'ExpCod'] },
+      { table: 'PACKLIST', fields: ['EmpCod', 'ExpCod'] },
+      { table: 'PALETIZA01', fields: ['EmpCod', 'ExpCod'] }
+    ]
+  },
+  exportadoraProductores: {
+    table: 'EXPPROD',
+    gxLevel: 2,
+    parentTable: 'EXPORT1',
+    parentKey: ['EmpCod', 'ExpCod'],
+    requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'ExpCod', 'ProdCod'],
+    columns: ['EmpCod', 'ExpCod', 'ProdCod'],
+    orderBy: ['ExpCod', 'ProdCod'],
+    filters: [{ param: 'ExpCod', column: 'ExpCod', type: 'int', required: true }],
+    searchColumns: ['ProdCod'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      ExpCod: { type: 'int', required: true, min: 1, max: 9999 },
+      ProdCod: { type: 'text', length: 6, required: true }
+    }
   },
   consignatarios: {
     table: 'CONSIG',
@@ -302,28 +344,389 @@ const catalogos = {
   },
   origenes: {
     table: 'ORIGEN',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
     requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'OriCod'],
     columns: ['EmpCod', 'OriCod', 'Orinom', 'OriEst'],
     orderBy: ['OriCod'],
-    searchColumns: ['Orinom']
+    searchColumns: ['OriCod', 'Orinom', 'OriEst'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      OriCod: { type: 'int', required: true, min: 0, max: 99 },
+      Orinom: { type: 'text', length: 35 },
+      OriEst: { type: 'int', choices: [1, 2] }
+    },
+    deleteDependencies: [
+      { table: 'MOVFRUT', fields: ['EmpCod', 'OriCod'] },
+      { table: 'MOVFRUT1', fields: ['EmpCod', 'OriCod'] }
+    ]
   },
   condiciones: {
     table: 'CONDICION',
+    gxLevel: 1,
+    primaryKey: ['ConCod'],
     columns: ['ConCod', 'ConNom', 'ConEst', 'ConNomC'],
     orderBy: ['ConCod'],
-    searchColumns: ['ConNom', 'ConNomC']
+    searchColumns: ['ConCod', 'ConNom', 'ConNomC', 'ConEst'],
+    fields: {
+      ConCod: { type: 'int', required: true, min: 0, max: 99 },
+      ConNom: { type: 'text', length: 15 },
+      ConEst: { type: 'int', choices: [1, 2] },
+      ConNomC: { type: 'text', length: 4 }
+    }
+  },
+  plagasRecepcion: {
+    table: 'MAPlagas',
+    gxLevel: 1,
+    parentTable: 'ESPECIES',
+    parentKey: ['EmpCod', 'Especod'],
+    requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'Especod', 'MAPlaCod'],
+    columns: ['EmpCod', 'Especod', 'MAPlaCod', 'MAPlaTipo', 'MAPlaDes', 'MAPlaOrden', 'MAPlaActivo'],
+    orderBy: ['Especod', 'MAPlaOrden', 'MAPlaCod'],
+    filters: [{ param: 'Especod', column: 'Especod', type: 'int', required: true }],
+    searchColumns: ['MAPlaTipo', 'MAPlaDes'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      Especod: { type: 'int', required: true, min: 1 },
+      MAPlaCod: { type: 'int', required: true, min: 1 },
+      MAPlaTipo: { type: 'text', length: 10, required: true, choices: ['PLAGA', 'VIRUS', 'DIPTERO'] },
+      MAPlaDes: { type: 'text', length: 60, required: true },
+      MAPlaOrden: { type: 'int', required: true, min: 1 },
+      MAPlaActivo: { type: 'int', choices: [0, 1], insertDefault: 1 }
+    }
+  },
+  coloresRecepcion: {
+    table: 'MAColores',
+    gxLevel: 1,
+    parentTable: 'ESPECIES',
+    parentKey: ['EmpCod', 'Especod'],
+    requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'Especod', 'MAColCod'],
+    columns: ['EmpCod', 'Especod', 'MAColCod', 'MAColDes', 'MAColOrden', 'MAColPremium', 'MAColActivo'],
+    orderBy: ['Especod', 'MAColOrden', 'MAColCod'],
+    filters: [{ param: 'Especod', column: 'Especod', type: 'int', required: true }],
+    searchColumns: ['MAColCod', 'MAColDes'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      Especod: { type: 'int', required: true, min: 1 },
+      MAColCod: { type: 'text', length: 2, required: true },
+      MAColDes: { type: 'text', length: 40, required: true },
+      MAColOrden: { type: 'int', required: true, min: 1 },
+      MAColPremium: { type: 'int', choices: [0, 1], insertDefault: 1 },
+      MAColActivo: { type: 'int', choices: [0, 1], insertDefault: 1 }
+    }
   },
   destinos: {
     table: 'DESTINOS',
-    columns: ['DestCod', 'DestNom', 'DestCMP'],
+    gxLevel: 1,
+    primaryKey: ['DestCod'],
+    columns: ['DestCod', 'DestNom', 'DestCMP', 'DestNMP'],
     orderBy: ['DestCod'],
-    searchColumns: ['DestNom']
+    searchColumns: ['DestCod', 'DestNom', 'DestCMP', 'DestNMP'],
+    fields: {
+      DestCod: { type: 'int', required: true, min: 1, max: 999 },
+      DestNom: { type: 'text', length: 20, required: true },
+      DestCMP: { type: 'int', min: 0, max: 9999 },
+      DestNMP: { type: 'text', length: 30 }
+    },
+    deleteDependencies: [
+      { table: 'DESORIGEN', fields: ['DestCod'] },
+      { table: 'PACKLIST', fields: ['DestCod'] }
+    ]
   },
   tiposDocumento: {
     table: 'TIPDOC',
+    gxLevel: 1,
+    primaryKey: ['TdCod'],
     columns: ['TdCod', 'TdNom', 'TdInter', 'TdBloq'],
     orderBy: ['TdCod'],
-    searchColumns: ['TdNom']
+    searchColumns: ['TdCod', 'TdNom', 'TdInter', 'TdBloq'],
+    fields: {
+      TdCod: { type: 'int', required: true, min: 0, max: 99 },
+      TdNom: { type: 'text', length: 20, required: true },
+      TdInter: { type: 'int', choices: [0, 1], insertDefault: 0 },
+      TdBloq: { type: 'int', choices: [0, 1], insertDefault: 0 }
+    },
+    deleteDependencies: [{ table: 'DESPCAJS', fields: ['TdCod'] }]
+  },
+  tiposMovimiento: {
+    table: 'TIPMOV',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
+    requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'TMcod'],
+    columns: ['EmpCod', 'TMcod', 'TMNom'],
+    orderBy: ['TMcod'],
+    searchColumns: ['TMcod', 'TMNom'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      TMcod: { type: 'int', required: true, min: 0, max: 99 },
+      TMNom: { type: 'text', length: 20 }
+    },
+    deleteDependencies: [
+      { table: 'FCOMERCIAL', fields: ['EmpCod', 'TMcod'] },
+      { table: 'MOVFRUT', fields: ['EmpCod', 'TMcod'] }
+    ],
+    deleteChildren: [{ table: 'TIPMOV1', fields: ['EmpCod', 'TMcod'] }]
+  },
+  subtiposMovimiento: {
+    table: 'TIPMOV1',
+    gxLevel: 2,
+    parentTable: 'TIPMOV',
+    parentKey: ['EmpCod', 'TMcod'],
+    requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'TMcod', 'TMSCod'],
+    columns: ['EmpCod', 'TMcod', 'TMSCod', 'TMSNom'],
+    orderBy: ['TMcod', 'TMSCod'],
+    filters: [{ param: 'TMcod', column: 'TMcod', type: 'int', required: true }],
+    searchColumns: ['TMSCod', 'TMSNom'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      TMcod: { type: 'int', required: true, min: 0, max: 99 },
+      TMSCod: { type: 'int', required: true, min: 0, max: 99 },
+      TMSNom: { type: 'text', length: 20 }
+    },
+    deleteDependencies: [
+      { table: 'FCOMERCIAL', fields: ['EmpCod', 'TMcod', 'TMSCod'] },
+      { table: 'MOVFRUT', fields: ['EmpCod', 'TMcod', 'TMSCod'] }
+    ]
+  },
+  parametrosGenerales: {
+    table: 'PARAMGEN',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
+    requiresEmpCod: true,
+    columnMap: { EmpCod: 'empcod', PARCod: 'parcod' },
+    primaryKey: ['EmpCod', 'PARCod'],
+    columns: ['EmpCod', 'PARCod', 'PARDes', 'PARValor1', 'PARValor2', 'PARValor3'],
+    orderBy: ['PARCod'],
+    searchColumns: ['PARCod', 'PARDes', 'PARValor1', 'PARValor2', 'PARValor3'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      PARCod: { type: 'int', required: true, min: 0, max: 9999 },
+      PARDes: { type: 'text', length: 30 },
+      PARValor1: { type: 'decimal', precision: 13, scale: 3 },
+      PARValor2: { type: 'decimal', precision: 13, scale: 3 },
+      PARValor3: { type: 'decimal', precision: 13, scale: 3 }
+    },
+    deleteChildren: [{ table: 'PARAMGE1', fields: ['EmpCod', 'PARCod'], columnMap: { EmpCod: 'empcod', PARCod: 'parcod' } }]
+  },
+  parametrosDetalle: {
+    table: 'PARAMGE1',
+    gxLevel: 2,
+    parentTable: 'PARAMGEN',
+    parentKey: ['EmpCod', 'PARCod'],
+    requiresEmpCod: true,
+    columnMap: { EmpCod: 'empcod', PARCod: 'parcod' },
+    primaryKey: ['EmpCod', 'PARCod', 'PAR1Cod'],
+    columns: ['EmpCod', 'PARCod', 'PAR1Cod', 'PAR1Des', 'PAR1Valor1', 'PAR1Valor2', 'PAR1Valor3', 'Par1Texto'],
+    orderBy: ['PARCod', 'PAR1Cod'],
+    filters: [{ param: 'PARCod', column: 'PARCod', type: 'int', required: true }],
+    searchColumns: ['PAR1Cod', 'PAR1Des', 'PAR1Valor1', 'PAR1Valor2', 'PAR1Valor3', 'Par1Texto'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      PARCod: { type: 'int', required: true, min: 0, max: 9999 },
+      PAR1Cod: { type: 'int', required: true, min: 0, max: 999 },
+      PAR1Des: { type: 'text', length: 30 },
+      PAR1Valor1: { type: 'decimal', precision: 13, scale: 3 },
+      PAR1Valor2: { type: 'decimal', precision: 13, scale: 3 },
+      PAR1Valor3: { type: 'decimal', precision: 13, scale: 3 },
+      Par1Texto: { type: 'text', length: 40 }
+    }
+  },
+  monedas: {
+    table: 'MONEDAS',
+    gxLevel: 1,
+    primaryKey: ['MonCod'],
+    columns: ['MonCod', 'MonDes', 'MonLogC'],
+    orderBy: ['MonCod'],
+    searchColumns: ['MonCod', 'MonDes', 'MonLogC'],
+    fields: {
+      MonCod: { type: 'int', required: true, min: 0, max: 99 },
+      MonDes: { type: 'text', length: 20, required: true },
+      MonLogC: { type: 'text', length: 10, serverValueOnInsert: 'contextLogin', serverManaged: true }
+    },
+    deleteDependencies: [
+      { table: 'VALMEXT', fields: ['MonCod'] },
+      { table: 'LISTPRECIOS', fields: ['MonCod'] }
+    ]
+  },
+  valoresMoneda: {
+    table: 'VALMEXT',
+    gxLevel: 2,
+    parentTable: 'MONEDAS',
+    parentKey: ['MonCod'],
+    primaryKey: ['MonCod', 'VMEFec'],
+    columns: ['MonCod', 'VMEFec', 'VMEVal'],
+    orderBy: ['MonCod', 'VMEFec'],
+    filters: [
+      { param: 'MonCod', column: 'MonCod', type: 'int', required: true },
+      { param: 'FecD', column: 'VMEFec', type: 'date', operator: 'gte' },
+      { param: 'FecH', column: 'VMEFec', type: 'date', operator: 'lte' }
+    ],
+    searchColumns: ['VMEFec', 'VMEVal'],
+    fields: {
+      MonCod: { type: 'int', required: true, min: 0, max: 99 },
+      VMEFec: { type: 'date', required: true },
+      VMEVal: { type: 'decimal', precision: 8, scale: 2, required: true, exclusiveMin: 0 }
+    }
+  },
+  puertos: {
+    table: 'PUERTOS',
+    gxLevel: 1,
+    primaryKey: ['PuCod'],
+    columns: ['PuCod', 'PuNombre', 'PuNac', 'PuCodHomo'],
+    orderBy: ['PuNombre', 'PuCod'],
+    filters: [
+      { param: 'PuNac', column: 'PuNac', type: 'int' },
+      { param: 'PuNombre', column: 'PuNombre', type: 'text', length: 25, operator: 'like' }
+    ],
+    searchColumns: ['PuCod', 'PuNombre', 'PuNac', 'PuCodHomo'],
+    fields: {
+      PuCod: { type: 'int', required: true, min: 0, max: 999 },
+      PuNombre: { type: 'text', length: 25, required: true },
+      PuNac: { type: 'int', choices: [0, 1], insertDefault: 0 },
+      PuCodHomo: { type: 'int', min: 0, max: 999 }
+    }
+  },
+  causalesAnulacion: {
+    table: 'CAUSAANUL',
+    gxLevel: 1,
+    primaryKey: ['CAnCod'],
+    columns: ['CAnCod', 'CanNom', 'CanPE', 'CanLoginC', 'CanFecC'],
+    orderBy: ['CAnCod'],
+    searchColumns: ['CAnCod', 'CanNom', 'CanPE', 'CanLoginC', 'CanFecC'],
+    fields: {
+      CAnCod: { type: 'int', required: true, min: 0, max: 99 },
+      CanNom: { type: 'text', length: 20 },
+      CanPE: { type: 'int', choices: [0, 1], insertDefault: 0 },
+      CanLoginC: { type: 'text', length: 10, serverValueOnInsert: 'contextLogin', serverManaged: true },
+      CanFecC: { type: 'date', serverValueOnInsert: 'serverDate', serverManaged: true }
+    },
+    deleteDependencies: [{ table: 'ANUINS', fields: ['CAnCod'] }]
+  },
+  despachadoresAutorizados: {
+    table: 'DESPAAUTO',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
+    requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'DACod'],
+    columns: ['EmpCod', 'DACod', 'DANombre', 'DAVig'],
+    orderBy: ['DACod'],
+    searchColumns: ['DACod', 'DANombre', 'DAVig'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      DACod: { type: 'int', required: true, min: 0, max: 99 },
+      DANombre: { type: 'text', length: 30, required: true },
+      DAVig: { type: 'int', choices: [0, 1], insertDefault: 1 }
+    },
+    deleteDependencies: [
+      { table: 'DESORIGEN', fields: ['EmpCod', 'DACod'] },
+      { table: 'PACKLIST', fields: ['EmpCod', 'DACod'] },
+      { table: 'REPALETIZAJE', fields: ['EmpCod', 'DACod'] }
+    ]
+  },
+  procedencias: {
+    table: 'PROCEDENCIA',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
+    requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'ProcCod'],
+    columns: ['EmpCod', 'ProcCod', 'ProcNom', 'ProcEst'],
+    orderBy: ['ProcCod'],
+    searchColumns: ['ProcCod', 'ProcNom', 'ProcEst'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      ProcCod: { type: 'int', required: true, min: 0, max: 99 },
+      ProcNom: { type: 'text', length: 35 },
+      ProcEst: { type: 'int', choices: [1, 2], insertDefault: 1 }
+    }
+  },
+  secciones: {
+    table: 'SECCIONES',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
+    requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'Seccod'],
+    columns: ['EmpCod', 'Seccod', 'SecNom'],
+    orderBy: ['Seccod'],
+    searchColumns: ['Seccod', 'SecNom'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      Seccod: { type: 'int', required: true, min: 0, max: 99 },
+      SecNom: { type: 'text', length: 20, required: true }
+    }
+  },
+  tiposEtiqueta: {
+    table: 'TIPETI',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
+    requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'TEtCod'],
+    columns: ['EmpCod', 'TEtCod', 'TEtDesc'],
+    orderBy: ['TEtCod'],
+    searchColumns: ['TEtCod', 'TEtDesc'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      TEtCod: { type: 'int', required: true, min: 1, max: 999 },
+      TEtDesc: { type: 'text', length: 20, required: true }
+    },
+    deleteDependencies: [
+      { table: 'FOLIOSPROC', fields: ['EmpCod', 'TEtCod'] },
+      { table: 'PROCUSDA1', fields: ['EmpCod', 'TEtCod'] }
+    ]
+  },
+  tiposBasePallet: {
+    table: 'TIPBPA',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
+    requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'TBPCod'],
+    columns: ['EmpCod', 'TBPCod', 'TBPDesc', 'TBPBase', 'TBPDiv'],
+    orderBy: ['TBPCod'],
+    searchColumns: ['TBPCod', 'TBPDesc', 'TBPBase', 'TBPDiv'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      TBPCod: { type: 'int', required: true, min: 1, max: 999 },
+      TBPDesc: { type: 'text', length: 20, required: true },
+      TBPBase: { type: 'int', min: 0, max: 99 },
+      TBPDiv: { type: 'int', min: 0, max: 99 }
+    },
+    deleteDependencies: [
+      { table: 'FOLDIAGRAMA1', fields: ['EmpCod', 'TBPCod'] },
+      { table: 'FOLIOSPROC', fields: ['EmpCod', 'TBPCod'] },
+      { table: 'PROCUSDA1', fields: ['EmpCod', 'TBPCod'] }
+    ]
+  },
+  tiposAltura: {
+    table: 'TIPALT',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
+    requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'TAlCod'],
+    columns: ['EmpCod', 'TAlCod', 'TAlDesc'],
+    orderBy: ['TAlCod'],
+    searchColumns: ['TAlCod', 'TAlDesc'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      TAlCod: { type: 'int', required: true, min: 1, max: 999 },
+      TAlDesc: { type: 'text', length: 20, required: true }
+    },
+    deleteDependencies: [
+      { table: 'FOLIOSPROC', fields: ['EmpCod', 'TAlCod'] },
+      { table: 'PROCUSDA1', fields: ['EmpCod', 'TAlCod'] }
+    ]
   }
 };
 
@@ -418,6 +821,15 @@ const bindFilter = (request, filter, value) => {
     return;
   }
 
+  if (filter.type === 'date') {
+    const dateValue = parseDateValue(value);
+    if (!dateValue || Number.isNaN(dateValue.getTime())) {
+      throw httpError(400, `Parametro invalido: ${filter.param} debe ser fecha valida`);
+    }
+    request.input(filter.param, sql.Date, dateValue);
+    return;
+  }
+
   const textValue = String(value).trim();
   const boundValue = filter.operator === 'like' ? `%${textValue}%` : textValue;
   request.input(filter.param, sql.VarChar((filter.length || 50) + (filter.operator === 'like' ? 2 : 0)), boundValue);
@@ -457,7 +869,13 @@ const listCatalog = (catalogName) => async (req, res) => {
       if (!hasValue) continue;
 
       bindFilter(request, filter, value);
-      const operator = filter.operator === 'like' ? 'LIKE' : '=';
+      const operator = {
+        like: 'LIKE',
+        gte: '>=',
+        lte: '<=',
+        gt: '>',
+        lt: '<'
+      }[filter.operator] || '=';
       where.push(`${quoteName(getDbColumn(config, filter.column))} ${operator} @${filter.param}`);
     }
 
@@ -488,6 +906,55 @@ const listCatalog = (catalogName) => async (req, res) => {
       success: false,
       catalog: catalogName,
       message: status === 500 ? 'Error consultando maestro' : error.message,
+      error: error.message
+    });
+  }
+};
+
+const listExportadoraProductores = async (req, res) => {
+  const catalogName = 'exportadoraProductores';
+
+  try {
+    const pool = await getPool();
+    const request = pool.request();
+    const empCod = getContextEmpCod(req);
+    const expCod = getIntParam(req, 'ExpCod');
+    const limit = getLimit(req);
+    const q = getTextParam(req, 'q');
+
+    request.input('empCod', sql.Int, empCod);
+    request.input('expCod', sql.Int, expCod);
+    request.input('limit', sql.Int, limit);
+
+    const where = ['ep.[EmpCod] = @empCod', 'ep.[ExpCod] = @expCod'];
+    if (q) {
+      request.input('q', sql.NVarChar(120), `%${q}%`);
+      where.push('(CAST(ep.[ProdCod] AS NVARCHAR(120)) LIKE @q OR CAST(p.[ProdNom] AS NVARCHAR(120)) LIKE @q)');
+    }
+
+    const result = await request.query(`
+      SELECT TOP (@limit)
+        ep.[EmpCod], ep.[ExpCod], ep.[ProdCod], p.[ProdNom], p.[ProdComuna]
+      FROM [EXPPROD] ep
+      LEFT JOIN [PRODUCTORES] p
+        ON p.[EmpCod] = ep.[EmpCod]
+       AND p.[ProdCod] = ep.[ProdCod]
+      WHERE ${where.join(' AND ')}
+      ORDER BY ep.[ProdCod]
+    `);
+
+    return res.json({
+      success: true,
+      catalog: catalogName,
+      count: result.recordset.length,
+      data: result.recordset
+    });
+  } catch (error) {
+    const status = error.status || 500;
+    return res.status(status).json({
+      success: false,
+      catalog: catalogName,
+      message: status === 500 ? 'Error consultando productores de exportadora' : error.message,
       error: error.message
     });
   }
@@ -826,9 +1293,9 @@ const updateCatalog = (catalogName) => async (req, res) => {
   }
 };
 
-const assertDeleteDependencies = async (pool, req, config) => {
+const assertDeleteDependencies = async (transaction, req, config) => {
   for (const dependency of config.deleteDependencies || []) {
-    const request = pool.request();
+    const request = new sql.Request(transaction);
     const where = [];
 
     for (const fieldName of dependency.fields) {
@@ -852,12 +1319,38 @@ const assertDeleteDependencies = async (pool, req, config) => {
 };
 
 const deleteCatalog = (catalogName) => async (req, res) => {
+  let transaction;
+  let transactionStarted = false;
+
   try {
     const config = getWritableCatalog(catalogName);
     const pool = await getPool();
-    const request = pool.request();
+    transaction = new sql.Transaction(pool);
+    await transaction.begin();
+    transactionStarted = true;
 
-    await assertDeleteDependencies(pool, req, config);
+    await assertDeleteDependencies(transaction, req, config);
+
+    for (const child of config.deleteChildren || []) {
+      const childRequest = new sql.Request(transaction);
+      const childWhere = [];
+
+      for (const fieldName of child.fields) {
+        const field = config.fields[fieldName];
+        const paramName = `child_${fieldName}`;
+        bindField(childRequest, paramName, fieldName, field, getCatalogWriteParam(req, config, fieldName), true);
+        const childColumn = child.columnMap?.[fieldName] || fieldName;
+        childWhere.push(`${quoteName(childColumn)} = @${paramName}`);
+      }
+
+      // Los niveles 2 de una Transaction GX se eliminan junto con su cabecera.
+      await childRequest.query(`
+        DELETE FROM ${quoteName(child.table)}
+        WHERE ${childWhere.join(' AND ')}
+      `);
+    }
+
+    const request = new sql.Request(transaction);
 
     for (const column of config.primaryKey) {
       bindField(request, `key_${column}`, column, config.fields[column], getCatalogWriteParam(req, config, column), true);
@@ -869,6 +1362,8 @@ const deleteCatalog = (catalogName) => async (req, res) => {
     `;
 
     const result = await request.query(query);
+    await transaction.commit();
+    transactionStarted = false;
 
     return res.json({
       success: true,
@@ -878,6 +1373,13 @@ const deleteCatalog = (catalogName) => async (req, res) => {
       key: getKeyPayload(req, config)
     });
   } catch (error) {
+    if (transactionStarted) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        console.error(`Error revirtiendo eliminacion de ${catalogName}`, rollbackError);
+      }
+    }
     return sendWriteError(res, catalogName, error, 'Error eliminando maestro');
   }
 };
@@ -972,6 +1474,14 @@ module.exports = {
   insertCalibre,
   updateCalibre: updateCatalog('calibres'),
   deleteCalibre: deleteCatalog('calibres'),
+  listPlagasRecepcion: listCatalog('plagasRecepcion'),
+  insertPlagaRecepcion: insertCatalog('plagasRecepcion'),
+  updatePlagaRecepcion: updateCatalog('plagasRecepcion'),
+  deletePlagaRecepcion: deleteCatalog('plagasRecepcion'),
+  listColoresRecepcion: listCatalog('coloresRecepcion'),
+  insertColorRecepcion: insertCatalog('coloresRecepcion'),
+  updateColorRecepcion: updateCatalog('coloresRecepcion'),
+  deleteColorRecepcion: deleteCatalog('coloresRecepcion'),
   listEnvases: listCatalog('envases'),
   insertEnvase: insertCatalog('envases'),
   updateEnvase: updateCatalog('envases'),
@@ -994,6 +1504,13 @@ module.exports = {
   updateCliente: updateCatalog('clientes'),
   deleteCliente: deleteCatalog('clientes'),
   listExportadoras: listCatalog('exportadoras'),
+  insertExportadora: insertCatalog('exportadoras'),
+  updateExportadora: updateCatalog('exportadoras'),
+  deleteExportadora: deleteCatalog('exportadoras'),
+  listExportadoraProductores,
+  insertExportadoraProductor: insertCatalog('exportadoraProductores'),
+  updateExportadoraProductor: updateCatalog('exportadoraProductores'),
+  deleteExportadoraProductor: deleteCatalog('exportadoraProductores'),
   listConsignatarios: listCatalog('consignatarios'),
   insertConsignatario: insertCatalog('consignatarios'),
   updateConsignatario: updateCatalog('consignatarios'),
@@ -1003,7 +1520,75 @@ module.exports = {
   updateAgente: updateCatalog('agentes'),
   deleteAgente: deleteCatalog('agentes'),
   listOrigenes: listCatalog('origenes'),
+  insertOrigen: insertCatalog('origenes'),
+  updateOrigen: updateCatalog('origenes'),
+  deleteOrigen: deleteCatalog('origenes'),
   listCondiciones: listCatalog('condiciones'),
+  insertCondicion: insertCatalog('condiciones'),
+  updateCondicion: updateCatalog('condiciones'),
+  deleteCondicion: deleteCatalog('condiciones'),
   listDestinos: listCatalog('destinos'),
-  listTiposDocumento: listCatalog('tiposDocumento')
+  insertDestino: insertCatalog('destinos'),
+  updateDestino: updateCatalog('destinos'),
+  deleteDestino: deleteCatalog('destinos'),
+  listTiposDocumento: listCatalog('tiposDocumento'),
+  insertTipoDocumento: insertCatalog('tiposDocumento'),
+  updateTipoDocumento: updateCatalog('tiposDocumento'),
+  deleteTipoDocumento: deleteCatalog('tiposDocumento'),
+  listTiposMovimiento: listCatalog('tiposMovimiento'),
+  insertTipoMovimiento: insertCatalog('tiposMovimiento'),
+  updateTipoMovimiento: updateCatalog('tiposMovimiento'),
+  deleteTipoMovimiento: deleteCatalog('tiposMovimiento'),
+  listSubtiposMovimiento: listCatalog('subtiposMovimiento'),
+  insertSubtipoMovimiento: insertCatalog('subtiposMovimiento'),
+  updateSubtipoMovimiento: updateCatalog('subtiposMovimiento'),
+  deleteSubtipoMovimiento: deleteCatalog('subtiposMovimiento'),
+  listParametrosGenerales: listCatalog('parametrosGenerales'),
+  insertParametroGeneral: insertCatalog('parametrosGenerales'),
+  updateParametroGeneral: updateCatalog('parametrosGenerales'),
+  deleteParametroGeneral: deleteCatalog('parametrosGenerales'),
+  listParametrosDetalle: listCatalog('parametrosDetalle'),
+  insertParametroDetalle: insertCatalog('parametrosDetalle'),
+  updateParametroDetalle: updateCatalog('parametrosDetalle'),
+  deleteParametroDetalle: deleteCatalog('parametrosDetalle'),
+  listMonedas: listCatalog('monedas'),
+  insertMoneda: insertCatalog('monedas'),
+  updateMoneda: updateCatalog('monedas'),
+  deleteMoneda: deleteCatalog('monedas'),
+  listValoresMoneda: listCatalog('valoresMoneda'),
+  insertValorMoneda: insertCatalog('valoresMoneda'),
+  updateValorMoneda: updateCatalog('valoresMoneda'),
+  deleteValorMoneda: deleteCatalog('valoresMoneda'),
+  listPuertos: listCatalog('puertos'),
+  insertPuerto: insertCatalog('puertos'),
+  updatePuerto: updateCatalog('puertos'),
+  deletePuerto: deleteCatalog('puertos'),
+  listCausalesAnulacion: listCatalog('causalesAnulacion'),
+  insertCausalAnulacion: insertCatalog('causalesAnulacion'),
+  updateCausalAnulacion: updateCatalog('causalesAnulacion'),
+  deleteCausalAnulacion: deleteCatalog('causalesAnulacion'),
+  listDespachadoresAutorizados: listCatalog('despachadoresAutorizados'),
+  insertDespachadorAutorizado: insertCatalog('despachadoresAutorizados'),
+  updateDespachadorAutorizado: updateCatalog('despachadoresAutorizados'),
+  deleteDespachadorAutorizado: deleteCatalog('despachadoresAutorizados'),
+  listProcedencias: listCatalog('procedencias'),
+  insertProcedencia: insertCatalog('procedencias'),
+  updateProcedencia: updateCatalog('procedencias'),
+  deleteProcedencia: deleteCatalog('procedencias'),
+  listSecciones: listCatalog('secciones'),
+  insertSeccion: insertCatalog('secciones'),
+  updateSeccion: updateCatalog('secciones'),
+  deleteSeccion: deleteCatalog('secciones'),
+  listTiposEtiqueta: listCatalog('tiposEtiqueta'),
+  insertTipoEtiqueta: insertCatalog('tiposEtiqueta'),
+  updateTipoEtiqueta: updateCatalog('tiposEtiqueta'),
+  deleteTipoEtiqueta: deleteCatalog('tiposEtiqueta'),
+  listTiposBasePallet: listCatalog('tiposBasePallet'),
+  insertTipoBasePallet: insertCatalog('tiposBasePallet'),
+  updateTipoBasePallet: updateCatalog('tiposBasePallet'),
+  deleteTipoBasePallet: deleteCatalog('tiposBasePallet'),
+  listTiposAltura: listCatalog('tiposAltura'),
+  insertTipoAltura: insertCatalog('tiposAltura'),
+  updateTipoAltura: updateCatalog('tiposAltura'),
+  deleteTipoAltura: deleteCatalog('tiposAltura')
 };

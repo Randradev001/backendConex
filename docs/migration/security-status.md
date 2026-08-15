@@ -1,5 +1,8 @@
 # Estado de migracion de Seguridad
 
+> Estado detallado de Seguridad. La fotografia consolidada y el orden para
+> continuar se mantienen en [CURRENT-STATE.md](CURRENT-STATE.md).
+
 ## Base evaluada
 
 La implementacion esta alineada con la base CONEX original. `USUARIOS` conserva

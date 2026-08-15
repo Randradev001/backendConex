@@ -1,0 +1,33 @@
+const router=require('express').Router();
+const controller=require('../controllers/recepcionesCalidadController');
+const authContext=require('../middleware/authContext');
+const {requirePermission,requireAnyPermission}=require('../middleware/securityAuthorization');
+const multer=require('multer');
+const program={sistema:100,modulo:2,programa:32};
+const action=(accion)=>requirePermission({...program,accion});
+const allowed=new Set(['image/jpeg','image/png','image/webp']);
+const upload=multer({storage:multer.memoryStorage(),limits:{files:10,fileSize:5*1024*1024},fileFilter:(req,file,cb)=>cb(null,allowed.has(file.mimetype))});
+const detectedMime=(buffer)=>{
+  if(buffer?.length>=3&&buffer[0]===0xff&&buffer[1]===0xd8&&buffer[2]===0xff)return'image/jpeg';
+  if(buffer?.length>=8&&buffer.subarray(0,8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a])))return'image/png';
+  if(buffer?.length>=12&&buffer.subarray(0,4).toString()==='RIFF'&&buffer.subarray(8,12).toString()==='WEBP')return'image/webp';
+  return null;
+};
+const validatePhotos=(req,res,next)=>{
+  if(!(req.files||[]).length)return res.status(400).json({code:'PHOTO_REQUIRED',message:'Debe seleccionar al menos una foto.'});
+  if(req.files.some((file)=>detectedMime(file.buffer)!==file.mimetype))return res.status(400).json({code:'INVALID_PHOTO',message:'Una fotografia no corresponde a JPEG, PNG o WebP.'});
+  next();
+};
+router.use(authContext);
+router.get('/dashboard',requirePermission({sistema:100,modulo:15,programa:15}),controller.dashboard);
+router.use(requirePermission(program));
+router.get('/',controller.list);
+router.get('/:id/photos',controller.listPhotos);
+router.post('/:id/photos',requireAnyPermission([{...program,accion:1},{...program,accion:2}]),upload.array('photos',10),validatePhotos,controller.addPhotos);
+router.get('/:id/photos/:photoId',controller.getPhoto);
+router.delete('/:id/photos/:photoId',action(2),controller.removePhoto);
+router.get('/:id',controller.getOne);
+router.post('/',action(1),controller.create);
+router.put('/:id',action(2),controller.update);
+router.delete('/:id',action(3),controller.remove);
+module.exports=router;

@@ -1,5 +1,9 @@
 # Catalogo de Procedures GX8
 
+> Para saber que esta implementado y cual objeto sigue, leer primero
+> [CURRENT-STATE.md](../migration/CURRENT-STATE.md). Este catalogo conserva la
+> identificacion y analisis de Procedures GX8.
+
 Fuente: `C:\Users\andre\Downloads\GXW.xpz`
 
 Procedures identificados: **225**. Este catalogo usa el nombre real del objeto GeneXus; el prefijo generado `P` solo se normaliza en las llamadas.
