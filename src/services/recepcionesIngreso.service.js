@@ -224,7 +224,10 @@ const listLotBoard = async (empCod, input = {}) => {
       COALESCE(d.Mov1KilN,0) AS netKilos,
       CASE WHEN EXISTS(SELECT 1 FROM ORDPROC1 op WHERE op.EmpCod=d.EmpCod AND op.TempCod=d.TempCod AND op.Ordp1Nlote=d.Mov1Nlote) THEN 1 ELSE 0 END AS hasUsage,
       CASE WHEN quality.CalRecId IS NULL THEN 0 ELSE 1 END AS qualityCompleted,
-      quality.CalRecId AS qualityControlId
+      quality.CalRecId AS qualityControlId,
+      quality.CalRecPorCalidad AS qualityPercentage,
+      quality.CalRecPorCalidad AS exportPercentage,
+      CASE WHEN quality.CalRecPorCalidad IS NULL THEN NULL ELSE 100-quality.CalRecPorCalidad END AS commercialPercentage
     FROM MOVFRUT h
     JOIN MOVFRUT1 d ON d.EmpCod=h.EmpCod AND d.TempCod=h.TempCod AND d.OriCod=h.OriCod
       AND d.MovTDoc=h.MovTDoc AND d.MovNGuia=h.MovNGuia AND d.MovProd=h.MovProd
@@ -235,7 +238,7 @@ const listLotBoard = async (empCod, input = {}) => {
     LEFT JOIN ESPECIES1 v ON v.EmpCod=d.EmpCod AND v.Especod=d.Mov1Espe AND v.VarCod=d.Mov1Var
     LEFT JOIN ENVCAT env ON env.EmpCod=d.EmpCod AND env.EnvCod=d.Mov1TEnv
     OUTER APPLY (
-      SELECT TOP (1) c.CalRecId
+      SELECT TOP (1) c.CalRecId,c.CalRecPorCalidad
       FROM CALRECEP c
       WHERE c.EmpCod=d.EmpCod AND c.TempCod=d.TempCod AND c.OriCod=d.OriCod
         AND c.MovTDoc=d.MovTDoc AND c.MovNGuia=d.MovNGuia AND c.MovProd=d.MovProd

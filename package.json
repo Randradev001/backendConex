@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": "20.19.1"
+  },
   "scripts": {
     "catalog:gx8": "node scripts/catalog-gx8-procedures.js",
     "catalog:gx8:project": "node scripts/catalog-gx8-project.js",
@@ -11,7 +14,9 @@
     "verify:pending-masters": "node scripts/verify-pending-masters-crud.js",
     "verify:recepcion-fruta": "node scripts/verify-recepcion-fruta.js",
     "verify:recepciones-ingreso": "node --test test/recepcionesIngreso.service.test.js test/securityAuthorization.test.js",
+    "db:check": "node scripts/check-db-connection.js",
     "test": "node --test",
+    "dev": "nodemon index.js",
     "start": "node index.js"
   },
   "keywords": [],

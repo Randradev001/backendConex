@@ -1,7 +1,6 @@
 const assert = require('assert');
 
-require('dotenv').config();
-
+const { getConfiguredDatabase } = require('../src/config/sqlServerConfig');
 const { getPool, sql } = require('../src/conectorMysql/conectorSqlServer');
 const { hashPassword } = require('../src/services/password.service');
 const security = require('../src/services/seguridad.service');
@@ -75,7 +74,7 @@ const captureResponse = () => {
 };
 
 const run = async () => {
-  assert.strictEqual(process.env.SQLSERVER_DATABASE, 'CONEX_MIGRACION', 'La verificacion solo se ejecuta sobre CONEX_MIGRACION.');
+  assert.strictEqual(getConfiguredDatabase(), 'CONEX_MIGRACION', 'La verificacion solo se ejecuta sobre CONEX_MIGRACION.');
   const pool = await getPool();
   const rutDv = calculateRutDv(RUT);
 

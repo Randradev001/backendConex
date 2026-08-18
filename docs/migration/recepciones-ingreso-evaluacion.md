@@ -207,6 +207,29 @@ su efecto sobre stock requiere decision funcional previa.
     `CalRecPorCalidad` dentro del chip del lote. En fruta se obtiene desde el
     ultimo control vigente; si no existe un control, el chip no presenta un
     porcentaje artificial.
+21. En `/recepciones/ingreso`, Origen usa `Autocomplete` de Material UI tanto
+    en el filtro como en la cabecera del formulario, permitiendo escribir y
+    buscar. En las lupas de documento y movimiento, la accion de seleccion se
+    presenta como icono a la izquierda de cada resultado.
+22. El listado de `/recepciones/ingreso` inicia con un rango local desde la
+    misma fecha del mes anterior hasta hoy. Para dias que no existen en el mes
+    anterior, se usa su ultimo dia, evitando tambien desfases por UTC.
+23. Se retiro el aviso informativo superior del listado para compactar el area
+    operacional; la ayuda contextual permanece dentro del formulario.
+24. En el control de calidad, `porcentaje comercial = danos / tamano muestra`
+    y `porcentaje exportacion = 100 - porcentaje comercial`. Ambos se muestran
+    como solo lectura en Firmeza y Node los recalcula al crear o modificar. El
+    tablero presenta Calidad, Exportacion y Comercial dentro de cada lote con
+    control completado.
+25. Calibre, pre calibre, color y firmeza se capturan como numero de frutos.
+    Calibre mas pre calibre debe completar el tamano de muestra y el total de
+    colores debe cumplir la misma regla. React muestra los totales de frutos y
+    sus porcentajes calculados; Node valida cantidades enteras y el dashboard
+    normaliza las distribuciones por el total de frutos observado.
+    La grilla presenta un unico total conjunto para calibre/pre calibre y otro
+    para rojo claro/rojo oscuro; no valida subtotales independientes por fila.
+26. Se retiro del formulario el aviso general sobre cabecera y arreglo del lote;
+    permanecen solamente los mensajes de validacion y ayudas operacionales.
 
 `GuiaIng1` y `ListadoRecep` quedan como siguiente corte de reportes. El pesaje
 automatico no se contempla.

@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
+require('../src/config/loadEnv');
 const { getPool, sql } = require('../src/conectorMysql/conectorSqlServer');
 
 const root = path.resolve(__dirname, '..');
@@ -229,7 +229,7 @@ function renderMarkdown(rows) {
   lines.push('- Todos los maestros con niveles se implementan como cabecera-detalle.');
   lines.push('- El menu muestra solamente maestros padre.');
   lines.push('- Los detalles se editan dentro del modal de la cabecera.');
-  lines.push('- Se usa una sola base SQL Server: la configurada en `SQLSERVER_DATABASE`.');
+  lines.push('- Se usa una sola base SQL Server: la configurada en `DB_DATABASE`.');
   lines.push('- `EmpCod` proviene de la sesion salvo `DEFEMP`, que es la raiz de empresas.');
   lines.push('');
   lines.push('## Matriz resumida');

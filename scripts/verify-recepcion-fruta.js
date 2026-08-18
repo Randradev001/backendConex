@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('../src/config/loadEnv');
 
 const { PassThrough } = require('node:stream');
 const controller = require('../src/controllers/recepcionFrutaController');

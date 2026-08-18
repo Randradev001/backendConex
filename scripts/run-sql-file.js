@@ -1,8 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const sql = require('mssql');
-
-require('dotenv').config();
+const { buildSqlServerConfig } = require('../src/config/sqlServerConfig');
 
 const [fileArg, databaseArg] = process.argv.slice(2);
 if (!fileArg || !databaseArg) {
@@ -16,19 +15,8 @@ const batches = fs.readFileSync(filePath, 'utf8')
   .map((batch) => batch.trim())
   .filter(Boolean);
 
-const config = {
-  server: process.env.SQLSERVER_HOST,
-  port: Number(process.env.SQLSERVER_PORT || 1433),
-  user: process.env.SQLSERVER_USER,
-  password: process.env.SQLSERVER_PASSWORD,
-  database: databaseArg,
-  options: {
-    instanceName: process.env.SQLSERVER_INSTANCE,
-    encrypt: process.env.SQLSERVER_ENCRYPT !== 'false',
-    trustServerCertificate: process.env.SQLSERVER_TRUST_CERT === 'true'
-  },
-  requestTimeout: 120000
-};
+const config = buildSqlServerConfig({ database: databaseArg });
+config.requestTimeout = 120000;
 
 const run = async () => {
   const pool = await sql.connect(config);

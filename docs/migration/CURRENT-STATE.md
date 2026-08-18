@@ -70,6 +70,13 @@ Estado operativo:
   compatible que se uso durante la consolidacion.
 - `database/20260730_maestros_condiciones_origenes_destinos.sql` fue ejecutado
   y confirmo `DESTINOS.DestNMP` con largo 30.
+- `database/20260815_instalador_conex_2016.sql` prepara una base `CONEX` vacia
+  compatible con SQL Server 2016, crea las tablas operacionales usadas por la
+  migracion actual y siembra la capa de Seguridad con usuario, rol, menu y
+  permisos iniciales; no migra datos historicos GX8.
+- `database/20260815_tablas_operacionales_faltantes_2016.sql` es el parche
+  complementario para bases donde ya se ejecuto el instalador inicial: crea
+  solo las tablas operacionales faltantes y omite las existentes.
 
 Los scripts con `BDCONEXCO` en el nombre son antecedentes de la etapa previa.
 No ejecutarlos sobre la base actual sin estudiar su objetivo y precondiciones.
@@ -208,8 +215,11 @@ tablas, hallazgos y evidencia se documentan en
 El ingreso manual del WorkPanel operativo `Recepciones` esta implementado en
 `/recepciones/ingreso`: usa el programa `100/2/1`, acciones 1/2/3, empresa de
 sesion, correlativo transaccional, fecha de cabecera y proteccion de lotes
-consumidos. El formulario usa buscadores de catalogo para documento y
-movimiento `1/1`, y organiza cada lote en tres filas. Por decision funcional,
+consumidos. Origen usa un `Autocomplete` escribible en el filtro y en la
+cabecera. El formulario usa buscadores de catalogo para documento y movimiento
+`1/1`; sus resultados presentan la seleccion como icono a la izquierda, y
+organiza cada lote en tres filas. El listado inicia filtrado desde la misma
+fecha del mes anterior hasta la fecha local de hoy. Por decision funcional,
 el pesaje automatico y COM1 no se
 contemplan. Ver
 [recepciones-ingreso-evaluacion.md](recepciones-ingreso-evaluacion.md).
@@ -247,6 +257,14 @@ un modal exclusivo de lectura con el ultimo control vigente; una pendiente
 continua abriendo el formulario de registro. El mantenedor incorpora filtro general,
 fecha, estado y exportaciones Excel/PDF sobre las filas filtradas y cargadas.
 El rango de fechas se inicializa desde un mes atras hasta la fecha local de hoy.
+Las tarjetas completadas muestran porcentajes de Calidad, Exportacion y
+Comercial. En el formulario, Comercial corresponde a la incidencia de danos
+sobre la muestra y Exportacion al porcentaje restante; React los presenta como
+solo lectura y Node los recalcula antes de persistir.
+Calibre, pre calibre, color y firmeza representan cantidades de frutos. La suma
+de calibre y pre calibre, y por separado la suma de los colores, debe coincidir
+con el tamano de muestra; los porcentajes de distribucion son resultados
+calculados y no valores capturados.
 Las fotografias de danos se almacenan en `CALRECEPFOTO` como
 `VARBINARY(MAX)`, fuera del JSON principal y vinculadas a `CALRECEP`. Se
 admiten hasta 10 imagenes JPEG, PNG o WebP de 5 MB por control; el formulario
@@ -344,6 +362,31 @@ empresa de pantalla para un maestro multiempresa.
 
 ## Evidencia verificada
 
+En los ajustes analiticos del dashboard de calidad, 2026-08-18:
+
+- `Rendimiento proyectado` usa el historico ponderado de muestras del periodo
+  y no cambia al seleccionar un lote. `Fruta exportacion` y `Fruta comercial`
+  se calculan sobre la seleccion activa como muestra sin dano/con dano y su
+  suma es siempre 100%.
+- El selector buscable conserva todos los lotes finalizados del rango aunque
+  exista un lote activo; seleccionar el lote 394 mantuvo disponibles 394, 395,
+  397 y 404 para cambiar el filtro sin volver primero a "Todos".
+- La segregacion de calidad se calcula sobre frutos de muestra: fruta con dano
+  es la suma de danos y fruta sin dano es muestra menos dano, ambas expresadas
+  como porcentaje. Para el lote 394 se verifico 79,4% sin dano y 20,6% con dano.
+- Calibre y pre calibre se agregan como numero de frutos por calibre, sin
+  normalizarlos nuevamente como porcentajes.
+- La distribucion de color toma exclusivamente `CALRECEPCOLORCALIBRE` y presenta
+  los frutos rojo claro y rojo oscuro bajo el calibre al que pertenecen.
+
+En la configuracion PWA, 2026-08-18:
+
+- El manifiesto PWA usa la base configurada por ambiente: en produccion su
+  `id`, `start_url` y `scope` son `/co/`, en lugar de la ruta legada `/free/`.
+- La PWA queda en espanol, con identidad visual, actualizacion automatica del
+  service worker, limpieza de caches antiguos y metadatos de instalacion iOS.
+- Los recursos favicon y apple-touch-icon respetan la ruta base de Vite.
+
 En las validaciones de control de calidad, 2026-08-15:
 
 - Se aplico `database/20260815_color_recepcion_por_calibre.sql`; la captura
@@ -353,8 +396,10 @@ En las validaciones de control de calidad, 2026-08-15:
   Exportacion/comercial no pueden superar 100%.
 - React valida esas reglas en cada ingreso, marca campos/totales en rojo,
   informa la sección afectada y deshabilita Guardar mientras exista un error.
-- La lectura real del control 2 confirmo cuatro colores historicos conservados
-  y el dashboard los presenta con identificacion explicita.
+- La estructura historica `CALRECEPCOLOR` se conserva en base de datos por
+  compatibilidad, pero no se presenta en ingreso, lectura ni dashboard porque
+  no permite relacionar el color con un calibre. Esas vistas usan
+  exclusivamente `CALRECEPCOLORCALIBRE`.
 - Se aplico `database/20260815_control_calidad_porcentaje_calidad.sql`; el
   porcentaje de calidad se deriva de muestra menos incidencia de danos y queda
   persistido en `CALRECEP.CalRecPorCalidad`.

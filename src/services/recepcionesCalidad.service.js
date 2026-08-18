@@ -14,19 +14,20 @@ const normalize=(p={})=>{
   const colors=Array.isArray(p.colors)?p.colors:[]; const pests=Array.isArray(p.pests)?p.pests:[];
   const result={...k,inspectionDate:date(p.inspectionDate),inspectionTime:time(p.inspectionTime),pulpTemperature:num(p.pulpTemperature,'temperatura',{nullable:true}),sampleSize:int(p.sampleSize,'tamano muestra',{min:1}),
     durofelFruits:int(p.durofelFruits,'frutos Durofel',{nullable:true}),durofelAverage:num(p.durofelAverage,'AV Durofel',{nullable:true}),durofelStd:num(p.durofelStd,'STD Durofel',{nullable:true}),
-    exportPercentage:num(p.exportPercentage,'porcentaje exportacion',{nullable:true}),commercialPercentage:num(p.commercialPercentage,'porcentaje comercial',{nullable:true}),observation:txt(p.observation).slice(0,1000),state:['D','F'].includes(p.state)?p.state:'D',
+    exportPercentage:null,commercialPercentage:null,observation:txt(p.observation).slice(0,1000),state:['D','F'].includes(p.state)?p.state:'D',
     damages:damages.map((x)=>({code:int(x.code,'codigo dano',{min:1}),fruits:int(x.fruits,'frutos dano',{min:0})})),
-    calibers:calibers.map((x)=>({code:txt(x.code),percentage:num(x.percentage,'porcentaje calibre',{nullable:true}),preCaliber:num(x.preCaliber,'pre calibre',{nullable:true})})).filter(x=>x.code),
-    colors:colors.map((x)=>({caliber:txt(x.caliber).slice(0,10),lightRed:num(x.lightRed,'rojo claro',{nullable:true}),darkRed:num(x.darkRed,'rojo oscuro',{nullable:true})})).filter(x=>x.caliber),
+    calibers:calibers.map((x)=>({code:txt(x.code),percentage:int(x.percentage,'frutos calibre',{nullable:true,min:0}),preCaliber:int(x.preCaliber,'frutos pre calibre',{nullable:true,min:0})})).filter(x=>x.code),
+    colors:colors.map((x)=>({caliber:txt(x.caliber).slice(0,10),lightRed:int(x.lightRed,'frutos rojo claro',{nullable:true,min:0}),darkRed:int(x.darkRed,'frutos rojo oscuro',{nullable:true,min:0})})).filter(x=>x.caliber),
     pests:pests.filter(x=>x.selected!==false).map((x)=>({code:int(x.code,'codigo hallazgo',{min:1})}))};
   const exceeds=(value,max)=>value!==null&&value>max;
   const sum=(items,field)=>items.reduce((total,item)=>total+Number(item[field]||0),0);
   if(result.damages.some(x=>exceeds(x.fruits,result.sampleSize))||sum(result.damages,'fruits')>result.sampleSize)throw new CalidadError(400,'SAMPLE_SIZE_EXCEEDED','Los danos no pueden superar el tamano de muestra.');
-  if(result.calibers.some(x=>exceeds(x.percentage,100)||exceeds(x.preCaliber,100))||sum(result.calibers,'percentage')!==100||sum(result.calibers,'preCaliber')!==100)throw new CalidadError(400,'PERCENTAGE_TOTAL_INVALID','Calibre y pre calibre deben sumar exactamente 100%.');
-  if(result.colors.some(x=>exceeds(x.lightRed,100)||exceeds(x.darkRed,100))||sum(result.colors,'lightRed')!==100||sum(result.colors,'darkRed')!==100)throw new CalidadError(400,'PERCENTAGE_TOTAL_INVALID','Rojo claro y rojo oscuro deben sumar exactamente 100%.');
+  if(result.calibers.some(x=>exceeds(x.percentage,result.sampleSize)||exceeds(x.preCaliber,result.sampleSize))||sum(result.calibers,'percentage')+sum(result.calibers,'preCaliber')!==result.sampleSize)throw new CalidadError(400,'SAMPLE_TOTAL_INVALID','Los frutos de calibre y pre calibre deben sumar exactamente el tamano de muestra.');
+  if(result.colors.some(x=>exceeds(x.lightRed,result.sampleSize)||exceeds(x.darkRed,result.sampleSize))||sum(result.colors,'lightRed')+sum(result.colors,'darkRed')!==result.sampleSize)throw new CalidadError(400,'SAMPLE_TOTAL_INVALID','Los frutos de color deben sumar exactamente el tamano de muestra.');
   if(exceeds(result.durofelFruits,result.sampleSize))throw new CalidadError(400,'SAMPLE_SIZE_EXCEEDED','Los frutos de firmeza no pueden superar el tamano de muestra.');
-  if(exceeds(result.exportPercentage,100)||exceeds(result.commercialPercentage,100))throw new CalidadError(400,'PERCENTAGE_EXCEEDED','Los porcentajes de exportacion y comercial no pueden superar 100%.');
-  result.qualityPercentage=Math.max(0,Number((100-(sum(result.damages,'fruits')/result.sampleSize*100)).toFixed(2)));
+  result.commercialPercentage=Number((sum(result.damages,'fruits')/result.sampleSize*100).toFixed(2));
+  result.exportPercentage=Number((100-result.commercialPercentage).toFixed(2));
+  result.qualityPercentage=result.exportPercentage;
   return result;
 };
 const bindKey=(r,emp,k)=>r.input('EmpCod',sql.SmallInt,emp).input('TempCod',sql.Char(9),k.tempCod).input('OriCod',sql.SmallInt,k.origin).input('MovTDoc',sql.SmallInt,k.docType).input('MovNGuia',sql.Decimal(10,0),k.guide).input('MovProd',sql.Char(6),k.producer).input('Mov1Nlote',sql.Decimal(10,0),k.lot);
@@ -44,9 +45,8 @@ const getOne=async(emp,id,source)=>{const pool=source||await getPool();const req
  SELECT x.MADanCod code,RTRIM(m.MADanDes) label,x.CalDanFrutos fruits FROM CALRECEPDANO x JOIN MAdanos m ON m.EmpCod=x.EmpCod AND m.Especod=x.Especod AND m.MADanCod=x.MADanCod WHERE x.EmpCod=@EmpCod AND x.CalRecId=@Id ORDER BY m.MADanOrden;
  SELECT RTRIM(Calibre) code,CalPorcentaje percentage,CalPreCalibre preCaliber FROM CALRECEPCALIBRE WHERE EmpCod=@EmpCod AND CalRecId=@Id;
  SELECT RTRIM(x.Calibre) caliber,x.CalRojoClaro lightRed,x.CalRojoOscuro darkRed FROM CALRECEPCOLORCALIBRE x WHERE x.EmpCod=@EmpCod AND x.CalRecId=@Id ORDER BY x.Calibre;
- SELECT x.MAPlaCod code,RTRIM(m.MAPlaTipo) type,RTRIM(m.MAPlaDes) label,CAST(1 AS bit) selected FROM CALRECEPPLAGA x JOIN MAPlagas m ON m.EmpCod=x.EmpCod AND m.Especod=x.Especod AND m.MAPlaCod=x.MAPlaCod WHERE x.EmpCod=@EmpCod AND x.CalRecId=@Id ORDER BY m.MAPlaOrden;
- SELECT RTRIM(x.CalColor) color,RTRIM(m.MAColDes) label,x.CalRojoClaro lightRed,x.CalRojoOscuro darkRed FROM CALRECEPCOLOR x JOIN MAColores m ON m.EmpCod=x.EmpCod AND m.Especod=x.Especod AND m.MAColCod=x.CalColor WHERE x.EmpCod=@EmpCod AND x.CalRecId=@Id ORDER BY m.MAColOrden,m.MAColCod;`);
- if(!r.recordsets[0].length)throw new CalidadError(404,'NOT_FOUND','Control de calidad no encontrado.');return {header:r.recordsets[0][0],damages:r.recordsets[1],calibers:r.recordsets[2],colors:r.recordsets[3],pests:r.recordsets[4],legacyColors:r.recordsets[5]};};
+ SELECT x.MAPlaCod code,RTRIM(m.MAPlaTipo) type,RTRIM(m.MAPlaDes) label,CAST(1 AS bit) selected FROM CALRECEPPLAGA x JOIN MAPlagas m ON m.EmpCod=x.EmpCod AND m.Especod=x.Especod AND m.MAPlaCod=x.MAPlaCod WHERE x.EmpCod=@EmpCod AND x.CalRecId=@Id ORDER BY m.MAPlaOrden;`);
+ if(!r.recordsets[0].length)throw new CalidadError(404,'NOT_FOUND','Control de calidad no encontrado.');return {header:r.recordsets[0][0],damages:r.recordsets[1],calibers:r.recordsets[2],colors:r.recordsets[3],pests:r.recordsets[4]};};
 const writeDetails=async(tx,emp,id,species,p)=>{const base=()=>new sql.Request(tx).input('EmpCod',sql.SmallInt,emp).input('Id',sql.BigInt,id).input('Especod',sql.SmallInt,species);
  for(const x of p.damages)await base().input('Code',sql.SmallInt,x.code).input('Fruits',sql.Int,x.fruits).query('INSERT CALRECEPDANO VALUES(@EmpCod,@Id,@Especod,@Code,@Fruits)');
  for(const x of p.calibers)await base().input('Code',sql.Char(10),x.code).input('Pct',sql.Decimal(7,2),x.percentage).input('Pre',sql.Decimal(7,2),x.preCaliber).query('INSERT CALRECEPCALIBRE VALUES(@EmpCod,@Id,@Especod,@Code,@Pct,@Pre)');
