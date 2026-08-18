@@ -43,10 +43,18 @@ test('el detalle conserva la llave completa del lote y enlaza el ultimo control 
 
 test('el resumen lista lotes y cuenta como pendiente todo control no finalizado', () => {
   const query = summarySql();
-  assert.match(query, /STRING_AGG\(CONVERT\(varchar\(20\),d\.Mov1Nlote\)/);
+  assert.doesNotMatch(query, /STRING_AGG/);
+  assert.match(query, /FOR XML PATH\(''\),TYPE/);
   assert.match(query, /quality\.CalRecEstado='F' THEN 'F' ELSE 'P'/);
   assert.match(query, /quality\.CalRecId/);
   assert.match(query, /quality\.CalRecPorCalidad/);
   assert.match(query, /COALESCE\(quality\.CalRecEstado,''\)<>'F'/);
   assert.match(query, /c\.Mov1Nlote=d\.Mov1Nlote AND c\.CalRecEstado<>'A'/);
+});
+
+test('el resumen es compatible con SQL Server 2016', () => {
+  const query = summarySql();
+  assert.doesNotMatch(query, /STRING_AGG|JSON_ARRAYAGG|JSON_OBJECT/);
+  assert.match(query, /STUFF\(\(/);
+  assert.match(query, /\.value\('\.','varchar\(max\)'\)/);
 });

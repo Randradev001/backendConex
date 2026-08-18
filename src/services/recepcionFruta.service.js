@@ -93,10 +93,10 @@ const summarySql = ({ paginated = true } = {}) => `
       LTRIM(RTRIM(h.MovProd)) AS MovProd,
       LTRIM(RTRIM(p.ProdNom)) AS ProdNom,
       h.MovFecha,
-      COUNT(d.Mov1Nlote) AS MovItem,
-      STRING_AGG(CONVERT(varchar(20),d.Mov1Nlote),',') AS lotsText,
-      STRING_AGG(CONCAT(CONVERT(varchar(20),d.Mov1Nlote),':',CASE WHEN quality.CalRecEstado='F' THEN 'F' ELSE 'P' END,':',COALESCE(CONVERT(varchar(30),quality.CalRecId),''),':',COALESCE(CONVERT(varchar(20),quality.CalRecPorCalidad),'')),',') AS lotQualityText,
-      SUM(CASE WHEN d.Mov1Nlote IS NOT NULL AND COALESCE(quality.CalRecEstado,'')<>'F' THEN 1 ELSE 0 END) AS pendingQualityLots,
+      COALESCE(lotTotals.MovItem,0) AS MovItem,
+      COALESCE(lotStrings.lotsText,'') AS lotsText,
+      COALESCE(lotStrings.lotQualityText,'') AS lotQualityText,
+      COALESCE(lotTotals.pendingQualityLots,0) AS pendingQualityLots,
       COALESCE(h.MovTotE, 0) AS MovTotE,
       COALESCE(h.MovTotKilB, 0) AS MovTotKilB,
       COALESCE(h.MovTotKilN, 0) AS MovTotKilN,
@@ -104,18 +104,50 @@ const summarySql = ({ paginated = true } = {}) => `
       h.TMSCod
     INTO #Result
     FROM MOVFRUT h
-    LEFT JOIN MOVFRUT1 d ON d.EmpCod=h.EmpCod AND d.TempCod=h.TempCod AND d.OriCod=h.OriCod
-      AND d.MovTDoc=h.MovTDoc AND d.MovNGuia=h.MovNGuia AND d.MovProd=h.MovProd
     LEFT JOIN ORIGEN o ON o.EmpCod=h.EmpCod AND o.OriCod=h.OriCod
     LEFT JOIN PRODUCTORES p ON p.EmpCod=h.EmpCod AND p.ProdCod=h.MovProd
     OUTER APPLY (
-      SELECT TOP (1) c.CalRecId,c.CalRecEstado,c.CalRecPorCalidad
-      FROM CALRECEP c
-      WHERE c.EmpCod=d.EmpCod AND c.TempCod=d.TempCod AND c.OriCod=d.OriCod
-        AND c.MovTDoc=d.MovTDoc AND c.MovNGuia=d.MovNGuia AND c.MovProd=d.MovProd
-        AND c.Mov1Nlote=d.Mov1Nlote AND c.CalRecEstado<>'A'
-      ORDER BY c.CalRecFecha DESC,c.CalRecHora DESC,c.CalRecId DESC
-    ) quality
+      SELECT COUNT(d.Mov1Nlote) MovItem,
+        SUM(CASE WHEN COALESCE(quality.CalRecEstado,'')<>'F' THEN 1 ELSE 0 END) pendingQualityLots
+      FROM MOVFRUT1 d
+      OUTER APPLY (
+        SELECT TOP (1) c.CalRecEstado
+        FROM CALRECEP c
+        WHERE c.EmpCod=d.EmpCod AND c.TempCod=d.TempCod AND c.OriCod=d.OriCod
+          AND c.MovTDoc=d.MovTDoc AND c.MovNGuia=d.MovNGuia AND c.MovProd=d.MovProd
+          AND c.Mov1Nlote=d.Mov1Nlote AND c.CalRecEstado<>'A'
+        ORDER BY c.CalRecFecha DESC,c.CalRecHora DESC,c.CalRecId DESC
+      ) quality
+      WHERE d.EmpCod=h.EmpCod AND d.TempCod=h.TempCod AND d.OriCod=h.OriCod
+        AND d.MovTDoc=h.MovTDoc AND d.MovNGuia=h.MovNGuia AND d.MovProd=h.MovProd
+    ) lotTotals
+    OUTER APPLY (
+      SELECT
+        STUFF((
+          SELECT ','+CONVERT(varchar(20),d.Mov1Nlote)
+          FROM MOVFRUT1 d
+          WHERE d.EmpCod=h.EmpCod AND d.TempCod=h.TempCod AND d.OriCod=h.OriCod
+            AND d.MovTDoc=h.MovTDoc AND d.MovNGuia=h.MovNGuia AND d.MovProd=h.MovProd
+          ORDER BY d.Mov1Nlote
+          FOR XML PATH(''),TYPE
+        ).value('.','varchar(max)'),1,1,'') lotsText,
+        STUFF((
+          SELECT ','+CONCAT(CONVERT(varchar(20),d.Mov1Nlote),':',CASE WHEN quality.CalRecEstado='F' THEN 'F' ELSE 'P' END,':',COALESCE(CONVERT(varchar(30),quality.CalRecId),''),':',COALESCE(CONVERT(varchar(20),quality.CalRecPorCalidad),''))
+          FROM MOVFRUT1 d
+          OUTER APPLY (
+            SELECT TOP (1) c.CalRecId,c.CalRecEstado,c.CalRecPorCalidad
+            FROM CALRECEP c
+            WHERE c.EmpCod=d.EmpCod AND c.TempCod=d.TempCod AND c.OriCod=d.OriCod
+              AND c.MovTDoc=d.MovTDoc AND c.MovNGuia=d.MovNGuia AND c.MovProd=d.MovProd
+              AND c.Mov1Nlote=d.Mov1Nlote AND c.CalRecEstado<>'A'
+            ORDER BY c.CalRecFecha DESC,c.CalRecHora DESC,c.CalRecId DESC
+          ) quality
+          WHERE d.EmpCod=h.EmpCod AND d.TempCod=h.TempCod AND d.OriCod=h.OriCod
+            AND d.MovTDoc=h.MovTDoc AND d.MovNGuia=h.MovNGuia AND d.MovProd=h.MovProd
+          ORDER BY d.Mov1Nlote
+          FOR XML PATH(''),TYPE
+        ).value('.','varchar(max)'),1,1,'') lotQualityText
+    ) lotStrings
     WHERE h.EmpCod=@EmpCod
       AND (@TempCod IS NULL OR h.TempCod=@TempCod)
       AND (@FromDate IS NULL OR h.MovFecha>=@FromDate)
@@ -123,8 +155,7 @@ const summarySql = ({ paginated = true } = {}) => `
       AND (@Origin IS NULL OR h.OriCod=@Origin)
       AND (@Producer IS NULL OR h.MovProd=@Producer)
       AND (@GuideFrom IS NULL OR h.MovNGuia>=@GuideFrom)
-    GROUP BY h.TempCod,h.OriCod,o.Orinom,h.MovTDoc,h.MovNGuia,h.MovProd,p.ProdNom,
-      h.MovFecha,h.MovTotE,h.MovTotKilB,h.MovTotKilN,h.TMcod,h.TMSCod;
+    ;
   SELECT COUNT_BIG(*) AS total,
     COALESCE(SUM(MovTotE),0) AS totalEnvases,
     COALESCE(SUM(MovTotKilB),0) AS totalKilosBrutos,

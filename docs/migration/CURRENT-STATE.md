@@ -77,6 +77,17 @@ Estado operativo:
 - `database/20260815_tablas_operacionales_faltantes_2016.sql` es el parche
   complementario para bases donde ya se ejecuto el instalador inicial: crea
   solo las tablas operacionales faltantes y omite las existentes.
+- `database/20260818_importar_usuarios_rut_real_login_2016.sql` importa desde
+  `CONEX_MIGRACION` a `CONEX` solo usuarios activos con RUT/DV valido y empresa
+  asignada; copia empresas, `SEGUSUEMP`, credenciales modernas si existen y
+  permisos/roles relacionados para iniciar sesion.
+- `database/20260818_generar_inserts_login_usuarios_rut_real.sql` genera lineas
+  `INSERT ... VALUES (...)` literales para `DEFEMP`, `USUARIOS`, `SEGUSUEMP` y
+  `SEGUSUCRED`, filtrando usuarios activos con RUT/DV real desde
+  `CONEX_MIGRACION`.
+- `database/20260818_generar_solo_inserts_login_usuarios_rut_real.sql` es la
+  variante solicitada para servidor destino con tablas ya creadas: su resultado
+  contiene solo sentencias `INSERT INTO ... VALUES (...)`.
 
 Los scripts con `BDCONEXCO` en el nombre son antecedentes de la etapa previa.
 No ejecutarlos sobre la base actual sin estudiar su objetivo y precondiciones.
@@ -378,6 +389,16 @@ En los ajustes analiticos del dashboard de calidad, 2026-08-18:
   normalizarlos nuevamente como porcentajes.
 - La distribucion de color toma exclusivamente `CALRECEPCOLORCALIBRE` y presenta
   los frutos rojo claro y rojo oscuro bajo el calibre al que pertenecen.
+
+En la compatibilidad productiva de Consulta recepcion de fruta, 2026-08-18:
+
+- El resumen dejo de usar `STRING_AGG`, funcion no disponible en SQL Server
+  2016. Los lotes y su estado de calidad se concatenan con `STUFF` y
+  `FOR XML PATH`, conservando el mismo contrato para React.
+- La consulta exacta del error productivo devolvio localmente seis recepciones
+  y mantuvo `lotsText`, `lotQualityText` y el conteo de lotes pendientes.
+- Se agrego una prueba que impide reintroducir funciones de agregacion JSON o
+  `STRING_AGG` incompatibles con SQL Server 2016.
 
 En la configuracion PWA, 2026-08-18:
 
