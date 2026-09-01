@@ -1,0 +1,2 @@
+DELETE FROM dbo.ASIGPROG WHERE SistCod=110 AND Modcod=2 AND ProgCod=1 AND RTRIM(UsuLogin)='ADMINFULL';
+DELETE FROM dbo.PROGRAM WHERE SistCod=110 AND Modcod=2 AND ProgCod=1 AND RTRIM(ProgNomGX)='wordenprocesos';

@@ -20,6 +20,7 @@ const bindCrudRoutes = (path, handlers) => {
 };
 
 const masterPermission = (programCode) => ({ sistema: 100, modulo: 1, programa: programCode });
+const processMasterPermission = (modulo, programCode) => ({ sistema: 110, modulo, programa: programCode });
 
 const bindAuthorizedRead = (path, handler, programCodes) => {
   const codes = Array.isArray(programCodes) ? programCodes : [programCodes];
@@ -45,6 +46,24 @@ const bindAuthorizedCrud = (path, handlers, programCode) => {
 const bindAuthorizedMaster = (path, handlers, programCode) => {
   bindAuthorizedRead(path, handlers.list, programCode);
   bindAuthorizedCrud(path, handlers, programCode);
+};
+
+const bindAuthorizedProcessMaster = (path, handlers, modulo, programCode) => {
+  const permission = (req, res, next) => {
+    const roles = Array.isArray(req.auth?.user?.roles)
+      ? req.auth.user.roles.map((role) => String(role).trim().toUpperCase())
+      : [];
+    if (roles.includes('ADMINFULL')) return next();
+    return requirePermission(processMasterPermission(modulo, programCode))(req, res, next);
+  };
+  router.get(path, permission, handlers.list);
+  router.post(path, permission, handlers.list);
+  router.post(`${path}/insert`, permission, handlers.insert);
+  router.put(`${path}/update`, permission, handlers.update);
+  router.patch(`${path}/update`, permission, handlers.update);
+  router.post(`${path}/update`, permission, handlers.update);
+  router.delete(`${path}/delete`, permission, handlers.remove);
+  router.post(`${path}/delete`, permission, handlers.remove);
 };
 
 router.get('/', MaestrosController.getCatalogos);
@@ -179,7 +198,13 @@ bindAuthorizedMaster('/tipos-documento', {
   insert: MaestrosController.insertTipoDocumento,
   update: MaestrosController.updateTipoDocumento,
   remove: MaestrosController.deleteTipoDocumento
-}, 1);
+}, 1, 1);
+bindAuthorizedProcessMaster('/ordenes-proceso-adm', {
+  list: MaestrosController.listOrdenesProcesoAdm,
+  insert: MaestrosController.insertOrdenesProcesoAdm,
+  update: MaestrosController.updateOrdenesProcesoAdm,
+  remove: MaestrosController.deleteOrdenesProcesoAdm
+}, 2, 2);
 bindAuthorizedMaster('/tipos-movimiento', {
   list: MaestrosController.listTiposMovimiento,
   insert: MaestrosController.insertTipoMovimiento,
@@ -252,6 +277,13 @@ bindAuthorizedMaster('/tipos-etiqueta', {
   update: MaestrosController.updateTipoEtiqueta,
   remove: MaestrosController.deleteTipoEtiqueta
 }, 22);
+
+bindAuthorizedProcessMaster('/configuraciones-etiqueta', {
+  list: MaestrosController.listConfiguracionesEtiqueta,
+  insert: MaestrosController.insertConfiguracionEtiqueta,
+  update: MaestrosController.updateConfiguracionEtiqueta,
+  remove: MaestrosController.deleteConfiguracionEtiqueta
+}, 1);
 bindAuthorizedMaster('/tipos-base-pallet', {
   list: MaestrosController.listTiposBasePallet,
   insert: MaestrosController.insertTipoBasePallet,

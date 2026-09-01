@@ -64,6 +64,12 @@ la diferencia es trabajo incompleto, cambio no documentado o una regresion.
   WorkPanel `Recepciones`, transacciones, calculos, catalogos, pesaje y efecto
   sobre lotes y ordenes de proceso.
 
+### Procesos
+
+- [tablero de control de lineas](migration/configuracion-lineas-tablero.md):
+  rediseño de `linconfig`, monitoreo animado, edicion acotada, tablas, estados,
+  permisos y pendientes de alta, eliminacion e impresion.
+
 ### Inventario GX8
 
 - [Catalogo de Procedures](gx8/README.md)

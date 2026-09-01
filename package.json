@@ -14,6 +14,7 @@
     "verify:pending-masters": "node scripts/verify-pending-masters-crud.js",
     "verify:recepcion-fruta": "node scripts/verify-recepcion-fruta.js",
     "verify:recepciones-ingreso": "node --test test/recepcionesIngreso.service.test.js test/securityAuthorization.test.js",
+    "verify:control-lineas": "node scripts/verify-control-lineas.js",
     "db:check": "node scripts/check-db-connection.js",
     "test": "node --test",
     "dev": "nodemon index.js",

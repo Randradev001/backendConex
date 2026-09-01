@@ -685,6 +685,78 @@ const catalogos = {
       { table: 'PROCUSDA1', fields: ['EmpCod', 'TEtCod'] }
     ]
   },
+  configuracionesEtiqueta: {
+    table: 'CONFIGETI',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
+    requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'ConfCod', 'ConfLinea'],
+    columns: ['EmpCod', 'ConfCod', 'ConfLinea', 'ConfText1a', 'ConfText1b', 'ConfLin1', 'ConfLogCrea', 'ConfFecC', 'ConfLin1b', 'ConfDato1a', 'ConfDato1b', 'ConfTipFecha', 'ConfSepFec', 'ConfTipEti'],
+    orderBy: ['ConfCod', 'ConfLinea'],
+    searchColumns: ['ConfCod', 'ConfText1a', 'ConfText1b', 'ConfTipEti'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      ConfCod: { type: 'text', length: 10, required: true },
+      ConfLinea: { type: 'int', required: true, min: 1 },
+      ConfText1a: { type: 'text', length: 35 },
+      ConfText1b: { type: 'text', length: 35 },
+      ConfLin1: { type: 'text', length: 3 },
+      ConfLogCrea: { type: 'text', length: 10, serverValueOnInsert: 'contextLogin', serverManaged: true },
+      ConfFecC: { type: 'date', serverValueOnInsert: 'serverDate', serverManaged: true },
+      ConfLin1b: { type: 'text', length: 3 },
+      ConfDato1a: { type: 'int' },
+      ConfDato1b: { type: 'int' },
+      ConfTipFecha: { type: 'int' },
+      ConfSepFec: { type: 'text', length: 1 },
+      ConfTipEti: { type: 'text', length: 20 }
+    }
+  },
+  ordenesProcesoAdm: {
+    table: 'ORDPROC',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
+    requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'TempCod', 'Ordpnum'],
+    columns: ['EmpCod', 'TempCod', 'Ordpnum', 'OrdpFecha', 'Especod', 'VarCod', 'OrdpTotEnv', 'OrdpTotKilos', 'OrdpEnvExp', 'OrdpKilosExp', 'OrdpEnvCom', 'OrdpKilosCom', 'OrdpDesecho', 'OrdpFecA', 'OrdpLoginA', 'OrdpEstado', 'OrdpFecC', 'OrdploginC', 'ProdCod', 'ExpCod', 'OrdpCodEti', 'OrdpTipEnv', 'OrdpHHFinP', 'OrdpHHIniP', 'OrdpETIxCal'],
+    orderBy: ['TempCod', 'Ordpnum'],
+    searchColumns: ['TempCod', 'Ordpnum', 'ProdCod', 'OrdpCodEti'],
+    filters: [
+      { param: 'TempCod', column: 'TempCod', type: 'text', length: 9 },
+      { param: 'Especod', column: 'Especod', type: 'int' },
+      { param: 'VarCod', column: 'VarCod', type: 'int' },
+      { param: 'OrdpEstado', column: 'OrdpEstado', type: 'int' }
+    ],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      TempCod: { type: 'text', length: 9, required: true },
+      Ordpnum: { type: 'int', required: true, min: 1 },
+      OrdpFecha: { type: 'date' },
+      Especod: { type: 'int', min: 1 },
+      VarCod: { type: 'int', min: 1 },
+      OrdpTotEnv: { type: 'int', min: 0 },
+      OrdpTotKilos: { type: 'decimal', precision: 19, scale: 4, min: 0 },
+      OrdpEnvExp: { type: 'int', min: 0 },
+      OrdpKilosExp: { type: 'decimal', precision: 19, scale: 4, min: 0 },
+      OrdpEnvCom: { type: 'int', min: 0 },
+      OrdpKilosCom: { type: 'decimal', precision: 19, scale: 4, min: 0 },
+      OrdpDesecho: { type: 'decimal', precision: 19, scale: 4, min: 0 },
+      OrdpFecA: { type: 'date' },
+      OrdpLoginA: { type: 'text', length: 10 },
+      OrdpEstado: { type: 'int', choices: [0, 1, 4, 5, 8], insertDefault: 0 },
+      OrdpFecC: { type: 'date' },
+      OrdploginC: { type: 'text', length: 10 },
+      ProdCod: { type: 'text', length: 6 },
+      ExpCod: { type: 'int', min: 1 },
+      OrdpCodEti: { type: 'text', length: 10 },
+      OrdpTipEnv: { type: 'int', min: 1 },
+      OrdpHHFinP: { type: 'date' },
+      OrdpHHIniP: { type: 'date' },
+      OrdpETIxCal: { type: 'int' }
+    },
+    deleteDependencies: [{ table: 'ORDPROC1', fields: ['EmpCod', 'TempCod', 'Ordpnum'] }]
+  },
   tiposBasePallet: {
     table: 'TIPBPA',
     gxLevel: 1,
@@ -847,6 +919,14 @@ const listCatalog = (catalogName) => async (req, res) => {
 
   try {
     const pool = await getPool();
+    if (catalogName === 'ordenesProcesoAdm') {
+      const request = pool.request().input('EmpCod', sql.SmallInt, getContextEmpCod(req)).input('TempCod', sql.Char(9), getParam(req, 'TempCod') || null).input('Limit', sql.Int, getLimit(req));
+      const result = await request.query(`SELECT TOP (@Limit) o.*, RTRIM(p.ProdNom) ProdNom,
+        STUFF((SELECT ', ' + CAST(d.Ordp1Nlote AS varchar(20)) + ' (' + CAST(d.Ordp1Env AS varchar(20)) + ' env, ' + CAST(d.Ordp1Kilos AS varchar(30)) + ' kg)' FROM ORDPROC1 d WHERE d.EmpCod=o.EmpCod AND d.TempCod=o.TempCod AND d.Ordpnum=o.Ordpnum ORDER BY d.Ordp1Nlote FOR XML PATH(''),TYPE).value('.','nvarchar(max)'),1,2,'') lotesUsados,
+        STUFF((SELECT ', ' + CAST(d.Ordp1Nlote AS varchar(20)) + ' - ' + COALESCE(CAST(q.CalRecPorCalidad AS varchar(20)),'-') + '%' FROM ORDPROC1 d OUTER APPLY (SELECT TOP 1 c.CalRecPorCalidad FROM CALRECEP c WHERE c.EmpCod=d.EmpCod AND c.TempCod=d.TempCod AND c.Mov1Nlote=d.Ordp1Nlote AND c.CalRecEstado='F' ORDER BY c.CalRecFecha DESC,c.CalRecHora DESC,c.CalRecId DESC) q WHERE d.EmpCod=o.EmpCod AND d.TempCod=o.TempCod AND d.Ordpnum=o.Ordpnum ORDER BY d.Ordp1Nlote FOR XML PATH(''),TYPE).value('.','nvarchar(max)'),1,2,'') calidadLotes
+        FROM ORDPROC o LEFT JOIN PRODUCTORES p ON p.EmpCod=o.EmpCod AND p.ProdCod=o.ProdCod WHERE o.EmpCod=@EmpCod AND (@TempCod IS NULL OR o.TempCod=@TempCod) ORDER BY o.OrdpFecha DESC,o.Ordpnum DESC`);
+      return res.json({ success: true, catalog: catalogName, count: result.recordset.length, data: result.recordset });
+    }
     const request = pool.request();
     const where = [];
     const limit = getLimit(req);
@@ -1583,6 +1663,14 @@ module.exports = {
   insertTipoEtiqueta: insertCatalog('tiposEtiqueta'),
   updateTipoEtiqueta: updateCatalog('tiposEtiqueta'),
   deleteTipoEtiqueta: deleteCatalog('tiposEtiqueta'),
+  listConfiguracionesEtiqueta: listCatalog('configuracionesEtiqueta'),
+  insertConfiguracionEtiqueta: insertCatalog('configuracionesEtiqueta'),
+  updateConfiguracionEtiqueta: updateCatalog('configuracionesEtiqueta'),
+  deleteConfiguracionEtiqueta: deleteCatalog('configuracionesEtiqueta'),
+  listOrdenesProcesoAdm: listCatalog('ordenesProcesoAdm'),
+  insertOrdenesProcesoAdm: insertCatalog('ordenesProcesoAdm'),
+  updateOrdenesProcesoAdm: updateCatalog('ordenesProcesoAdm'),
+  deleteOrdenesProcesoAdm: deleteCatalog('ordenesProcesoAdm'),
   listTiposBasePallet: listCatalog('tiposBasePallet'),
   insertTipoBasePallet: insertCatalog('tiposBasePallet'),
   updateTipoBasePallet: updateCatalog('tiposBasePallet'),

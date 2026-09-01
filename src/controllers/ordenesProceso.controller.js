@@ -1,0 +1,4 @@
+const service = require('../services/ordenesProceso.service');
+const context = (req) => ({ empCod: Number(req.context?.empCod), login: String(req.context?.login || '') });
+const run = (fn) => async (req, res, next) => { try { return await fn(req, res); } catch (e) { if (e instanceof service.OrdenesProcesoError) return res.status(e.status).json({ code: e.code, message: e.message }); return next(e); } };
+module.exports = { lots: run(async (req, res) => res.json(await service.listLots(context(req).empCod, req.query))), create: run(async (req, res) => res.status(201).json(await service.create(context(req).empCod, context(req).login, req.body))), update: run(async (req, res) => res.json(await service.update(context(req).empCod, context(req).login, req.params.tempCod, req.params.ordpnum, req.body))), detail: run(async (req, res) => res.json(await service.getOrder(context(req).empCod, req.params.tempCod, req.params.ordpnum))) };

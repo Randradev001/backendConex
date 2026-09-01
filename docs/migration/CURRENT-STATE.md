@@ -1,6 +1,6 @@
 # Estado vigente de la migracion CONEX
 
-Ultima actualizacion documental: 2026-08-15.
+Ultima actualizacion documental: 2026-09-01.
 
 Este es el documento de entrada para continuar el proyecto. Describe el estado
 observado en el codigo y en `CONEX_MIGRACION`. Antes de trabajar, ejecutar
@@ -77,6 +77,21 @@ Estado operativo:
 - `database/20260815_tablas_operacionales_faltantes_2016.sql` es el parche
   complementario para bases donde ya se ejecuto el instalador inicial: crea
   solo las tablas operacionales faltantes y omite las existentes.
+- `ORDPROC` y `ORDPROC1` conservan su estructura GX8 completa. El primer ADM de
+  Ordenes de Proceso usa el CRUD generico con grilla, filtros y autorizacion
+  `110/2/2`; sus eliminaciones validan dependencias en `ORDPROC1`.
+- La operacion `OrdenProcesos/OrdenProcINS` se implemento en
+  `/ordenes-proceso/operacion` como alta de ADM con permiso `110/2/2`: consulta lotes disponibles,
+  permite seleccionar el lote completo o cantidades parciales y genera la
+  cabecera/detalle en una transaccion serializable, evitando sobreconsumo. La
+  generacion solicita variedad, exportadora, fecha y etiqueta, y persiste la
+  salida de proceso en `MOVFRUT/MOVFRUT1` usando `OriCod=90`, `MovTDoc=90`,
+  `MovNGuia=Ordpnum`, `TMcod=2` y `TMSCod=1`, alineado con `PCreaLOTE` y
+  `PCrea_Detalle_LOTE`. La cabecera conserva `OrdploginC/OrdpFecC` como datos
+  de creación y deja la orden en estado 0. El ADM permite visualizar cabecera
+  y detalle; editar reutiliza la pantalla operacional y actualiza cabecera,
+  detalle y movimiento de salida dentro de una transacción serializable,
+  conservando el mismo `Ordpnum` y validando saldo sin contar la propia orden.
 - `database/20260818_importar_usuarios_rut_real_login_2016.sql` importa desde
   `CONEX_MIGRACION` a `CONEX` solo usuarios activos con RUT/DV valido y empresa
   asignada; copia empresas, `SEGUSUEMP`, credenciales modernas si existen y
@@ -88,6 +103,9 @@ Estado operativo:
 - `database/20260818_generar_solo_inserts_login_usuarios_rut_real.sql` es la
   variante solicitada para servidor destino con tablas ya creadas: su resultado
   contiene solo sentencias `INSERT INTO ... VALUES (...)`.
+- `database/20260901_control_lineas_tablero_2016.sql` agrega de forma repetible
+  `LINEAS`, `LINCONFIG`, sus indices de consulta y el programa historico
+  `100/6/11` cuando falten. Fue ejecutado sobre `CONEX_MIGRACION`.
 
 Los scripts con `BDCONEXCO` en el nombre son antecedentes de la etapa previa.
 No ejecutarlos sobre la base actual sin estudiar su objetivo y precondiciones.
@@ -209,6 +227,37 @@ negocio:
 `GenCor` permanece como servicio transaccional, no CRUD comun. La importacion
 Excel de valores de moneda tambien es un proceso especializado y no una
 importacion generica del maestro.
+
+## Control de lineas implementado
+
+El WorkPanel `linconfig` se rediseño en `/procesos/control-lineas` como tablero
+de monitoreo y edicion. La API `/control-lineas` une `LINEAS` con la
+configuracion `LINCONFIG.ConfID=1` y sus catalogos. Usa exclusivamente
+`req.context.empCod`, exige el permiso `100/6/11` y devuelve resumen y filtros
+por `LinMaquina`.
+
+React presenta tarjetas responsivas verdes o rojas según `LinEstado`, reloj,
+estado de conexion y actualizacion automatica cada diez segundos. Una linea
+inactiva conserva visibles sus datos configurados porque `LinEstado`,
+`LinEstConf` y `ConfEstado` no representan lo mismo.
+
+El encabezado incluye las cajas procesadas de la orden activa de la temporada
+activa. La API localiza `TEMP01.TempActiva=1`, selecciona
+`ORDPROC.OrdpEstado=1` y cuenta las filas de `CAP001` por
+`EmpCod + TempCod + CAPNproc`. No filtra `CAPEst`, porque el cambio posterior a
+paletizada o despachada no deja de representar una caja procesada. Sin orden
+activa devuelve cero y `Sin proceso activo`.
+
+Las cerezas se animan solo cuando `LinEstado=1`. Al pulsar una tarjeta se abre
+un modal con selects dependientes para especie, calibre, envase y
+categoria, mas un switch para `LinEstado`. El guardado conserva el permiso de
+programa `100/6/11`, valida los catalogos por empresa y actualiza `LINEAS` y
+`LINCONFIG.ConfID=1` en una transaccion. Variedad no forma parte del formulario
+ni del contrato porque la tabla GX8 original no la almacena.
+
+La creacion general de lineas mediante `LineasINS`, la eliminacion y la
+impresion ZPL continúan pendientes. Ver
+[configuracion-lineas-tablero.md](configuracion-lineas-tablero.md).
 
 ## Consultas de recepcion implementadas
 
@@ -372,6 +421,33 @@ empresa de pantalla para un maestro multiempresa.
 14. Actualizar este archivo y `project-review-register.csv`.
 
 ## Evidencia verificada
+
+En el tablero Control de lineas, 2026-09-01:
+
+- La migracion SQL repetible se ejecuto sobre `CONEX_MIGRACION` y confirmo las
+  dos tablas y el programa `100/6/11`.
+- La consulta real devolvio 20 lineas, 15 activas y 5 inactivas, todas
+  configuradas y distribuidas en 20 maquinas para `EmpCod=1`.
+- La temporada activa real es `2017-2018`; no tiene una orden con
+  `OrdpEstado=1`, por lo que el indicador devuelve cero y `Sin proceso activo`.
+  El conteo se verifico por el indice existente
+  `IND_CAPORDPROC (EmpCod, TempCod, CAPNproc)`.
+- La extension de edicion usa cuatro catalogos filtrados, validacion relacional
+  y escritura transaccional protegida por el programa.
+- La suite backend aprobo 43 pruebas, el lint dirigido del frontend termino sin
+  errores y Vite compilo 5.732 modulos.
+- La revision visual automatizada quedo limitada por falta de una sesion
+  autenticada en los navegadores disponibles; no se usaron credenciales.
+
+En la estandarizacion de fechas del frontend, 2026-08-21:
+
+- Los campos de fecha usan el DatePicker oficial de MUI X con adaptador Moment,
+  calendario y formato visible `DD/MM/YYYY`; los formularios y la API conservan
+  valores `YYYY-MM-DD`.
+- Los filtros de recepciones mantienen el periodo inicial desde un mes atras
+  hasta hoy, y una recepcion nueva toma la fecha local actual.
+- Se verifico en navegador la apertura del calendario, el valor visible y el
+  cambio de fecha; el build completo del frontend aprobo 5.716 modulos.
 
 En los ajustes analiticos del dashboard de calidad, 2026-08-18:
 
