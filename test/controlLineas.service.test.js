@@ -6,8 +6,10 @@ const {
   CONTROL_LINES_CATALOGS_SQL,
   normalizeLine,
   normalizeUpdate,
+  normalizeCreate,
   buildProductionSummary,
   listControlLines,
+  createControlLine,
   updateControlLine
 } = require('../src/services/controlLineas.service');
 const { CONTROL_LINES_PERMISSION } = require('../src/Router/controlLineas.routes');
@@ -119,6 +121,122 @@ test('los catalogos de edicion se filtran por empresa y conservan dependencias',
     active: true
   });
   assert.throws(() => normalizeUpdate({ speciesCode: '', caliber: '28-30', containerCode: 3, categoryCode: 4, active: true }), /especie/i);
+});
+
+test('normaliza el alta de linea sin aceptar empresa ni identificador desde la pantalla', () => {
+  assert.deepEqual(normalizeCreate({
+    EmpCod: 99,
+    line: 88,
+    machine: 21,
+    description: ' LINEA 21 ',
+    location: ' ENVASADO ',
+    pc: ' PC-LINEA21 ',
+    personCode: '',
+    speciesCode: 1,
+    caliber: '28-30',
+    containerCode: 3,
+    categoryCode: 4,
+    active: true
+  }), {
+    machine: 21,
+    description: 'LINEA 21',
+    location: 'ENVASADO',
+    pc: 'PC-LINEA21',
+    personCode: null,
+    speciesCode: 1,
+    caliber: '28-30',
+    containerCode: 3,
+    categoryCode: 4,
+    active: true
+  });
+  assert.throws(() => normalizeCreate({ machine: 21, description: '', location: 'A', pc: 'PC', active: true }), /descripcion/i);
+});
+
+test('crea LINEAS y LINCONFIG con LinID correlativo en una transaccion', async () => {
+  const transactions = { began: false, committed: false, rolledBack: false };
+  const executed = [];
+  const bound = [];
+  const transaction = {
+    async begin() { transactions.began = true; },
+    async commit() { transactions.committed = true; },
+    async rollback() { transactions.rolledBack = true; }
+  };
+  const transactionRequests = [
+    { recordset: [{ SpeciesExists: 1, CaliberExists: 1, ContainerExists: 1, CategoryExists: 1 }] },
+    { recordset: [{ LinID: 21 }] }
+  ];
+  const requestFactory = () => ({
+    input(name, _type, value) { bound.push([name, value]); return this; },
+    async query(statement) { executed.push(statement); return transactionRequests.shift(); }
+  });
+  const listRequest = {
+    input() { return this; },
+    async query() {
+      return {
+        recordset: [{ LinMaquina: 21, LinID: 21, LinDesc: 'LINEA 21', LinEstado: 1, LinEstConf: 1, ConfID: 1, ConfEstado: 1 }]
+      };
+    }
+  };
+  const result = await createControlLine(7, 'OPERADOR', {
+    machine: 21,
+    description: 'LINEA 21',
+    location: 'ENVASADO',
+    pc: 'PC-LINEA21',
+    personCode: null,
+    speciesCode: 1,
+    caliber: '28-30',
+    containerCode: 3,
+    categoryCode: 4,
+    active: true
+  }, {
+    poolProvider: async () => ({ request: () => listRequest }),
+    transactionFactory: () => transaction,
+    requestFactory
+  });
+
+  assert.equal(transactions.began, true);
+  assert.equal(transactions.committed, true);
+  assert.equal(transactions.rolledBack, false);
+  assert.match(executed[1], /FROM LINEAS WITH \(UPDLOCK, HOLDLOCK\)/);
+  assert.match(executed[1], /INSERT INTO LINEAS/);
+  assert.match(executed[1], /INSERT INTO LINCONFIG/);
+  assert.ok(bound.some(([name, value]) => name === 'EmpCod' && value === 7));
+  assert.equal(result.machine, 21);
+  assert.equal(result.line, 21);
+});
+
+test('revierte el alta completa si la configuracion no pertenece a la empresa', async () => {
+  const transactions = { committed: false, rolledBack: false };
+  const transaction = {
+    async begin() {},
+    async commit() { transactions.committed = true; },
+    async rollback() { transactions.rolledBack = true; }
+  };
+  const requestFactory = () => ({
+    input() { return this; },
+    async query() {
+      return { recordset: [{ SpeciesExists: 1, CaliberExists: 0, ContainerExists: 1, CategoryExists: 1 }] };
+    }
+  });
+
+  await assert.rejects(() => createControlLine(7, 'OPERADOR', {
+    machine: 21,
+    description: 'LINEA 21',
+    location: 'ENVASADO',
+    pc: 'PC-LINEA21',
+    speciesCode: 1,
+    caliber: 'INVALIDO',
+    containerCode: 3,
+    categoryCode: 4,
+    active: false
+  }, {
+    poolProvider: async () => ({}),
+    transactionFactory: () => transaction,
+    requestFactory
+  }), /configuracion/i);
+
+  assert.equal(transactions.committed, false);
+  assert.equal(transactions.rolledBack, true);
 });
 
 test('actualiza estado y configuracion dentro de una transaccion', async () => {

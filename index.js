@@ -10,6 +10,8 @@ var bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({
   extended: true
 }));
+// Los diseños pueden incluir ^GF; el límite ampliado queda aislado al módulo de etiquetas.
+app.use('/backendDocker/etiquetas', express.json({ limit: '5mb' }));
 app.use(express.json()) //permite el paso del payload en el body
 app.get('/ping', (req, res) => {
   res.send('Servidor responde ✅');

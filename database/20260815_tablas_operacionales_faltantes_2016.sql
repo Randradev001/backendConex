@@ -77,7 +77,9 @@ IF OBJECT_ID(N'dbo.CALIBRES', N'U') IS NULL
     Especod smallint NOT NULL,
     Calibre char(10) NOT NULL,
     CalCod smallint NULL,
+    CalOrden smallint NOT NULL CONSTRAINT DF_CALIBRES_CalOrden DEFAULT (32767),
     calRecepcion bit NOT NULL CONSTRAINT DF_CALIBRES_calRecepcion DEFAULT (0),
+    CONSTRAINT CK_CALIBRES_CalOrden CHECK (CalOrden BETWEEN 1 AND 32767),
     CONSTRAINT PK_CALIBRES PRIMARY KEY (EmpCod, Especod, Calibre)
   );
 
@@ -606,6 +608,10 @@ IF OBJECT_ID(N'dbo.MOVFRUT1', N'U') IS NOT NULL
    AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.MOVFRUT1') AND name = N'IX_MOVFRUT1_Lote')
   CREATE INDEX IX_MOVFRUT1_Lote ON dbo.MOVFRUT1 (EmpCod, TempCod, Mov1Nlote);
 
+IF OBJECT_ID(N'dbo.CALIBRES', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.CALIBRES') AND name = N'IX_CALIBRES_OrdenMuestra')
+  CREATE INDEX IX_CALIBRES_OrdenMuestra ON dbo.CALIBRES (EmpCod, Especod, CalOrden, CalCod) INCLUDE (Calibre, calRecepcion);
+
 IF OBJECT_ID(N'dbo.CALRECEP', N'U') IS NOT NULL
    AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.CALRECEP') AND name = N'IX_CALRECEP_Lote')
   CREATE INDEX IX_CALRECEP_Lote ON dbo.CALRECEP (EmpCod, TempCod, OriCod, MovTDoc, MovNGuia, MovProd, Mov1Nlote, CalRecFecha DESC);
@@ -623,4 +629,3 @@ FROM sys.tables
 WHERE is_ms_shipped = 0;
 
 PRINT 'Script de tablas operacionales faltantes finalizado.';
-

@@ -54,7 +54,7 @@ se debe copiar ese defecto. `EmpCod` y login salen solo de `req.context`.
 totales deben confirmarse o revertirse en una sola transaccion SQL.
 
 La cabecera necesita empresa autenticada, temporada, origen, tipo y numero de
-guia, productor, `MovFecha`, observacion, grados, `TMcod=1`, `TMSCod=1`, modo
+guia, productor, `MovFecha`, observacion, `TMcod=1`, `TMSCod=1`, modo
 manual (`MovAuto=0`), totales y auditoria. La fecha que manda siempre es
 `MOVFRUT.MovFecha`; fecha, ano y mes del detalle se derivan de ella.
 
@@ -82,12 +82,13 @@ elegir silenciosamente la ultima como GX.
 
 ## Reglas del backend
 
-1. Validar fecha y guia; en cada detalle exigir envases y kilos brutos
-   unitarios mayores que cero.
+1. Validar fecha y guia; en cada detalle exigir envases y kilos brutos totales
+   mayores que cero.
 2. Leer peso/destare de `ENVCAT` y guardar esa instantanea en `MOVFRUT1`.
-3. Por decision funcional, calcular el peso neto como
-   `round(numero de envases * kilos brutos unitarios, 2)` y guardar ese total
-   en los kilos brutos/netos del movimiento.
+3. Por decision funcional, calcular el peso estimado por envase como
+   `round(kilos brutos totales / numero de envases, 2)` y guardarlo en
+   `Mov1Peso`. El total ingresado se conserva en `Mov1KilB` y `Mov1KilN` para
+   los totales y saldos aguas abajo.
 4. Derivar fecha, ano y mes del detalle desde la fecha de cabecera.
 5. Reservar lote con `GENCOR/LOTE` y bloqueo. `nextCorrelative` ya usa
    `UPDLOCK, HOLDLOCK`; nunca calcular `MAX + 1` en React.
@@ -164,8 +165,10 @@ su efecto sobre stock requiere decision funcional previa.
    persiste una cabecera operacional por lote y cuatro detalles normalizados.
 10. Los calibres de inspeccion se obtienen desde el detalle GX8 `CALIBRES` por
     `EmpCod + Especod`, se limitan a `calRecepcion=1` y se presentan en el
-    orden definido por `CalCod`. El indicador se administra desde el CRUD del
-    detalle de calibres de la especie.
+    orden editable `CalOrden`, usando `CalCod` como desempate interno. Ambos
+    campos operacionales se administran desde el CRUD del detalle de calibres
+    de la especie. El dashboard usa el mismo orden para sus graficos de calibre
+    y color por calibre.
 11. `MAPlagas` agrega un catalogo por especie para plagas, virus y dipteros. El
     CRUD vive como detalle de Especies y solo los registros activos se
     despliegan como seleccion multiple dentro del `field array` del lote, antes
@@ -230,9 +233,23 @@ su efecto sobre stock requiere decision funcional previa.
     para rojo claro/rojo oscuro; no valida subtotales independientes por fila.
 26. Se retiro del formulario el aviso general sobre cabecera y arreglo del lote;
     permanecen solamente los mensajes de validacion y ayudas operacionales.
+27. Se retiraron Grados y Brix del ingreso manual. En cada lote se capturan
+    kilos brutos totales y se muestra el peso estimado por envase como total
+    dividido por cantidad de envases. Las modificaciones no sobrescriben los
+    valores históricos `MovGrados` y `MovGBrik`.
+28. `GuiaIng1` se implementa como PDF individual descargable desde la bandeja
+    y desde la vista de la recepcion. Node obtiene el registro completo por su
+    clave GX y empresa de sesion; incluye datos de empresa, documento,
+    movimiento, productor, observacion, totales y cada lote con las
+    descripciones de cuartel, especie, variedad, envase y condicion. No usa la
+    pagina cargada en React ni el dialogo de impresion del navegador.
+29. El dashboard de calidad presenta las observaciones registradas en
+    `CALRECEP.CalRecObservacion` como tarjetas trazables por control y lote,
+    incluyendo fecha, productor, especie y variedad. La misma seccion forma
+    parte de la impresion/PDF del navegador y omite controles sin observacion.
 
-`GuiaIng1` y `ListadoRecep` quedan como siguiente corte de reportes. El pesaje
-automatico no se contempla.
+`ListadoRecep` queda como siguiente corte de reportes. El pesaje automatico no
+se contempla.
 
 ## Verificacion minima
 

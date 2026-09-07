@@ -37,9 +37,9 @@ const addDays = (date, days) => {
 const isoDate = (date) => date.toISOString().slice(0, 10);
 const round2 = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const makeRequest = (source) => source instanceof sql.Transaction ? new sql.Request(source) : source.request();
-const calculateReceptionWeights = (containers, grossPerContainer) => {
-  const weight = round2(grossPerContainer);
-  const total = round2(containers * weight);
+const calculateReceptionWeights = (containers, grossTotal) => {
+  const total = round2(grossTotal);
+  const weight = round2(total / containers);
   return { weight, grossKilos: total, netKilos: total };
 };
 
@@ -68,7 +68,7 @@ const normalizePayload = (input = {}) => {
   if (!details.length) throw new RecepcionesIngresoError(400, 'VALIDATION_ERROR', 'Debe ingresar al menos un lote.');
   const normalizedDetails = details.map((item, index) => {
     const containers = integer(item.containers, `envases del detalle ${index + 1}`, 1);
-    const grossKilos = round2(decimal(item.grossKilos, `kilos brutos del detalle ${index + 1}`, 0.01));
+    const grossKilos = round2(decimal(item.grossKilos, `kilos brutos totales del detalle ${index + 1}`, 0.01));
     return {
       lot: item.lot === undefined || item.lot === null || item.lot === '' ? null : integer(item.lot, `lote del detalle ${index + 1}`, 1),
       quarter: integer(item.quarter, `cuartel del detalle ${index + 1}`, 1),
@@ -88,8 +88,6 @@ const normalizePayload = (input = {}) => {
     movementSubtype,
     date: dateOnly(input.date),
     observation: text(input.observation).slice(0, 250),
-    grades: decimal(input.grades || 0, 'grados'),
-    brix: decimal(input.brix || 0, 'grados brix'),
     details: normalizedDetails
   };
 };
@@ -286,14 +284,32 @@ const getOne = async (empCod, rawKey, transaction = null) => {
   const key = normalizeKey(rawKey);
   const pool = transaction || await getPool();
   const result = await bindKey(makeRequest(pool), empCod, key).query(`
-    SELECT TempCod,OriCod,MovTDoc,MovNGuia,RTRIM(MovProd) MovProd,MovFecha,RTRIM(MovObs) MovObs,MovGrados,MovGBrik,MovTotE,MovTotKilB,MovTotKilN
-    FROM MOVFRUT WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND OriCod=@OriCod AND MovTDoc=@MovTDoc AND MovNGuia=@MovNGuia AND MovProd=@MovProd AND TMcod=1 AND TMSCod=1 AND COALESCE(Movauto,0)=0;
-    SELECT d.Mov1Nlote,d.Mov1Cuar,d.Mov1Espe,d.Mov1Var,d.Mov1TEnv,d.Mov1Condi,d.Mov1NumE,d.Mov1Peso,d.Mov1Destare,d.Mov1KilB,d.Mov1KilN,
+    SELECT h.TempCod,h.OriCod,RTRIM(o.Orinom) OriNom,h.MovTDoc,RTRIM(td.TdNom) TdNom,h.MovNGuia,
+      RTRIM(h.MovProd) MovProd,RTRIM(p.ProdNom) ProdNom,h.MovFecha,RTRIM(h.MovObs) MovObs,
+      h.TMcod,h.TMSCod,RTRIM(tm.TMNom) TMNom,RTRIM(st.TMSNom) TMSNom,h.MovTotE,h.MovTotKilB,h.MovTotKilN
+    FROM MOVFRUT h
+    LEFT JOIN ORIGEN o ON o.EmpCod=h.EmpCod AND o.OriCod=h.OriCod
+    LEFT JOIN TIPDOC td ON td.TdCod=h.MovTDoc
+    LEFT JOIN TIPMOV tm ON tm.EmpCod=h.EmpCod AND tm.TMcod=h.TMcod
+    LEFT JOIN TIPMOV1 st ON st.EmpCod=h.EmpCod AND st.TMcod=h.TMcod AND st.TMSCod=h.TMSCod
+    LEFT JOIN PRODUCTORES p ON p.EmpCod=h.EmpCod AND p.ProdCod=h.MovProd
+    WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod AND h.OriCod=@OriCod AND h.MovTDoc=@MovTDoc AND h.MovNGuia=@MovNGuia AND h.MovProd=@MovProd AND h.TMcod=1 AND h.TMSCod=1 AND COALESCE(h.Movauto,0)=0;
+    SELECT d.Mov1Nlote,d.Mov1Cuar,RTRIM(q.CuarNom) CuarNom,d.Mov1Espe,RTRIM(e.EspeNom) EspeNom,
+      d.Mov1Var,RTRIM(v.VarNom) VarNom,d.Mov1TEnv,RTRIM(env.EnvNom) EnvNom,d.Mov1Condi,RTRIM(c.ConNom) ConNom,
+      d.Mov1NumE,d.Mov1Peso,d.Mov1Destare,d.Mov1KilB,d.Mov1KilN,
       CASE WHEN EXISTS(SELECT 1 FROM ORDPROC1 op WHERE op.EmpCod=d.EmpCod AND op.TempCod=d.TempCod AND op.Ordp1Nlote=d.Mov1Nlote) THEN 1 ELSE 0 END hasUsage
-    FROM MOVFRUT1 d WHERE d.EmpCod=@EmpCod AND d.TempCod=@TempCod AND d.OriCod=@OriCod AND d.MovTDoc=@MovTDoc AND d.MovNGuia=@MovNGuia AND d.MovProd=@MovProd ORDER BY d.Mov1Nlote;
+    FROM MOVFRUT1 d
+    LEFT JOIN PRODUCTORES1 q ON q.EmpCod=d.EmpCod AND q.ProdCod=d.MovProd AND q.CuarCod=d.Mov1Cuar
+    LEFT JOIN ESPECIES e ON e.EmpCod=d.EmpCod AND e.Especod=d.Mov1Espe
+    LEFT JOIN ESPECIES1 v ON v.EmpCod=d.EmpCod AND v.Especod=d.Mov1Espe AND v.VarCod=d.Mov1Var
+    LEFT JOIN ENVCAT env ON env.EmpCod=d.EmpCod AND env.EnvCod=d.Mov1TEnv
+    LEFT JOIN CONDICION c ON c.ConCod=d.Mov1Condi
+    WHERE d.EmpCod=@EmpCod AND d.TempCod=@TempCod AND d.OriCod=@OriCod AND d.MovTDoc=@MovTDoc AND d.MovNGuia=@MovNGuia AND d.MovProd=@MovProd ORDER BY d.Mov1Nlote;
+    SELECT EmpCod,RTRIM(EmpNom) EmpNom,RTRIM(EmpGiro) EmpGiro,RTRIM(Empdir) EmpDir,EmpRut,RTRIM(EmpDV) EmpDV
+    FROM DEFEMP WHERE EmpCod=@EmpCod;
   `);
   if (!result.recordsets[0]?.length) throw new RecepcionesIngresoError(404, 'NOT_FOUND', 'La recepcion no existe.');
-  return { header: result.recordsets[0][0], details: result.recordsets[1] || [] };
+  return { header: result.recordsets[0][0], details: result.recordsets[1] || [], company: result.recordsets[2]?.[0] || null };
 };
 
 const validateAndEnrich = async (transaction, empCod, payload) => {
@@ -369,9 +385,9 @@ const create = async (empCod, login, input) => {
     const exists = await bindKey(makeRequest(transaction), empCod, payload).query('SELECT COUNT(*) count FROM MOVFRUT WITH (UPDLOCK,HOLDLOCK) WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND OriCod=@OriCod AND MovTDoc=@MovTDoc AND MovNGuia=@MovNGuia AND MovProd=@MovProd;');
     if (Number(exists.recordset[0].count)) throw new RecepcionesIngresoError(409, 'DUPLICATE', 'Ya existe una recepcion con esa clave.');
     await bindKey(makeRequest(transaction), empCod, payload).input('Date', sql.DateTime, payload.date).input('Obs', sql.Char(250), payload.observation)
-      .input('Grades', sql.SmallMoney, payload.grades).input('Brix', sql.SmallMoney, payload.brix).input('Login', sql.Char(10), text(login).slice(0, 10)).query(`
+      .input('Login', sql.Char(10), text(login).slice(0, 10)).query(`
         INSERT MOVFRUT (EmpCod,TempCod,OriCod,MovTDoc,MovNGuia,MovProd,MovFecha,MovObs,TMcod,TMSCod,MovTotE,MovTotKilN,MovTotKilB,MovGrados,MovGBrik,MovLoginC,MovFecC,Movauto)
-        VALUES (@EmpCod,@TempCod,@OriCod,@MovTDoc,@MovNGuia,@MovProd,@Date,@Obs,1,1,0,0,0,@Grades,@Brix,@Login,GETDATE(),0);
+        VALUES (@EmpCod,@TempCod,@OriCod,@MovTDoc,@MovNGuia,@MovProd,@Date,@Obs,1,1,0,0,0,0,0,@Login,GETDATE(),0);
       `);
     for (const item of payload.details) await insertDetail(transaction, empCod, payload, item);
     await recalculateTotals(transaction, empCod, payload);
@@ -403,8 +419,8 @@ const update = async (empCod, login, rawKey, input) => {
       if (!existing.has(item.lot)) throw new RecepcionesIngresoError(400, 'VALIDATION_ERROR', `El lote ${item.lot} no pertenece a esta recepcion.`);
     }
     await bindKey(makeRequest(transaction), empCod, key).input('Date', sql.DateTime, payload.date).input('Obs', sql.Char(250), payload.observation)
-      .input('Grades', sql.SmallMoney, payload.grades).input('Brix', sql.SmallMoney, payload.brix).input('Login', sql.Char(10), text(login).slice(0, 10)).query(`
-        UPDATE MOVFRUT SET MovFecha=@Date,MovObs=@Obs,MovGrados=@Grades,MovGBrik=@Brix,MovLoginUPD=@Login,MovFecUPD=GETDATE()
+      .input('Login', sql.Char(10), text(login).slice(0, 10)).query(`
+        UPDATE MOVFRUT SET MovFecha=@Date,MovObs=@Obs,MovLoginUPD=@Login,MovFecUPD=GETDATE()
         WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND OriCod=@OriCod AND MovTDoc=@MovTDoc AND MovNGuia=@MovNGuia AND MovProd=@MovProd;
         DELETE d FROM MOVFRUT1 d WHERE d.EmpCod=@EmpCod AND d.TempCod=@TempCod AND d.OriCod=@OriCod AND d.MovTDoc=@MovTDoc AND d.MovNGuia=@MovNGuia AND d.MovProd=@MovProd
           AND NOT EXISTS(SELECT 1 FROM ORDPROC1 op WHERE op.EmpCod=d.EmpCod AND op.TempCod=d.TempCod AND op.Ordp1Nlote=d.Mov1Nlote);
@@ -438,10 +454,10 @@ const listQualityCatalogs = async (empCod, rawSpecies) => {
       FROM MAdanos
       WHERE EmpCod=@EmpCod AND Especod=@Especod AND MADanActivo=1
       ORDER BY MADanOrden,MADanCod;
-      SELECT COALESCE(CalCod,0) id,RTRIM(Calibre) code,COALESCE(CalCod,32767) displayOrder
+      SELECT COALESCE(CalCod,0) id,RTRIM(Calibre) code,COALESCE(CalOrden,CalCod,32767) displayOrder
       FROM CALIBRES
       WHERE EmpCod=@EmpCod AND Especod=@Especod AND calRecepcion=1
-      ORDER BY COALESCE(CalCod,32767),Calibre;
+      ORDER BY COALESCE(CalOrden,CalCod,32767),COALESCE(CalCod,32767),Calibre;
       SELECT MAPlaCod code,RTRIM(MAPlaTipo) type,RTRIM(MAPlaDes) label,MAPlaOrden displayOrder
       FROM MAPlagas
       WHERE EmpCod=@EmpCod AND Especod=@Especod AND MAPlaActivo=1

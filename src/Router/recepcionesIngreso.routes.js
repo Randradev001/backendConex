@@ -12,6 +12,7 @@ router.get('/tablero-lotes', controller.lotBoard);
 router.get('/calidad/catalogos', controller.qualityCatalogs);
 router.get('/', controller.list);
 router.post('/', action(1), controller.create);
+router.get('/:tempCod/:origin/:docType/:guide/:producer/pdf', controller.pdf);
 router.get('/:tempCod/:origin/:docType/:guide/:producer', controller.getOne);
 router.put('/:tempCod/:origin/:docType/:guide/:producer', action(2), controller.update);
 router.delete('/:tempCod/:origin/:docType/:guide/:producer', action(3), controller.remove);

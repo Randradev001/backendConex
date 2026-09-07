@@ -14,6 +14,8 @@ test('normaliza una recepcion manual sin aceptar empresa', () => {
   assert.equal(result.movementType, 1);
   assert.equal(result.movementSubtype, 1);
   assert.equal(Object.hasOwn(result, 'empCod'), false);
+  assert.equal(Object.hasOwn(result, 'grades'), false);
+  assert.equal(Object.hasOwn(result, 'brix'), false);
 });
 
 test('rechaza movimientos que no son recepcion de fruta 1/1', () => {
@@ -38,8 +40,8 @@ test('valida la clave GeneXus completa', () => {
 
 test('redondea calculos de peso a dos decimales', () => assert.equal(round2(10.005), 10.01));
 
-test('calcula peso neto como numero de envases por kilos brutos unitarios', () => {
-  assert.deepEqual(calculateReceptionWeights(12, 8.5), { weight: 8.5, grossKilos: 102, netKilos: 102 });
+test('calcula el peso estimado por envase desde los kilos brutos totales', () => {
+  assert.deepEqual(calculateReceptionWeights(12, 102), { weight: 8.5, grossKilos: 102, netKilos: 102 });
 });
 
 test('normaliza filtros del tablero de lotes con ventana de seis dias por defecto', () => {

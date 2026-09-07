@@ -21,6 +21,16 @@ const catalogs = async (req, res, next) => {
   }
 };
 
+const create = async (req, res, next) => {
+  try {
+    const line = await service.createControlLine(req.context?.empCod, req.context?.login, req.body);
+    return res.status(201).json({ success: true, line });
+  } catch (error) {
+    if (error.status && error.code) return res.status(error.status).json({ code: error.code, message: error.message });
+    return next(error);
+  }
+};
+
 const update = async (req, res, next) => {
   try {
     const line = await service.updateControlLine(
@@ -37,4 +47,4 @@ const update = async (req, res, next) => {
   }
 };
 
-module.exports = { list, catalogs, update };
+module.exports = { list, catalogs, create, update };

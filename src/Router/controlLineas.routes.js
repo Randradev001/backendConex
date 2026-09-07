@@ -8,6 +8,7 @@ const CONTROL_LINES_PERMISSION = Object.freeze({ sistema: 100, modulo: 6, progra
 router.use(authContext, requirePermission(CONTROL_LINES_PERMISSION));
 router.get('/', controller.list);
 router.get('/catalogs', controller.catalogs);
+router.post('/', controller.create);
 router.put('/:machine/:line', controller.update);
 
 module.exports = router;

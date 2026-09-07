@@ -66,9 +66,14 @@ la diferencia es trabajo incompleto, cambio no documentado o una regresion.
 
 ### Procesos
 
+- [operacion de ordenes de proceso](migration/ordenes-proceso-operacion.md):
+  seleccion de saldos, alta transaccional y confirmacion del correlativo.
 - [tablero de control de lineas](migration/configuracion-lineas-tablero.md):
-  rediseño de `linconfig`, monitoreo animado, edicion acotada, tablas, estados,
-  permisos y pendientes de alta, eliminacion e impresion.
+  rediseño de `linconfig`, monitoreo animado, alta y edicion, tablas, estados,
+  permisos y pendientes de eliminacion e impresion.
+- [CRUD visual de etiquetas y diseñador ZPL versionado](migration/etiquetas-editor-zpl.md):
+  cards de etiquetas, versiones de diseño, persistencia JSON/ZPL, rescate GX8,
+  seguridad y límites de preview e impresión.
 
 ### Inventario GX8
 

@@ -5,7 +5,8 @@ const {
   defaultRange,
   buildQualityClassification,
   buildCaliberDistribution,
-  buildColorDistribution
+  buildColorDistribution,
+  buildObservations
 } = require('../src/services/recepcionesCalidadDashboard.service');
 
 const payload = {
@@ -70,22 +71,31 @@ test('el dashboard segrega la muestra entre fruta sin dano y con dano',()=>{
 
 test('el dashboard distribuye calibre y pre calibre por numero de frutos',()=>{
   assert.deepEqual(buildCaliberDistribution([
-    {label:'XXL',percentage:30,preCaliber:5},
-    {label:'XXL',percentage:20,preCaliber:2},
-    {label:'XL',percentage:40,preCaliber:3}
+    {label:'XXL',percentage:30,preCaliber:5,displayOrder:2},
+    {label:'XXL',percentage:20,preCaliber:2,displayOrder:2},
+    {label:'XL',percentage:40,preCaliber:3,displayOrder:1}
   ]),[
-    {label:'XXL',caliber:50,preCaliber:7,total:57},
-    {label:'XL',caliber:40,preCaliber:3,total:43}
+    {label:'XL',caliber:40,preCaliber:3,total:43},
+    {label:'XXL',caliber:50,preCaliber:7,total:57}
   ]);
 });
 
 test('el dashboard agrupa la distribucion de color por calibre',()=>{
   assert.deepEqual(buildColorDistribution([
-    {label:'XXL',lightRed:20,darkRed:10},
-    {label:'XXL',lightRed:5,darkRed:15},
-    {label:'XL',lightRed:30,darkRed:20}
+    {label:'XXL',lightRed:20,darkRed:10,displayOrder:2},
+    {label:'XXL',lightRed:5,darkRed:15,displayOrder:2},
+    {label:'XL',lightRed:30,darkRed:20,displayOrder:1}
   ]),[
-    {label:'XXL',lightRed:25,darkRed:25,total:50},
-    {label:'XL',lightRed:30,darkRed:20,total:50}
+    {label:'XL',lightRed:30,darkRed:20,total:50},
+    {label:'XXL',lightRed:25,darkRed:25,total:50}
+  ]);
+});
+
+test('el dashboard conserva las observaciones con la trazabilidad del lote',()=>{
+  assert.deepEqual(buildObservations([
+    {id:7,lot:394,inspectionDate:'2026-08-11',producer:' PRODUCTOR A ',species:'CEREZA',variety:'BING',observation:' Fruta con condición irregular. '},
+    {id:8,lot:395,observation:'   '}
+  ]),[
+    {controlId:7,lot:394,inspectionDate:'2026-08-11',producer:'PRODUCTOR A',species:'CEREZA',variety:'BING',text:'Fruta con condición irregular.'}
   ]);
 });

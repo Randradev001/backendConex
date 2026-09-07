@@ -291,9 +291,15 @@ CREATE TABLE dbo.CALIBRES (
   Especod smallint NOT NULL,
   Calibre char(10) NOT NULL,
   CalCod smallint NULL,
+  CalOrden smallint NOT NULL CONSTRAINT DF_CALIBRES_CalOrden DEFAULT (32767),
   calRecepcion bit NOT NULL CONSTRAINT DF_CALIBRES_calRecepcion DEFAULT (0),
+  CONSTRAINT CK_CALIBRES_CalOrden CHECK (CalOrden BETWEEN 1 AND 32767),
   CONSTRAINT PK_CALIBRES PRIMARY KEY (EmpCod, Especod, Calibre)
 );
+
+CREATE INDEX IX_CALIBRES_OrdenMuestra
+  ON dbo.CALIBRES (EmpCod, Especod, CalOrden, CalCod)
+  INCLUDE (Calibre, calRecepcion);
 
 CREATE TABLE dbo.ENVCAT (
   EmpCod smallint NOT NULL,

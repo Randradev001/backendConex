@@ -283,7 +283,7 @@ bindAuthorizedProcessMaster('/configuraciones-etiqueta', {
   insert: MaestrosController.insertConfiguracionEtiqueta,
   update: MaestrosController.updateConfiguracionEtiqueta,
   remove: MaestrosController.deleteConfiguracionEtiqueta
-}, 1);
+}, 1, 1);
 bindAuthorizedMaster('/tipos-base-pallet', {
   list: MaestrosController.listTiposBasePallet,
   insert: MaestrosController.insertTipoBasePallet,

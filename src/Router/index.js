@@ -7,6 +7,7 @@ const recepcionesIngresoRouter = require('./recepcionesIngreso.routes')
 const recepcionesCalidadRouter = require('./recepcionesCalidad.routes')
 const ordenesProcesoRouter = require('./ordenesProceso.routes')
 const controlLineasRouter = require('./controlLineas.routes')
+const etiquetasRouter = require('../modules/etiquetas/etiquetas.routes')
 
 router.use('/maestros',maestrosRouter)
 router.use('/seguridad', seguridadRouter)
@@ -15,6 +16,7 @@ router.use('/recepciones-ingreso', recepcionesIngresoRouter)
 router.use('/recepciones-calidad', recepcionesCalidadRouter)
 router.use('/ordenes-proceso-operacion', ordenesProcesoRouter)
 router.use('/control-lineas', controlLineasRouter)
+router.use('/etiquetas', etiquetasRouter)
 
 // test para confirmar que este router está montado
 router.get('/test', (req, res) => res.send('Router raíz OK'));

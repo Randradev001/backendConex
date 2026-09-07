@@ -57,6 +57,44 @@ nombre del objeto GX y documentar su descripcion de negocio.
 10. La marca visual es CONEX-CO, Control de exportacion, con paleta verde. No
     volver a textos, colores o documentacion de Mantis.
 
+## Diseñador visual de etiquetas ZPL
+
+Implementado como CRUD visual que reutiliza el programa de Seguridad de
+`CONFIGETI`, sin crear un programa independiente:
+
+- React abre `/etiquetas/disenos` desde `wconfigeti`. Presenta una card verde
+  por etiqueta con acciones para visualizar, editar, crear una versión, editar
+  datos o eliminar. La edición usa `/etiquetas/disenos/:etiCod/:version`.
+- El canvas usa React-Konva; Zustand/zundo mantiene el documento JSON y el
+  historial; bwip-js representa Code 128 y QR durante la edición.
+- Node expone `/backendDocker/etiquetas`, aislado en
+  `src/modules/etiquetas/`, y exige el mismo permiso `110/1/1` de
+  `wconfigeti`. `EmpCod` y login provienen exclusivamente de la sesión.
+- `ETIQUETA` es la cabecera y `ETIQUETAVERSION` guarda cada diseño completo,
+  JSON, ZPL y `ROWVERSION`. Una versión por etiqueta puede ser vigente.
+- `ETIQUETA.TEtCod` referencia `TIPETI` por `EmpCod + TEtCod`. Crear o editar
+  usa un select del catálogo de la empresa; `EtiTipo=VINASA` queda separado
+  como formato técnico histórico y no como tipo de negocio.
+- El core propio importa el subconjunto inicial, conserva rangos y comandos no
+  modelados, genera ZPL backend y escapa variables dinámicas.
+- Preview Labelary es una ayuda no productiva; la impresión física Zebra y la
+  resolución completa de reglas de `Impi_Etiquetas` siguen pendientes.
+- La migración agrupó los ejemplos `LAVINA16` y `POLCURA16` como dos cabeceras.
+  Sus 24 filas `CONFIGETI` no se muestran ni editan en el flujo nuevo; solo se
+  usan para rescatar el primer diseño histórico.
+- En ambos ejemplos, `Rescatar desde GX8` recompone el layout de
+  `Eti_CV_VINA2016` como un diseño de 799 por 400 puntos, 22 elementos y
+  variables editables al crear una versión. Preview y canvas aplican una orientación visual de 180
+  grados para mostrarlo en posición de lectura sin modificar las coordenadas ni
+  rotaciones ZPL. Canvas y preview sustituyen la muestra genérica `CALIBRE` por
+  un código real corto del catálogo, como `00LL`, evitando un recorte falso sin
+  alterar los demás campos ni la geometría guardada. Para los textos `^FT`, el
+  canvas convierte la línea base Zebra a la esquina superior usada por Konva y
+  revierte esa conversión al mover o transformar un elemento. Las líneas y
+  rectángulos `^GB` compensan además el extremo de rotación Zebra según su ancho
+  y alto. La acción no persiste hasta pulsar Guardar.
+- Evidencia detallada: [etiquetas-editor-zpl.md](etiquetas-editor-zpl.md).
+
 ## Base de datos
 
 Estado operativo:
@@ -92,6 +130,11 @@ Estado operativo:
   y detalle; editar reutiliza la pantalla operacional y actualiza cabecera,
   detalle y movimiento de salida dentro de una transacción serializable,
   conservando el mismo `Ordpnum` y validando saldo sin contar la propia orden.
+  Cada lote destaca la cantidad restante en envases y kilos. Tras crear, un
+  dialogo resume lo persistido y da protagonismo al `Ordpnum` generado por el
+  backend. Ese resumen puede descargarse como PDF real desde el dialogo o las
+  acciones del ADM. El alta persiste la exportadora seleccionada en `ExpCod`;
+  ver `docs/migration/ordenes-proceso-operacion.md`.
 - `database/20260818_importar_usuarios_rut_real_login_2016.sql` importa desde
   `CONEX_MIGRACION` a `CONEX` solo usuarios activos con RUT/DV valido y empresa
   asignada; copia empresas, `SEGUSUEMP`, credenciales modernas si existen y
@@ -106,6 +149,12 @@ Estado operativo:
 - `database/20260901_control_lineas_tablero_2016.sql` agrega de forma repetible
   `LINEAS`, `LINCONFIG`, sus indices de consulta y el programa historico
   `100/6/11` cuando falten. Fue ejecutado sobre `CONEX_MIGRACION`.
+- `database/20260901_etiquetas_cabecera_versiones_2016.sql` fue ejecutado sobre
+  `CONEX_MIGRACION`; creó `ETIQUETA` y `ETIQUETAVERSION`, y agrupó las 24 líneas
+  de `CONFIGETI` en dos cabeceras sin crear versiones ni alterar el respaldo GX8.
+- `database/20260907_etiqueta_tipo_fk_2016.sql` fue ejecutado y relacionó
+  `ETIQUETA` con `TIPETI`. No asignó tipos a las tres etiquetas ya existentes;
+  deberán seleccionarse explícitamente desde el CRUD.
 
 Los scripts con `BDCONEXCO` en el nombre son antecedentes de la etapa previa.
 No ejecutarlos sobre la base actual sin estudiar su objetivo y precondiciones.
@@ -255,8 +304,14 @@ programa `100/6/11`, valida los catalogos por empresa y actualiza `LINEAS` y
 `LINCONFIG.ConfID=1` en una transaccion. Variedad no forma parte del formulario
 ni del contrato porque la tabla GX8 original no la almacena.
 
-La creacion general de lineas mediante `LineasINS`, la eliminacion y la
-impresion ZPL continúan pendientes. Ver
+El boton `+` del filtro abre el alta de linea. El modal solicita maquina,
+descripcion, ubicacion, PC, persona opcional, especie, calibre, envase,
+categoria y estado. El backend absorbe `Autonumber` y `CreaCabeza`: genera el
+siguiente `LinID` por empresa dentro de una transaccion serializable y crea
+`LINEAS` junto con `LINCONFIG.ConfID=1`. `EmpCod` y el identificador no se
+aceptan desde React.
+
+La eliminacion y la impresion ZPL continúan pendientes. Ver
 [configuracion-lineas-tablero.md](configuracion-lineas-tablero.md).
 
 ## Consultas de recepcion implementadas
@@ -280,9 +335,16 @@ cabecera. El formulario usa buscadores de catalogo para documento y movimiento
 `1/1`; sus resultados presentan la seleccion como icono a la izquierda, y
 organiza cada lote en tres filas. El listado inicia filtrado desde la misma
 fecha del mes anterior hasta la fecha local de hoy. Por decision funcional,
-el pesaje automatico y COM1 no se
+Grados y Brix no forman parte del formulario; cada lote captura kilos brutos
+totales y calcula el peso estimado por envase dividiendo por su cantidad. Los
+totales permanecen en `Mov1KilB` y `Mov1KilN`, y el resultado unitario se guarda
+en `Mov1Peso`. Por decision funcional, el pesaje automatico y COM1 no se
 contemplan. Ver
 [recepciones-ingreso-evaluacion.md](recepciones-ingreso-evaluacion.md).
+Cada registro de la bandeja y la vista individual permiten descargar un PDF
+real generado en Node. El documento corresponde al reporte GX8 `GuiaIng1` e
+incluye empresa, cabecera, descripciones de catalogos, observacion, totales y
+todos los lotes; no depende de las filas cargadas en React.
 
 El tablero operacional `/recepciones/lotes-tablero` muestra seis fechas, desde
 cinco dias atras hasta hoy, y deja `Hoy` seleccionado inicialmente. Al elegir
@@ -342,6 +404,8 @@ observacion general fue reemplazada por tarjetas de conclusiones rapidas.
 Cada grafico presenta una conclusion contextual calculada y el cierre incluye
 una conclusion general de negocio que combina rendimiento, condicion,
 segregacion, defectos y riesgo sanitario.
+El informe muestra además las observaciones de calidad por lote, con fecha,
+productor, especie y variedad, y las conserva en la impresion/PDF.
 El dashboard incluye evidencia fotografica agrupada por lote. Las imagenes se
 descargan mediante la ruta autenticada, se esperan antes de abrir la impresion
 y se incorporan al PDF del navegador con paginacion especifica para galerias.
@@ -351,9 +415,12 @@ Se publica en Consultas de Procesos como `100/15/15`,
 `ProgNomGX=wdashcalidadrecep`; su endpoint usa el mismo permiso específico.
 Los calibres del control se despliegan desde el detalle `CALIBRES` de la
 especie del lote, filtrado por `EmpCod + Especod`, `calRecepcion=1` y ordenado
-por `CalCod`. El CRUD de calibres expone `calRecepcion` como el selector
-`Indicador recepcion`; la migracion es
-`database/20260811_calibres_indicador_recepcion.sql`.
+por el campo editable `CalOrden`, con `CalCod` como desempate interno. El CRUD
+de calibres expone `CalOrden` como `Orden de muestra` y `calRecepcion` como el
+selector `Indicador recepcion`. Las migraciones son
+`database/20260811_calibres_indicador_recepcion.sql` y
+`database/20260907_calibres_orden_muestra.sql`. El dashboard respeta
+`CalOrden` en los graficos de distribucion de calibre y color por calibre.
 `MAPlagas` parametriza por empresa y especie los hallazgos de tipo `PLAGA`,
 `VIRUS` y `DIPTERO`, con orden y estado activo. Su CRUD se integra como detalle
 de Especies y el formulario los despliega como seleccion multiple antes de
@@ -434,7 +501,7 @@ En el tablero Control de lineas, 2026-09-01:
   `IND_CAPORDPROC (EmpCod, TempCod, CAPNproc)`.
 - La extension de edicion usa cuatro catalogos filtrados, validacion relacional
   y escritura transaccional protegida por el programa.
-- La suite backend aprobo 43 pruebas, el lint dirigido del frontend termino sin
+- La suite backend aprobo 63 pruebas, el lint dirigido del frontend termino sin
   errores y Vite compilo 5.732 modulos.
 - La revision visual automatizada quedo limitada por falta de una sesion
   autenticada en los navegadores disponibles; no se usaron credenciales.

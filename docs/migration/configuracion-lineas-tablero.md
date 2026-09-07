@@ -10,7 +10,8 @@ configuracion vigente, filtro rapido por maquina, reloj local y actualizacion
 automatica.
 
 La edicion implementada cubre especie, calibre, envase, categoria y
-estado de la linea. La eliminacion y la impresion de etiquetas permanecen
+estado de la linea. El alta crea la cabecera de linea y su configuracion inicial
+desde un unico modal. La eliminacion y la impresion de etiquetas permanecen
 pendientes y no deben darse por migradas por la existencia del tablero.
 
 ## Evidencia GeneXus
@@ -24,15 +25,24 @@ pendientes y no deben darse por migradas por la existencia del tablero.
 - `LinEstado` representa si la linea esta activa; `LinEstConf` y `ConfEstado`
   representan por separado el estado de configuracion.
 - Los catalogos descriptivos son `ESPECIES`, `CALIBRES`, `ENVCAT` y `ENVCAT1`.
+- La transaccion `Lineas` exige maquina, descripcion, ubicacion y PC; en alta
+  inicializa `LinEstConf=0` y llama `CreaCabeza` para asegurar
+  `LINCONFIG.ConfID=1`.
+- El Procedure `Autonumber` obtiene el ultimo `LinID` de la empresa y suma uno.
+- `LineasINS`, pese a su nombre y descripcion historica, edita la configuracion
+  de una linea ya creada mediante `GrabaConf` y luego marca la linea configurada.
 
-Los Procedures `CreaCabeza`, `GrabaConf`, `EstadoACt`, `EstadoCONF`, `DLTConf`,
-`TraeConf`, `TraeEstLinea` y `Autonumber` no se declaran migrados en esta fase.
+`Autonumber` y `CreaCabeza` quedan absorbidos por el alta transaccional del
+backend. Los Procedures `GrabaConf`, `EstadoACt`, `EstadoCONF`, `DLTConf`,
+`TraeConf` y `TraeEstLinea` no se declaran migrados de manera general en esta
+fase, aunque parte de su comportamiento ya esta cubierta por el tablero.
 
 ## Contrato migrado
 
 - Ruta React: `/procesos/control-lineas`.
 - API: `GET /backendDocker/control-lineas`,
   `GET /backendDocker/control-lineas/catalogs` y
+  `POST /backendDocker/control-lineas`, ademas de
   `PUT /backendDocker/control-lineas/:machine/:line`.
 - Programa de Seguridad: `SistCod=100`, `Modcod=6`, `ProgCod=11`,
   `ProgNomGX=wlinconfig`.
@@ -43,6 +53,10 @@ Los Procedures `CreaCabeza`, `GrabaConf`, `EstadoACt`, `EstadoCONF`, `DLTConf`,
 - React vuelve a consultar el endpoint periodicamente. Al pulsar una tarjeta
   abre un modal con selects dependientes; guardar actualiza de forma atomica
   `LINEAS.LinEstado` y la configuracion `LINCONFIG.ConfID=1`.
+- El boton de alta abre un modal con maquina, descripcion, ubicacion, PC,
+  persona opcional, configuracion y estado. Node genera el siguiente `LinID`
+  dentro de una transaccion serializable, valida los catalogos por empresa e
+  inserta `LINEAS` y `LINCONFIG.ConfID=1` como una sola unidad.
 - Lectura y escritura exigen el programa `100/6/11`. La autorizacion por accion
   individual continua fuera de esta etapa, igual que en los CRUD vigentes.
 
@@ -78,8 +92,9 @@ asigna el programa a usuarios o roles; el acceso debe concederse desde Seguridad
 
 - `LinPC` no era unico en GX8 aunque `TraeConf` espera identificar una linea.
 - No existen claves foraneas fisicas entre las tablas de lineas y sus catalogos.
-- La migracion general de `LineasINS`, eliminacion y la impresion ZPL siguen
-  pendientes; la edicion acotada del modal no declara migrados esos flujos.
+- La eliminacion y la impresion ZPL siguen pendientes. `LineasINS` queda
+  reemplazado por los modales de alta y edicion, sin declarar migrado su bloque
+  historico de impresion comentado.
 - El tablero presenta el estado persistido; no incorpora sensores ni telemetria
   externa de movimiento de fruta.
 
@@ -96,3 +111,6 @@ asigna el programa a usuarios o roles; el acceso debe concederse desde Seguridad
 8. Solo las tarjetas activas animan las cerezas.
 9. El total de cajas usa solo la empresa, temporada y orden activa; una caja no
    desaparece del total al cambiar su estado posterior.
+10. El alta genera un `LinID` sin colisiones, crea `LINEAS` y
+    `LINCONFIG.ConfID=1` en la misma transaccion y revierte ambas escrituras ante
+    cualquier error.

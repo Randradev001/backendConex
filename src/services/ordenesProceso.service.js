@@ -76,7 +76,7 @@ const create = async (empCod, login, body = {}) => {
     }
     const first = details[0]; if (details.some((d) => String(d.producer).trim() !== String(first.producer).trim())) throw new OrdenesProcesoError(409, 'MULTI_PRODUCER_NOT_ALLOWED', 'Todos los lotes deben pertenecer al mismo productor.'); const totals = details.reduce((a, d) => ({ env: a.env + d.env, kilos: a.kilos + d.kilos }), { env: 0, kilos: 0 });
     const insert = new sql.Request(transaction).input('EmpCod', sql.SmallInt, empCod).input('TempCod', sql.Char(9), tempCod).input('Ordpnum', sql.Decimal(10, 0), ordpnum).input('Producer', sql.Char(6), first.producer).input('Fecha', sql.DateTime, processDate).input('Species', sql.SmallInt, first.species).input('Variety', sql.Int, variety).input('Exporter', sql.SmallInt, exporter).input('Label', sql.Char(10), label).input('TotEnv', sql.Int, totals.env).input('TotKilos', sql.Money, totals.kilos).input('Login', sql.Char(10), String(login || '').slice(0, 10));
-    await insert.query(`INSERT ORDPROC (EmpCod,TempCod,Ordpnum,ProdCod,OrdpFecha,Especod,VarCod,OrdpTotEnv,OrdpTotKilos,OrdpEnvExp,OrdpKilosExp,OrdpEnvCom,OrdpKilosCom,OrdpDesecho,OrdploginC,OrdpFecC,OrdpEstado,OrdpLoginA,OrdpCodEti) VALUES (@EmpCod,@TempCod,@Ordpnum,@Producer,@Fecha,@Species,@Variety,@TotEnv,@TotKilos,0,0,0,0,0,@Login,GETDATE(),0,'',@Label);`);
+    await insert.query(`INSERT ORDPROC (EmpCod,TempCod,Ordpnum,ProdCod,OrdpFecha,Especod,VarCod,ExpCod,OrdpTotEnv,OrdpTotKilos,OrdpEnvExp,OrdpKilosExp,OrdpEnvCom,OrdpKilosCom,OrdpDesecho,OrdploginC,OrdpFecC,OrdpEstado,OrdpLoginA,OrdpCodEti) VALUES (@EmpCod,@TempCod,@Ordpnum,@Producer,@Fecha,@Species,@Variety,@Exporter,@TotEnv,@TotKilos,0,0,0,0,0,@Login,GETDATE(),0,'',@Label);`);
     for (const d of details) await new sql.Request(transaction).input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),tempCod).input('Ordpnum',sql.Decimal(10,0),ordpnum).input('Lot',sql.Decimal(10,0),d.lot).input('Env',sql.Int,d.env).input('Kilos',sql.Money,d.kilos).query('INSERT ORDPROC1 (EmpCod,TempCod,Ordpnum,Ordp1Nlote,Ordp1Env,Ordp1Kilos) VALUES (@EmpCod,@TempCod,@Ordpnum,@Lot,@Env,@Kilos);');
     const movement = new sql.Request(transaction).input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),tempCod).input('Guide',sql.Decimal(10,0),ordpnum).input('Producer',sql.Char(6),first.producer).input('Date',sql.DateTime,processDate).input('TotEnv',sql.Int,totals.env).input('TotKilos',sql.Money,totals.kilos).input('Login',sql.Char(10),String(login || '').slice(0,10));
     await movement.query(`INSERT MOVFRUT (EmpCod,TempCod,OriCod,MovTDoc,MovNGuia,MovProd,MovFecha,MovObs,TMcod,TMSCod,MovTotE,MovTotKilN,MovTotKilB,MovLoginC,MovFecC,Movauto) VALUES (@EmpCod,@TempCod,90,90,@Guide,@Producer,@Date,'Salida por Proceso',2,1,@TotEnv,@TotKilos,0,@Login,GETDATE(),0);`);
@@ -111,9 +111,11 @@ const getOrder = async (empCod, tempCod, ordpnum) => {
     OUTER APPLY (SELECT TOP 1 c.CalRecPorCalidad qualityPercentage FROM CALRECEP c WHERE c.EmpCod=d.EmpCod AND c.TempCod=d.TempCod AND c.Mov1Nlote=d.Ordp1Nlote AND c.CalRecEstado='F' ORDER BY c.CalRecFecha DESC,c.CalRecHora DESC,c.CalRecId DESC) quality
     WHERE d.EmpCod=@EmpCod AND d.TempCod=@TempCod AND d.Ordpnum=@Ordpnum
     ORDER BY d.Ordp1Nlote;
+    SELECT EmpCod,RTRIM(EmpNom) EmpNom,RTRIM(EmpGiro) EmpGiro,RTRIM(Empdir) EmpDir,EmpRut,RTRIM(EmpDV) EmpDV
+    FROM DEFEMP WHERE EmpCod=@EmpCod;
   `);
   if (!header.recordsets[0].length) throw new OrdenesProcesoError(404, 'ORDER_NOT_FOUND', 'La orden de proceso no existe.');
-  return { header: header.recordsets[0][0], details: header.recordsets[1] || [] };
+  return { header: header.recordsets[0][0], details: header.recordsets[1] || [], company: header.recordsets[2]?.[0] || null };
 };
 
 const update = async (empCod, login, tempCod, ordpnumInput, body = {}) => {

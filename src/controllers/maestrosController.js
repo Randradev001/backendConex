@@ -101,15 +101,16 @@ const catalogos = {
     primaryKey: ['EmpCod', 'Especod', 'Calibre'],
     // Calibre es clave fisica, pero GeneXus permite corregirlo conservando la clave anterior.
     mutablePrimaryKey: { Calibre: 'OriginalCalibre' },
-    columns: ['EmpCod', 'Especod', 'Calibre', 'CalCod', 'calRecepcion'],
-    orderBy: ['Especod', 'CalCod', 'Calibre'],
+    columns: ['EmpCod', 'Especod', 'Calibre', 'CalCod', 'CalOrden', 'calRecepcion'],
+    orderBy: ['Especod', 'CalOrden', 'CalCod', 'Calibre'],
     filters: [{ param: 'Especod', column: 'Especod', type: 'int', required: true }],
-    searchColumns: ['Calibre', 'CalCod'],
+    searchColumns: ['Calibre', 'CalCod', 'CalOrden'],
     fields: {
       EmpCod: { type: 'int', required: true, min: 1 },
       Especod: { type: 'int', required: true, min: 1 },
       Calibre: { type: 'text', length: 10, required: true },
       CalCod: { type: 'int', min: 1, serverGenerated: true },
+      CalOrden: { type: 'int', required: true, min: 1, max: 32767 },
       calRecepcion: { type: 'int', choices: [0, 1], insertDefault: 0 }
     }
   },

@@ -122,6 +122,14 @@ const positiveInteger = (value, label) => {
   return parsed;
 };
 
+const requiredText = (value, label, maxLength) => {
+  const text = String(value ?? '').trim();
+  if (!text || text.length > maxLength) {
+    throw new ControlLineError(400, 'VALIDATION_ERROR', `${label} es obligatorio y admite hasta ${maxLength} caracteres.`);
+  }
+  return text;
+};
+
 const normalizeUpdate = (raw = {}) => {
   const caliber = String(raw.caliber ?? '').trim();
   if (!caliber || caliber.length > 10) {
@@ -136,6 +144,23 @@ const normalizeUpdate = (raw = {}) => {
     containerCode: positiveInteger(raw.containerCode, 'El envase'),
     categoryCode: positiveInteger(raw.categoryCode, 'La categoria'),
     active: raw.active
+  };
+};
+
+const normalizeCreate = (raw = {}) => {
+  const machine = positiveInteger(raw.machine, 'La maquina');
+  if (machine > 32767) throw new ControlLineError(400, 'VALIDATION_ERROR', 'La maquina excede el rango permitido.');
+  const personCode = raw.personCode === null || raw.personCode === undefined || raw.personCode === '' ? null : Number(raw.personCode);
+  if (personCode !== null && (!Number.isInteger(personCode) || personCode < 0 || personCode > 2147483647)) {
+    throw new ControlLineError(400, 'VALIDATION_ERROR', 'El codigo de persona no es valido.');
+  }
+  return {
+    machine,
+    description: requiredText(raw.description, 'La descripcion', 20),
+    location: requiredText(raw.location, 'La ubicacion', 20),
+    pc: requiredText(raw.pc, 'El PC', 20),
+    personCode,
+    ...normalizeUpdate(raw)
   };
 };
 
@@ -195,6 +220,83 @@ const listControlLineCatalogs = async (empCod, { poolProvider = getPool } = {}) 
     containers: sets[2] || [],
     categories: sets[3] || []
   };
+};
+
+const createControlLine = async (
+  empCod,
+  login,
+  raw,
+  { poolProvider = getPool, transactionFactory, requestFactory = (target) => new sql.Request(target) } = {}
+) => {
+  const companyCode = companyCodeFrom(empCod);
+  const payload = normalizeCreate(raw);
+  const pool = await poolProvider();
+  const transaction = transactionFactory ? transactionFactory(pool) : new sql.Transaction(pool);
+  await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+  let lineCode;
+
+  try {
+    const validation = await requestFactory(transaction)
+      .input('EmpCod', sql.SmallInt, companyCode)
+      .input('Especod', sql.SmallInt, payload.speciesCode)
+      .input('Calibre', sql.Char(10), payload.caliber)
+      .input('EnvCod', sql.SmallInt, payload.containerCode)
+      .input('Catcod', sql.SmallInt, payload.categoryCode)
+      .query(`
+        SELECT
+          CASE WHEN EXISTS (SELECT 1 FROM ESPECIES WHERE EmpCod=@EmpCod AND Especod=@Especod) THEN 1 ELSE 0 END AS SpeciesExists,
+          CASE WHEN EXISTS (SELECT 1 FROM CALIBRES WHERE EmpCod=@EmpCod AND Especod=@Especod AND Calibre=@Calibre) THEN 1 ELSE 0 END AS CaliberExists,
+          CASE WHEN EXISTS (SELECT 1 FROM ENVCAT WHERE EmpCod=@EmpCod AND EnvCod=@EnvCod) THEN 1 ELSE 0 END AS ContainerExists,
+          CASE WHEN EXISTS (SELECT 1 FROM ENVCAT1 WHERE EmpCod=@EmpCod AND EnvCod=@EnvCod AND Catcod=@Catcod) THEN 1 ELSE 0 END AS CategoryExists;
+      `);
+    const found = validation.recordset[0] || {};
+    if (!found.SpeciesExists || !found.CaliberExists || !found.ContainerExists || !found.CategoryExists) {
+      throw new ControlLineError(400, 'INVALID_CONFIGURATION', 'La configuracion contiene una seleccion inexistente o incompatible.');
+    }
+
+    const inserted = await requestFactory(transaction)
+      .input('EmpCod', sql.SmallInt, companyCode)
+      .input('LinMaquina', sql.SmallInt, payload.machine)
+      .input('LinDesc', sql.Char(20), payload.description)
+      .input('LinPerCod', sql.Int, payload.personCode)
+      .input('LinUbica', sql.Char(20), payload.location)
+      .input('LinPC', sql.Char(20), payload.pc)
+      .input('LinEstado', sql.SmallInt, payload.active ? 1 : 0)
+      .input('Especod', sql.SmallInt, payload.speciesCode)
+      .input('Calibre', sql.Char(10), payload.caliber)
+      .input('EnvCod', sql.SmallInt, payload.containerCode)
+      .input('Catcod', sql.SmallInt, payload.categoryCode)
+      .input('Login', sql.Char(10), String(login || '').trim().slice(0, 10))
+      .query(`
+        DECLARE @LinID smallint;
+        SELECT @LinID=CONVERT(smallint, COALESCE(MAX(LinID), 0) + 1)
+        FROM LINEAS WITH (UPDLOCK, HOLDLOCK)
+        WHERE EmpCod=@EmpCod;
+
+        INSERT INTO LINEAS
+          (EmpCod, LinMaquina, LinID, LinDesc, LinPerCod, LinUbica, LinPC, LinEstado, LinEstConf)
+        VALUES
+          (@EmpCod, @LinMaquina, @LinID, @LinDesc, @LinPerCod, @LinUbica, @LinPC, @LinEstado, 1);
+
+        INSERT INTO LINCONFIG
+          (EmpCod, LinMaquina, LinID, ConfID, Especod, Calibre, EnvCod,
+           Catcod, ConfEstado, LConfLogin, LConfFecLog, LConfCodPer)
+        VALUES
+          (@EmpCod, @LinMaquina, @LinID, 1, @Especod, @Calibre, @EnvCod,
+           @Catcod, 1, @Login, GETDATE(), NULL);
+
+        SELECT @LinID AS LinID;
+      `);
+    lineCode = Number(inserted.recordset[0]?.LinID);
+    if (!Number.isInteger(lineCode)) throw new Error('No fue posible obtener el identificador de la linea creada.');
+    await transaction.commit();
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+
+  const result = await listControlLines(companyCode, { poolProvider });
+  return result.lines.find((item) => item.machine === payload.machine && item.line === lineCode);
 };
 
 const updateControlLine = async (
@@ -279,8 +381,10 @@ module.exports = {
   ControlLineError,
   normalizeLine,
   normalizeUpdate,
+  normalizeCreate,
   buildProductionSummary,
   listControlLines,
   listControlLineCatalogs,
+  createControlLine,
   updateControlLine
 };
