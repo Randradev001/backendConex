@@ -31,6 +31,12 @@ programa `110/2/2` y la accion de alta o modificacion correspondiente.
 - El alta persiste `ExpCod`; anteriormente se solicitaba la exportadora pero el
   `INSERT` inicial no incluia esa columna. Los registros historicos sin valor
   se presentan como no informados.
+- El ADM ofrece una accion explicita para iniciar o desactivar el proceso. La
+  confirmacion reutiliza el detalle persistido de la orden. Al iniciar registra
+  fecha, usuario y hora de apertura; impide iniciar estados distintos de
+  `Ingresada` y rechaza una segunda orden activa en la misma empresa y
+  temporada. Desactivar devuelve la orden a `Ingresada` y registra la hora de
+  termino del proceso.
 
 ## Regla de saldo
 

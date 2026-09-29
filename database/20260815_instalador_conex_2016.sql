@@ -771,7 +771,17 @@ CREATE INDEX IX_CALRECEPFOTO_Control
   ON dbo.CALRECEPFOTO (EmpCod, CalRecId, CalFotoOrden, CalFotoId);
 
 /* Tablas vacias usadas por validaciones de dependencias GX8. */
-CREATE TABLE dbo.CAP001 (EmpCod smallint NULL, CliCod int NULL, ExpCod int NULL);
+CREATE TABLE dbo.CAP001
+(
+  EmpCod smallint NULL,
+  TempCod char(9) NULL,
+  CAPCOD decimal(10,0) NULL,
+  CAPNproc decimal(10,0) NULL,
+  CAPFecLog datetime NULL,
+  CliCod int NULL,
+  ExpCod int NULL
+);
+CREATE INDEX IND_CAPORDPROC ON dbo.CAP001 (EmpCod, TempCod, CAPNproc);
 CREATE TABLE dbo.DESCLI_FP (EmpCod smallint NULL, CliCod int NULL);
 CREATE TABLE dbo.DESPCAJS (EmpCod smallint NULL, CliCod int NULL, TdCod smallint NULL);
 CREATE TABLE dbo.FACTURA (EmpCod smallint NULL, CliCod int NULL);

@@ -18,7 +18,9 @@
     "db:check": "node scripts/check-db-connection.js",
     "test": "node --test",
     "dev": "nodemon index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "start:printer": "node src/impresion-worker/index.js",
+    "test:printer": "node --test test/impresionWorker.test.js"
   },
   "keywords": [],
   "author": "",

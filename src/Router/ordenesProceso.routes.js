@@ -17,4 +17,5 @@ router.get('/:tempCod/:ordpnum/pdf', controller.pdf);
 router.get('/:tempCod/:ordpnum', controller.detail);
 router.post('/', processPermission({ ...permission, accion: 1 }), controller.create);
 router.put('/:tempCod/:ordpnum', processPermission({ ...permission, accion: 2 }), controller.update);
+router.patch('/:tempCod/:ordpnum/estado', processPermission({ ...permission, accion: 2 }), controller.setActive);
 module.exports = router;

@@ -580,7 +580,20 @@ IF OBJECT_ID(N'dbo.CALRECEPFOTO', N'U') IS NULL
       REFERENCES dbo.CALRECEP (EmpCod, CalRecId) ON DELETE CASCADE
   );
 
-IF OBJECT_ID(N'dbo.CAP001', N'U') IS NULL CREATE TABLE dbo.CAP001 (EmpCod smallint NULL, CliCod int NULL, ExpCod int NULL);
+IF OBJECT_ID(N'dbo.CAP001', N'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.CAP001
+  (
+    EmpCod smallint NULL,
+    TempCod char(9) NULL,
+    CAPCOD decimal(10,0) NULL,
+    CAPNproc decimal(10,0) NULL,
+    CAPFecLog datetime NULL,
+    CliCod int NULL,
+    ExpCod int NULL
+  );
+  CREATE INDEX IND_CAPORDPROC ON dbo.CAP001 (EmpCod, TempCod, CAPNproc);
+END;
 IF OBJECT_ID(N'dbo.DESCLI_FP', N'U') IS NULL CREATE TABLE dbo.DESCLI_FP (EmpCod smallint NULL, CliCod int NULL);
 IF OBJECT_ID(N'dbo.DESPCAJS', N'U') IS NULL CREATE TABLE dbo.DESPCAJS (EmpCod smallint NULL, CliCod int NULL, TdCod smallint NULL);
 IF OBJECT_ID(N'dbo.FACTURA', N'U') IS NULL CREATE TABLE dbo.FACTURA (EmpCod smallint NULL, CliCod int NULL);

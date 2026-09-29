@@ -1,6 +1,6 @@
 # Estado vigente de la migracion CONEX
 
-Ultima actualizacion documental: 2026-09-01.
+Ultima actualizacion documental: 2026-09-29.
 
 Este es el documento de entrada para continuar el proyecto. Describe el estado
 observado en el codigo y en `CONEX_MIGRACION`. Antes de trabajar, ejecutar
@@ -77,8 +77,9 @@ Implementado como CRUD visual que reutiliza el programa de Seguridad de
   como formato técnico histórico y no como tipo de negocio.
 - El core propio importa el subconjunto inicial, conserva rangos y comandos no
   modelados, genera ZPL backend y escapa variables dinámicas.
-- Preview Labelary es una ayuda no productiva; la impresión física Zebra y la
-  resolución completa de reglas de `Impi_Etiquetas` siguen pendientes.
+- Preview Labelary es una ayuda no productiva. El worker físico quedó
+  implementado y deshabilitado por defecto; su activación con una Zebra real y
+  la validación completa de puesta en marcha siguen pendientes.
 - La migración agrupó los ejemplos `LAVINA16` y `POLCURA16` como dos cabeceras.
   Sus 24 filas `CONFIGETI` no se muestran ni editan en el flujo nuevo; solo se
   usan para rescatar el primer diseño histórico.
@@ -99,6 +100,11 @@ Implementado como CRUD visual que reutiliza el programa de Seguridad de
 
 Estado operativo:
 
+- `compose.database.yml` permite levantar SQL Server 2022 Developer con nivel
+  de compatibilidad 130. En el primer inicio restaura el respaldo portable
+  `database/docker/backup/CONEX.bak` como `CONEX` o, si no existe, ejecuta el
+  instalador vacio. El respaldo real queda fuera de Git; el procedimiento de
+  exportacion y traslado esta en `docs/deployment/database-docker.md`.
 - `CONEX_MIGRACION` contiene el modelo original CONEX y la homologacion de
   Seguridad.
 - El backend no consulta `BDCONEXCO` ni `CONEX_GX8_ANALISIS` en ejecucion.
@@ -135,6 +141,9 @@ Estado operativo:
   backend. Ese resumen puede descargarse como PDF real desde el dialogo o las
   acciones del ADM. El alta persiste la exportadora seleccionada en `ExpCod`;
   ver `docs/migration/ordenes-proceso-operacion.md`.
+- El ADM de ordenes de proceso incorpora una accion confirmada para iniciar o
+  desactivar una orden. El backend registra los datos de apertura y evita que
+  dos ordenes queden activas simultaneamente para la misma empresa y temporada.
 - `database/20260818_importar_usuarios_rut_real_login_2016.sql` importa desde
   `CONEX_MIGRACION` a `CONEX` solo usuarios activos con RUT/DV valido y empresa
   asignada; copia empresas, `SEGUSUEMP`, credenciales modernas si existen y
@@ -149,12 +158,72 @@ Estado operativo:
 - `database/20260901_control_lineas_tablero_2016.sql` agrega de forma repetible
   `LINEAS`, `LINCONFIG`, sus indices de consulta y el programa historico
   `100/6/11` cuando falten. Fue ejecutado sobre `CONEX_MIGRACION`.
+- `database/20260907_control_lineas_cap001_compatibilidad.sql` corrige de forma
+  aditiva instalaciones donde `CAP001` fue creada como tabla auxiliar parcial;
+  agrega las columnas y el indice requeridos por el contador de cajas.
+
+## Captura de cajas
+
+La primera entrega de `CAPCajas02` está implementada en
+`/captura-cajas` y `/backendDocker/captura-cajas`. Conserva el código GX8 de 23
+dígitos, valida la orden activa, calcula el peso neto por `ENVCAT`, inserta
+`CAP001` en una transacción serializable, evita duplicados por la clave histórica
+y cierra la orden en estado `4`. Incluye consulta paginada y resumen de cajas por
+orden. La validación unitaria y la prueba funcional controlada se ejecutaron el
+2026-09-21 sobre la orden local `2017-2018 / 174`: alta, rechazo de duplicado,
+consulta, resumen y cierre en estado `4`.
+
+`CAPCajas03` está incorporado como reclasificación transaccional de cajas
+disponibles: preserva `CAPEnvO`, `CAPCatO` y `CAPCaliO`, valida los catálogos GX8
+y recalcula los kilos netos. La caja de ensayo `999999` confirmó la carga de
+catálogos y la preservación de sus valores originales el 2026-09-21.
+
+`GenCajas` genera rangos de 1 a 1.000 cajas para órdenes activas en una sola
+transacción; valida catálogos, origen técnico y duplicados antes de insertar
+cualquier fila. La validación automática cubre el límite del rango.
+El 2026-09-28 se ejecutó además una simulación automática visible en navegador
+sobre `2016-2017 / 146`. Cubrió filtros e indicadores, apertura de todos los
+flujos, rechazo por largo y duplicado, selección para reclasificar y bloqueo de
+un rango de 1.002 cajas, sin modificar cajas ni órdenes reales.
+- `database/20260908_ordenes_proceso_estructura_gx8_2016.sql` reconstruye las
+  tablas auxiliares vacias `ORDPROC/ORDPROC1` con su estructura GX8 completa.
+  Se detiene sin cambios si encuentra datos en una estructura incompleta.
 - `database/20260901_etiquetas_cabecera_versiones_2016.sql` fue ejecutado sobre
   `CONEX_MIGRACION`; creó `ETIQUETA` y `ETIQUETAVERSION`, y agrupó las 24 líneas
   de `CONFIGETI` en dos cabeceras sin crear versiones ni alterar el respaldo GX8.
 - `database/20260907_etiqueta_tipo_fk_2016.sql` fue ejecutado y relacionó
   `ETIQUETA` con `TIPETI`. No asignó tipos a las tres etiquetas ya existentes;
   deberán seleccionarse explícitamente desde el CRUD.
+- `database/20260909_impresion_worker_2016.sql` agrega de forma aditiva el
+  soporte de trazabilidad de `OrdenImpresion` para el worker silencioso. Fue
+  ejecutado sobre `CONEX_MIGRACION` el 2026-09-09; las diez órdenes históricas
+  continúan pendientes y no se enviaron a impresión.
+
+## Impresión silenciosa de etiquetas
+
+El proceso independiente está aislado en `src/impresion-worker/` y se inicia
+con `npm run start:printer`. Conserva el contrato comprobado en
+`Export_Coneximprime.xpz`: `OPLCIMP` se interpreta como `LinID`, la impresora
+se resuelve en `ConfImpresoras`, la configuración proviene de
+`LINCONFIG.ConfID=1` y la etiqueta específica de `ETIXCAL` prevalece sobre
+`ORDPROC.OrdpCodEti`.
+
+El worker genera el correlativo `ETILIN`, compone el código GX, carga la versión
+vigente del diseñador, persiste el ZPL final y lo envía por TCP. Solo entonces
+marca `OPLCProc=1` y actualiza `OPLCFecha`. Queda deshabilitado por defecto y no
+debe habilitarse mientras permanezca activo el trigger SQL `Imprime`. Ver
+[impresion-etiquetas-worker.md](impresion-etiquetas-worker.md).
+
+El diseñador versionado incluye una impresión directa con valores de muestra e
+impresora seleccionada. El modal de edición de Control de líneas incluye una
+simulación que crea una fila pendiente igual al PLC y exige guardar primero
+cualquier cambio de configuración. La pantalla también incorpora un CRUD de
+`ConfImpresoras` para asignar nombre e IPv4 por línea, con soporte para
+direcciones compartidas. Su menú dinámico se registra como `100/6/12`,
+`ProgNomGX=wconfimpresoras`, mediante
+`database/20260909_impresoras_lineas_menu_2016.sql`, aplicado en
+`CONEX_MIGRACION` el 2026-09-09. La asignación a usuarios o roles queda
+explícitamente bajo Seguridad.
 
 Los scripts con `BDCONEXCO` en el nombre son antecedentes de la etapa previa.
 No ejecutarlos sobre la base actual sin estudiar su objetivo y precondiciones.

@@ -88,7 +88,9 @@ estar marcada vigente. La empresa siempre proviene de la sesión; React no
 envía ni puede reemplazar `EmpCod`.
 
 `ETIQUETA.TEtCod` es el tipo de negocio y referencia el maestro GX8 `TIPETI`
-dentro de la misma empresa. El select excluye el valor histórico cero. El campo
+dentro de la misma empresa. La migracion toma el tipo fisico de `TIPETI.TEtCod`:
+`smallint` en la base GX8 o `int` en instalaciones creadas por el instalador
+2016. El select excluye el valor histórico cero. El campo
 `EtiTipo` preexistente conserva únicamente el formato técnico de origen, como
 `VINASA`, y no se presenta como tipo de negocio.
 
@@ -196,8 +198,8 @@ pendientes de conversión automática.
 6. Un `ROWVERSION` antiguo devuelve conflicto y no sobrescribe datos.
 7. La ruta responde `403` sin permiso `110/1/1`.
 8. El menú `wconfigeti` abre el CRUD de cards sin crear otro programa de Seguridad.
-9. Preview e impresión física no se consideran producción hasta probarse con
-   ZPL real y una impresora Zebra del ambiente.
+9. Preview e impresión física no se consideran producción hasta probar el
+   worker de `src/impresion-worker/` con ZPL real y una impresora Zebra del ambiente.
 10. Crear una versión desde una fuente `VINASA` genera un documento de 799 por
     400 puntos con 22 elementos editables.
 11. Canvas y preview presentan `VINASA` con la misma orientación de lectura;
@@ -245,7 +247,14 @@ pendientes de conversión automática.
   799 por 400 puntos y volvió a eliminarla sin residuos propios. Se preservó la
   versión 1 de `LAVINA16`, creada por el usuario `MANDRADE` desde la pantalla.
 - El preview real de esa versión devolvió una imagen PNG de 33.962 bytes.
+- El worker separado reutiliza `generateZpl`, resuelve la versión vigente y
+  aplica variables productivas; permanece deshabilitado hasta la puesta en
+  marcha descrita en `impresion-etiquetas-worker.md`.
+- El diseñador versionado incorpora `Imprimir prueba`: selecciona una
+  configuración con IP y envía el diseño abierto con valores de muestra mediante
+  el backend de impresión, protegido por el permiso `110/1/1`.
 - El frontend compiló 5.828 módulos con Vite. ESLint de la pantalla y API del
   CRUD terminó sin errores.
 - El preview usa Labelary desde el backend y sigue siendo una ayuda de diseño,
-  no una garantía de impresión física. La impresión Zebra queda pendiente.
+  no una garantía de impresión física. El worker Zebra está implementado, pero
+  su activación y prueba física siguen pendientes.

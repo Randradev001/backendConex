@@ -12,19 +12,29 @@ IF OBJECT_ID(N'dbo.ETIQUETA', N'U') IS NULL
 IF OBJECT_ID(N'dbo.TIPETI', N'U') IS NULL
   THROW 50002, 'No existe dbo.TIPETI.', 1;
 
+DECLARE @TEtCodType sysname;
+SELECT @TEtCodType=TYPE_NAME(system_type_id)
+FROM sys.columns
+WHERE object_id=OBJECT_ID(N'dbo.TIPETI') AND name=N'TEtCod';
+
+IF @TEtCodType NOT IN (N'smallint', N'int')
+  THROW 50003, 'El tipo de TIPETI.TEtCod no es compatible con la migracion.', 1;
+
 IF COL_LENGTH(N'dbo.ETIQUETA', N'TEtCod') IS NULL
-  ALTER TABLE dbo.ETIQUETA ADD TEtCod smallint NULL;
-
-GO
-
-IF EXISTS (
-  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-  WHERE TABLE_SCHEMA='dbo' AND TABLE_NAME='ETIQUETA'
-    AND COLUMN_NAME='TEtCod' AND DATA_TYPE<>'smallint'
+  EXEC(N'ALTER TABLE dbo.ETIQUETA ADD TEtCod ' + @TEtCodType + N' NULL;');
+ELSE IF EXISTS (
+  SELECT 1 FROM sys.columns
+  WHERE object_id=OBJECT_ID(N'dbo.ETIQUETA') AND name=N'TEtCod'
+    AND TYPE_NAME(system_type_id)<>@TEtCodType
 )
-  ALTER TABLE dbo.ETIQUETA ALTER COLUMN TEtCod smallint NULL;
-
-GO
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM sys.foreign_keys
+    WHERE parent_object_id=OBJECT_ID(N'dbo.ETIQUETA') AND name=N'FK_ETIQUETA_TIPETI'
+  )
+    ALTER TABLE dbo.ETIQUETA DROP CONSTRAINT FK_ETIQUETA_TIPETI;
+  EXEC(N'ALTER TABLE dbo.ETIQUETA ALTER COLUMN TEtCod ' + @TEtCodType + N' NULL;');
+END;
 
 IF NOT EXISTS (
   SELECT 1 FROM sys.foreign_keys

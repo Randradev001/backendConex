@@ -16,7 +16,6 @@ BEGIN
     EtiCod char(10) NOT NULL,
     EtiNombre nvarchar(100) NOT NULL,
     EtiDescripcion nvarchar(250) NULL,
-    TEtCod smallint NULL,
     EtiTipo varchar(20) NULL,
     EtiConfCodOrigen char(10) NULL,
     EtiActiva bit NOT NULL CONSTRAINT DF_ETIQUETA_Activa DEFAULT (1),
@@ -25,12 +24,37 @@ BEGIN
     EtiLoginM varchar(10) NOT NULL,
     EtiFechaM datetime2(0) NOT NULL CONSTRAINT DF_ETIQUETA_FechaM DEFAULT (SYSDATETIME()),
     EtiRowVersion rowversion NOT NULL,
-    CONSTRAINT PK_ETIQUETA PRIMARY KEY (EmpCod, EtiCod),
-    CONSTRAINT FK_ETIQUETA_TIPETI FOREIGN KEY (EmpCod, TEtCod)
-      REFERENCES dbo.TIPETI (EmpCod, TEtCod)
+    CONSTRAINT PK_ETIQUETA PRIMARY KEY (EmpCod, EtiCod)
   );
   CREATE INDEX IX_ETIQUETA_Activa ON dbo.ETIQUETA (EmpCod, EtiActiva, EtiCod);
 END;
+
+/* Algunas instalaciones 2016 definieron TIPETI.TEtCod como int y GX8 usa smallint. */
+DECLARE @TEtCodType sysname;
+SELECT @TEtCodType=TYPE_NAME(system_type_id)
+FROM sys.columns
+WHERE object_id=OBJECT_ID(N'dbo.TIPETI') AND name=N'TEtCod';
+
+IF @TEtCodType NOT IN (N'smallint', N'int')
+  THROW 50003, 'El tipo de TIPETI.TEtCod no es compatible con la migracion.', 1;
+
+IF COL_LENGTH(N'dbo.ETIQUETA', N'TEtCod') IS NULL
+  EXEC(N'ALTER TABLE dbo.ETIQUETA ADD TEtCod ' + @TEtCodType + N' NULL;');
+ELSE IF EXISTS
+(
+  SELECT 1 FROM sys.columns
+  WHERE object_id=OBJECT_ID(N'dbo.ETIQUETA') AND name=N'TEtCod'
+    AND TYPE_NAME(system_type_id)<>@TEtCodType
+)
+BEGIN
+  IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_ETIQUETA_TIPETI' AND parent_object_id=OBJECT_ID(N'dbo.ETIQUETA'))
+    ALTER TABLE dbo.ETIQUETA DROP CONSTRAINT FK_ETIQUETA_TIPETI;
+  EXEC(N'ALTER TABLE dbo.ETIQUETA ALTER COLUMN TEtCod ' + @TEtCodType + N' NULL;');
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_ETIQUETA_TIPETI' AND parent_object_id=OBJECT_ID(N'dbo.ETIQUETA'))
+  ALTER TABLE dbo.ETIQUETA WITH CHECK ADD CONSTRAINT FK_ETIQUETA_TIPETI
+    FOREIGN KEY (EmpCod, TEtCod) REFERENCES dbo.TIPETI (EmpCod, TEtCod);
 
 IF OBJECT_ID(N'dbo.ETIQUETAVERSION', N'U') IS NULL
 BEGIN

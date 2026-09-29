@@ -118,6 +118,85 @@ const getOrder = async (empCod, tempCod, ordpnum) => {
   return { header: header.recordsets[0][0], details: header.recordsets[1] || [], company: header.recordsets[2]?.[0] || null };
 };
 
+const setProcessActive = async (
+  empCod,
+  login,
+  tempCod,
+  ordpnumInput,
+  active,
+  { poolProvider = getPool, transactionFactory, requestFactory = (target) => new sql.Request(target) } = {}
+) => {
+  const ordpnum = int(ordpnumInput, 'orden', 1);
+  const temp = String(tempCod || '').trim();
+  if (!temp) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La temporada es obligatoria.');
+  if (typeof active !== 'boolean') throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'El estado solicitado no es valido.');
+
+  const pool = await poolProvider();
+  const transaction = transactionFactory ? transactionFactory(pool) : new sql.Transaction(pool);
+  await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+  try {
+    const request = requestFactory(transaction)
+      .input('EmpCod', sql.SmallInt, empCod)
+      .input('TempCod', sql.Char(9), temp)
+      .input('Ordpnum', sql.Decimal(10, 0), ordpnum)
+      .input('Login', sql.Char(10), String(login || '').trim().slice(0, 10));
+    const current = await request.query(`
+      SELECT TOP (1) OrdpEstado
+      FROM ORDPROC WITH (UPDLOCK,HOLDLOCK)
+      WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum;
+    `);
+    if (!current.recordset.length) throw new OrdenesProcesoError(404, 'ORDER_NOT_FOUND', 'La orden de proceso no existe.');
+
+    const currentState = Number(current.recordset[0].OrdpEstado);
+    if (active && currentState === 1) throw new OrdenesProcesoError(409, 'ORDER_ALREADY_ACTIVE', 'La orden de proceso ya esta activa.');
+    if (!active && currentState !== 1) throw new OrdenesProcesoError(409, 'ORDER_NOT_ACTIVE', 'La orden de proceso no esta activa.');
+    if (active && currentState !== 0) throw new OrdenesProcesoError(409, 'ORDER_NOT_STARTABLE', 'Solo una orden ingresada puede iniciar el proceso.');
+
+    if (active) {
+      const activeOrder = await requestFactory(transaction)
+        .input('EmpCod', sql.SmallInt, empCod)
+        .input('TempCod', sql.Char(9), temp)
+        .input('Ordpnum', sql.Decimal(10, 0), ordpnum)
+        .query(`
+          SELECT TOP (1) Ordpnum
+          FROM ORDPROC WITH (UPDLOCK,HOLDLOCK)
+          WHERE EmpCod=@EmpCod AND TempCod=@TempCod
+            AND OrdpEstado=1 AND Ordpnum<>@Ordpnum
+          ORDER BY Ordpnum DESC;
+        `);
+      if (activeOrder.recordset.length) {
+        throw new OrdenesProcesoError(409, 'ACTIVE_ORDER_EXISTS', `La orden ${activeOrder.recordset[0].Ordpnum} ya esta activa. Debe desactivarla antes de iniciar otra.`);
+      }
+      await request.query(`
+        UPDATE ORDPROC
+        SET OrdpEstado=1, OrdpFecA=GETDATE(), OrdpLoginA=@Login,
+            OrdpHHIniP=COALESCE(OrdpHHIniP,GETDATE()), OrdpHHFinP=NULL
+        WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum;
+      `);
+    } else {
+      await request.query(`
+        UPDATE ORDPROC
+        SET OrdpEstado=0, OrdpHHFinP=GETDATE()
+        WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum;
+      `);
+    }
+
+    await transaction.commit();
+    return {
+      success: true,
+      tempCod: temp,
+      ordpnum,
+      active,
+      state: active ? 1 : 0,
+      message: active ? `Orden ${ordpnum} iniciada correctamente.` : `Orden ${ordpnum} desactivada correctamente.`
+    };
+  } catch (error) {
+    await transaction.rollback();
+    if (error instanceof OrdenesProcesoError) throw error;
+    throw new OrdenesProcesoError(500, 'ORDER_STATE_ERROR', error.message);
+  }
+};
+
 const update = async (empCod, login, tempCod, ordpnumInput, body = {}) => {
   const ordpnum = int(ordpnumInput, 'orden', 1); const temp = String(tempCod || '').trim(); const process = body.process || {};
   if (!temp) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La temporada es obligatoria.');
@@ -153,4 +232,4 @@ const update = async (empCod, login, tempCod, ordpnumInput, body = {}) => {
   } catch (error) { await tx.rollback(); if (error instanceof OrdenesProcesoError) throw error; throw new OrdenesProcesoError(500,'ORDER_UPDATE_ERROR',error.message); }
 };
 
-module.exports = { OrdenesProcesoError, listLots, create, update, getOrder };
+module.exports = { OrdenesProcesoError, listLots, create, update, getOrder, setProcessActive };

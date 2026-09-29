@@ -11,8 +11,9 @@ automatica.
 
 La edicion implementada cubre especie, calibre, envase, categoria y
 estado de la linea. El alta crea la cabecera de linea y su configuracion inicial
-desde un unico modal. La eliminacion y la impresion de etiquetas permanecen
-pendientes y no deben darse por migradas por la existencia del tablero.
+desde un unico modal. La eliminacion permanece pendiente. El modal de edición
+permite crear una orden de impresión simulada, pero la puesta en marcha física
+del worker todavía no debe darse por terminada.
 
 ## Evidencia GeneXus
 
@@ -82,6 +83,15 @@ temporada se obtiene desde `TEMP01.TempActiva=1`, la orden desde
 procesada aunque luego cambie a paletizada o despachada. Si no existe una orden
 activa, el indicador muestra cero y `Sin proceso activo`.
 
+Las instalaciones generadas con una version inicial del instalador podian
+tener `CAP001` reducida a columnas auxiliares. El script repetible
+`database/20260907_control_lineas_cap001_compatibilidad.sql` agrega
+`TempCod`, `CAPCOD`, `CAPNproc`, `CAPFecLog` y el indice `IND_CAPORDPROC` sin
+eliminar ni reemplazar datos existentes.
+El contador tambien requiere `ORDPROC.TempCod`, `Ordpnum` y `OrdpEstado`. Las
+instalaciones iniciales que dejaron `ORDPROC/ORDPROC1` como auxiliares vacias
+se corrigen con `database/20260908_ordenes_proceso_estructura_gx8_2016.sql`.
+
 ## Base de datos
 
 `database/20260901_control_lineas_tablero_2016.sql` agrega de forma repetible las
@@ -92,9 +102,11 @@ asigna el programa a usuarios o roles; el acceso debe concederse desde Seguridad
 
 - `LinPC` no era unico en GX8 aunque `TraeConf` espera identificar una linea.
 - No existen claves foraneas fisicas entre las tablas de lineas y sus catalogos.
-- La eliminacion y la impresion ZPL siguen pendientes. `LineasINS` queda
+- La eliminacion y la puesta en marcha física del worker ZPL siguen pendientes. `LineasINS` queda
   reemplazado por los modales de alta y edicion, sin declarar migrado su bloque
   historico de impresion comentado.
+- `Simular impresión` crea una orden pendiente solo cuando no existen cambios
+  sin guardar. Requiere el esquema del worker y no sustituye su prueba física.
 - El tablero presenta el estado persistido; no incorpora sensores ni telemetria
   externa de movimiento de fruta.
 
@@ -114,3 +126,8 @@ asigna el programa a usuarios o roles; el acceso debe concederse desde Seguridad
 10. El alta genera un `LinID` sin colisiones, crea `LINEAS` y
     `LINCONFIG.ConfID=1` en la misma transaccion y revierte ambas escrituras ante
     cualquier error.
+11. El botón `Impresoras` administra `ConfImpresoras` por línea, valida nombre
+    e IPv4 y permite que varias líneas compartan la misma dirección.
+12. La opción dinámica `PROGRAM 100/6/12`, `ProgNomGX=wconfimpresoras`, abre el
+    mismo mantenedor desde el menú y conserva el acceso existente desde Control
+    de líneas. La migración no asigna usuarios o roles automáticamente.

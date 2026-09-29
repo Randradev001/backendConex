@@ -1,0 +1,23 @@
+Servidor corriendo en puerto: 3002
+SyntaxError: Expected property name or '}' in JSON at position 1
+    at JSON.parse (<anonymous>)
+    at parse (C:\Proyectos2025\Conex\backend\backendConex\node_modules\body-parser\lib\types\json.js:89:19)
+    at C:\Proyectos2025\Conex\backend\backendConex\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:206:9)
+    at invokeCallback (C:\Proyectos2025\Conex\backend\backendConex\node_modules\raw-body\index.js:231:16)
+    at done (C:\Proyectos2025\Conex\backend\backendConex\node_modules\raw-body\index.js:220:7)
+    at IncomingMessage.onEnd (C:\Proyectos2025\Conex\backend\backendConex\node_modules\raw-body\index.js:280:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+SyntaxError: Expected property name or '}' in JSON at position 1
+    at JSON.parse (<anonymous>)
+    at parse (C:\Proyectos2025\Conex\backend\backendConex\node_modules\body-parser\lib\types\json.js:89:19)
+    at C:\Proyectos2025\Conex\backend\backendConex\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:206:9)
+    at invokeCallback (C:\Proyectos2025\Conex\backend\backendConex\node_modules\raw-body\index.js:231:16)
+    at done (C:\Proyectos2025\Conex\backend\backendConex\node_modules\raw-body\index.js:220:7)
+    at IncomingMessage.onEnd (C:\Proyectos2025\Conex\backend\backendConex\node_modules\raw-body\index.js:280:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
