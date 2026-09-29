@@ -32,6 +32,8 @@ la diferencia es trabajo incompleto, cambio no documentado o una regresion.
 
 - [CURRENT-STATE.md](migration/CURRENT-STATE.md): implementado, pendiente,
   riesgos, archivos clave y siguiente orden recomendado.
+- [Base de datos en Docker](deployment/database-docker.md): respaldo,
+  restauracion, operacion y traslado seguro entre computadores.
 - [conex-single-database-cutover.md](migration/conex-single-database-cutover.md):
   consolidacion y corte final de base de datos.
 - [git-workflow.md](development/git-workflow.md): ramas, commits y revision.

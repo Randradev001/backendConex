@@ -1,0 +1,45 @@
+name: conex-database
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: conex-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Defina MSSQL_SA_PASSWORD en .env.database}
+    ports:
+      - "127.0.0.1:${CONEX_DB_PORT:-14330}:1433"
+    volumes:
+      - conex_sql_data:/var/opt/mssql
+      - ./database/docker/backup:/docker/backup:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          SQLCMD=$$(command -v sqlcmd || true);
+          if [ -z "$$SQLCMD" ] && [ -x /opt/mssql-tools18/bin/sqlcmd ]; then SQLCMD=/opt/mssql-tools18/bin/sqlcmd; fi;
+          if [ -z "$$SQLCMD" ] && [ -x /opt/mssql-tools/bin/sqlcmd ]; then SQLCMD=/opt/mssql-tools/bin/sqlcmd; fi;
+          "$$SQLCMD" -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" -b >/dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  initialize:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Defina MSSQL_SA_PASSWORD en .env.database}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    volumes:
+      - ./database/docker:/docker:ro
+      - ./database/20260815_instalador_conex_2016.sql:/installer.sql:ro
+    entrypoint: ["/bin/bash", "/docker/init-db.sh"]
+    restart: "no"
+
+volumes:
+  conex_sql_data:
+    name: conex_sql_data

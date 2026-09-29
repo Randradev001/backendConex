@@ -8,6 +8,18 @@ const firstEnv = (...names) => {
   return undefined;
 };
 
+// Una variable primaria vacia puede desactivar expresamente un alias legado,
+// por ejemplo DB_INSTANCE= para conectar por puerto al SQL Server de Docker.
+const firstDefinedEnv = (...names) => {
+  for (const name of names) {
+    if (Object.prototype.hasOwnProperty.call(process.env, name)) {
+      const value = String(process.env[name] || '').trim();
+      return value || undefined;
+    }
+  }
+  return undefined;
+};
+
 const parseBoolean = (value, defaultValue) => {
   if (value === undefined) return defaultValue;
   return ['1', 'true', 'yes', 'y', 'si', 's'].includes(String(value).trim().toLowerCase());
@@ -20,7 +32,7 @@ const requireEnv = (...names) => {
 };
 
 const buildSqlServerConfig = ({ database } = {}) => {
-  const instanceName = firstEnv('DB_INSTANCE', 'SQLSERVER_INSTANCE');
+  const instanceName = firstDefinedEnv('DB_INSTANCE', 'SQLSERVER_INSTANCE');
   const port = firstEnv('DB_PORT', 'SQLSERVER_PORT');
   const config = {
     server: requireEnv('DB_SERVER', 'SQLSERVER_HOST'),

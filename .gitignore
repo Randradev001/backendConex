@@ -9,3 +9,5 @@ node_modules
 undefined
 /src/img/reporteAprendizaje/
 /src/img/reporteStatusAprendizaje/
+/database/docker/backup/*
+!/database/docker/backup/.gitkeep
