@@ -9,6 +9,7 @@ const respond = (handler) => async (req, res, next) => {
 };
 
 const printers = respond(async (req, res) => res.json(await service.listPrinters(req.context?.empCod)));
+const printerLines = respond(async (req, res) => res.json(await service.listPrinterLines(req.context?.empCod)));
 const createPrinter = respond(async (req, res) => res.status(201).json(await service.createPrinter(req.context?.empCod, req.body)));
 const updatePrinter = respond(async (req, res) => res.json(await service.updatePrinter(req.context?.empCod, req.params.id, req.body)));
 const deletePrinter = respond(async (req, res) => res.json(await service.deletePrinter(req.context?.empCod, req.params.id)));
@@ -17,4 +18,4 @@ const simulateLine = respond(async (req, res) => res.status(201).json(
   await service.simulateLine(req.context?.empCod, req.params.machine, req.params.line)
 ));
 
-module.exports = { printers, createPrinter, updatePrinter, deletePrinter, printLabelTest, simulateLine };
+module.exports = { printers, printerLines, createPrinter, updatePrinter, deletePrinter, printLabelTest, simulateLine };

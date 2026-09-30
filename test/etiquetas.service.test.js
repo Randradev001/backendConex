@@ -116,5 +116,7 @@ test('rescata VINASA orientado para edicion como un unico documento ZPL', async 
   assert.ok(design.variables.some((variable) => variable.name === 'productor'));
   assert.ok(design.variables.some((variable) => variable.name === 'codigo'));
   assert.match(zpl, /\^FDCSE:153275\^FS/);
-  assert.match(zpl, /\{\{calibre\}\}/);
+  assert.match(zpl, /\{\{calibre_sin_ceros\}\}/);
+  assert.match(zpl, /\^BY2,3,64/);
+  assert.equal(design.elements.find((element) => element.type === 'barcode').moduleWidth, 2);
 });

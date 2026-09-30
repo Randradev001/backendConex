@@ -76,6 +76,17 @@ El indicador superior representa la conexion del tablero con la API, no el
 estado de una linea especifica. El filtro rapido usa `LinMaquina`; `Todas`
 restaura la vista completa.
 
+La administracion de impresoras no forma parte del tablero. La opcion dinamica
+`Impresoras por linea` abre `/procesos/impresoras-lineas` como un maestro
+independiente protegido por `100/6/12`. Lista todas las lineas de la empresa,
+incluidas las que aun no tienen fila en `ConfImpresoras`, y ofrece un lapiz por
+linea para crear o actualizar solamente el nombre y la direccion IPv4. El
+boton anterior fue retirado de `Control de lineas`; varias lineas pueden seguir
+compartiendo nombre e IP. Cada fila configurada incorpora ademas un boton de
+impresion que inserta una solicitud en `OrdenImpresion`. El worker resuelve la
+etiqueta operacional con `ETIXCAL` para el calibre de la linea y usa
+`ORDPROC.OrdpCodEti` como respaldo; requiere linea y orden activas.
+
 El encabezado muestra ademas las cajas procesadas de la orden activa. La
 temporada se obtiene desde `TEMP01.TempActiva=1`, la orden desde
 `ORDPROC.OrdpEstado=1` y el total cuenta filas de `CAP001` enlazadas por
@@ -126,8 +137,11 @@ asigna el programa a usuarios o roles; el acceso debe concederse desde Seguridad
 10. El alta genera un `LinID` sin colisiones, crea `LINEAS` y
     `LINCONFIG.ConfID=1` en la misma transaccion y revierte ambas escrituras ante
     cualquier error.
-11. El botón `Impresoras` administra `ConfImpresoras` por línea, valida nombre
-    e IPv4 y permite que varias líneas compartan la misma dirección.
-12. La opción dinámica `PROGRAM 100/6/12`, `ProgNomGX=wconfimpresoras`, abre el
-    mismo mantenedor desde el menú y conserva el acceso existente desde Control
-    de líneas. La migración no asigna usuarios o roles automáticamente.
+11. El maestro independiente `Impresoras por linea` lista todas las lineas,
+    tengan o no configuracion, y el lapiz valida nombre e IPv4 antes de crear o
+    actualizar `ConfImpresoras`. El boton de impresion queda deshabilitado sin
+    configuracion o con la linea inactiva y, al pulsarlo, encola la etiqueta
+    configurada para que la procese el worker.
+12. La opcion dinamica `PROGRAM 100/6/12`, `ProgNomGX=wconfimpresoras`, abre el
+    maestro desde el menu y exige su permiso propio para lectura y escritura.
+    La migracion no asigna usuarios o roles automaticamente.

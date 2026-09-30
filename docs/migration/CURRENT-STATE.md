@@ -1,6 +1,6 @@
 # Estado vigente de la migracion CONEX
 
-Ultima actualizacion documental: 2026-09-29.
+Ultima actualizacion documental: 2026-09-30.
 
 Este es el documento de entrada para continuar el proyecto. Describe el estado
 observado en el codigo y en `CONEX_MIGRACION`. Antes de trabajar, ejecutar
@@ -84,7 +84,7 @@ Implementado como CRUD visual que reutiliza el programa de Seguridad de
   Sus 24 filas `CONFIGETI` no se muestran ni editan en el flujo nuevo; solo se
   usan para rescatar el primer diseño histórico.
 - En ambos ejemplos, `Rescatar desde GX8` recompone el layout de
-  `Eti_CV_VINA2016` como un diseño de 799 por 400 puntos, 22 elementos y
+  `Eti_CV_VINA2016` como un diseño de 799 por 400 puntos, 23 elementos y
   variables editables al crear una versión. Preview y canvas aplican una orientación visual de 180
   grados para mostrarlo en posición de lectura sin modificar las coordenadas ni
   rotaciones ZPL. Canvas y preview sustituyen la muestra genérica `CALIBRE` por
@@ -139,11 +139,21 @@ Estado operativo:
   Cada lote destaca la cantidad restante en envases y kilos. Tras crear, un
   dialogo resume lo persistido y da protagonismo al `Ordpnum` generado por el
   backend. Ese resumen puede descargarse como PDF real desde el dialogo o las
-  acciones del ADM. El alta persiste la exportadora seleccionada en `ExpCod`;
+  acciones del ADM. La visualizacion del ADM presenta los 25 campos de cabecera
+  en tarjetas tematicas y conserva el `DataGrid` completo de lotes. El alta
+  persiste la exportadora seleccionada en `ExpCod`;
+  la grilla presenta los nombres `ProdNom` y `ExpNom` asociados a esas claves.
+  El tema compartido de `DataGrid` centra verticalmente las acciones y normaliza
+  sus iconos interactivos a tamano medio en los listados del sistema. La impresion resuelve
+  `{{productor}}` desde el `ProdCod` persistido en la orden activa;
   ver `docs/migration/ordenes-proceso-operacion.md`.
 - El ADM de ordenes de proceso incorpora una accion confirmada para iniciar o
   desactivar una orden. El backend registra los datos de apertura y evita que
   dos ordenes queden activas simultaneamente para la misma empresa y temporada.
+  En estados distintos de 0/1, el mismo espacio de accion muestra las lecturas
+  CAPCAJAS en pantalla completa. La lectura de `CAP001` acepta `100/8/1` o
+  `110/2/2`; altas, cierre, generacion y reclasificacion conservan solo
+  `100/8/1`.
 - `database/20260818_importar_usuarios_rut_real_login_2016.sql` importa desde
   `CONEX_MIGRACION` a `CONEX` solo usuarios activos con RUT/DV valido y empresa
   asignada; copia empresas, `SEGUSUEMP`, credenciales modernas si existen y
@@ -181,6 +191,9 @@ catálogos y la preservación de sus valores originales el 2026-09-21.
 `GenCajas` genera rangos de 1 a 1.000 cajas para órdenes activas en una sola
 transacción; valida catálogos, origen técnico y duplicados antes de insertar
 cualquier fila. La validación automática cubre el límite del rango.
+La operación principal de Captura de cajas se presenta como página normal del
+layout, no como diálogo. La orden queda identificada por `tempCod` y `ordpnum`
+en la URL para admitir recarga, enlace directo y navegación Atrás/Adelante.
 El 2026-09-28 se ejecutó además una simulación automática visible en navegador
 sobre `2016-2017 / 146`. Cubrió filtros e indicadores, apertura de todos los
 flujos, rechazo por largo y duplicado, selección para reclasificar y bloqueo de
@@ -214,12 +227,32 @@ marca `OPLCProc=1` y actualiza `OPLCFecha`. Queda deshabilitado por defecto y no
 debe habilitarse mientras permanezca activo el trigger SQL `Imprime`. Ver
 [impresion-etiquetas-worker.md](impresion-etiquetas-worker.md).
 
+El worker completa todas las variables que puede producir el rescate `VINASA`,
+respeta el formato de fecha de `CONFIGETI`, conserva el calibre histórico sin
+ceros y bloquea el envío si queda un marcador sin resolver. `POLCURA16` versión
+4 fue regenerada desde sus 12 filas GX8 y quedó vigente, con Code 128 de módulo
+2, número humano visible y sin superposición con los textos regulatorios; una comprobación de la
+orden activa 177 y la línea 1 generó el ZPL completo sin imprimir ni consumir el
+correlativo `ETILIN`.
+
+La toma atomica de la cola fija `READ COMMITTED` antes de usar `READPAST`. Esto
+evita el error SQL 650 cuando el pool entrega una conexion que habia quedado en
+`SERIALIZABLE` despues de incrementar el correlativo `ETILIN`; `UPDLOCK` y la
+actualizacion en una sola sentencia siguen impidiendo reclamos duplicados.
+
 El diseñador versionado incluye una impresión directa con valores de muestra e
 impresora seleccionada. El modal de edición de Control de líneas incluye una
 simulación que crea una fila pendiente igual al PLC y exige guardar primero
-cualquier cambio de configuración. La pantalla también incorpora un CRUD de
-`ConfImpresoras` para asignar nombre e IPv4 por línea, con soporte para
-direcciones compartidas. Su menú dinámico se registra como `100/6/12`,
+cualquier cambio de configuración. La administracion de `ConfImpresoras` se
+separo en el maestro `/procesos/impresoras-lineas`: lista todas las lineas de la
+empresa y cada fila ofrece un lapiz para editar nombre e IPv4, con soporte para
+direcciones compartidas. Control de lineas ya no presenta el boton
+`Impresoras`. Las filas configuradas ofrecen un boton de impresion directa que
+encola la linea en `OrdenImpresion`; el worker imprime la etiqueta operacional,
+prioriza `ETIXCAL` para el calibre configurado y usa `ORDPROC.OrdpCodEti` como
+respaldo. Requiere linea y orden activas, version vigente y consume `ETILIN`
+como el flujo productivo. El menú dinámico del maestro se registra como
+`100/6/12`,
 `ProgNomGX=wconfimpresoras`, mediante
 `database/20260909_impresoras_lineas_menu_2016.sql`, aplicado en
 `CONEX_MIGRACION` el 2026-09-09. La asignación a usuarios o roles queda
@@ -232,6 +265,13 @@ El corte final se describe en `conex-single-database-cutover.md` y requiere
 pruebas completas, `verify:conex` y `DBCC CHECKDB` antes del renombre.
 
 ## Seguridad implementada
+
+El dashboard de inicio fue reemplazado por una portada operacional sin cifras
+simuladas. Sus tarjetas principales y atajos secundarios se derivan del menu
+autorizado de la sesion, muestran solo rutas disponibles para el usuario y
+conservan la autorizacion definitiva en los endpoints Node. Presenta usuario,
+empresa y fecha local sin contadores intermedios. Ver
+`docs/migration/dashboard-inicio.md`.
 
 | Area | Estado | Implementacion |
 |---|---|---|
@@ -686,6 +726,15 @@ En la ola anterior, 2026-07-30:
 La capa de Seguridad y los maestros anteriores tienen evidencia detallada en
 sus documentos de modulo. No extender esta evidencia a objetos que no fueron
 probados.
+
+En la separacion del maestro de impresoras por linea, 2026-09-30:
+
+- la consulta real devolvio las 21 lineas de la empresa 1, incluidas 20 sin
+  configuracion y una con `ConfImpresoras`;
+- lectura y escritura del maestro exigen el programa propio `100/6/12`, mientras
+  el diseñador conserva su consulta de impresoras configuradas;
+- la suite backend aprobo 81 pruebas, ESLint dirigido termino sin errores y el
+  frontend compilo 6.033 modulos.
 
 ## Definicion de terminado
 

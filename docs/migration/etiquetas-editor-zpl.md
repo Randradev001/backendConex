@@ -201,7 +201,7 @@ pendientes de conversión automática.
 9. Preview e impresión física no se consideran producción hasta probar el
    worker de `src/impresion-worker/` con ZPL real y una impresora Zebra del ambiente.
 10. Crear una versión desde una fuente `VINASA` genera un documento de 799 por
-    400 puntos con 22 elementos editables.
+    400 puntos con 23 elementos editables.
 11. Canvas y preview presentan `VINASA` con la misma orientación de lectura;
     cambiar un tamaño de fuente sigue generando los parámetros ZPL equivalentes.
 12. Una variable histórica cuya muestra era solo su nombre usa un valor de
@@ -228,7 +228,7 @@ pendientes de conversión automática.
   elegir una versión, visualizarla con Labelary, editarla o crear una nueva.
 - La suite backend aprobó 63 pruebas, incluidas listado, eliminacion protegida
   por `ROWVERSION`; la consulta real devolvió `LAVINA16` y `POLCURA16`, cada una
-  con 12 líneas. El rescate real generó para ambas 22 elementos editables en
+  con 12 líneas. El rescate real generó para ambas 23 elementos editables en
   799 por 400 puntos, sin escribir plantillas.
 - El rescate marca la orientación visual en 180 grados sin reescribir los
   comandos históricos. El editor usa muestras de variables y métricas de fuente
@@ -243,13 +243,18 @@ pendientes de conversión automática.
   tamaño, por lo que editar visualmente conserva las coordenadas ZPL.
 - Las líneas y rectángulos `^GB` compensan su ancho y alto al rotarse, porque
   Zebra y Konva usan extremos distintos como origen del gráfico.
-- Una verificación real creó temporalmente una versión VINASA de 22 elementos,
+- Una verificación real creó temporalmente una versión VINASA de 23 elementos,
   799 por 400 puntos y volvió a eliminarla sin residuos propios. Se preservó la
   versión 1 de `LAVINA16`, creada por el usuario `MANDRADE` desde la pantalla.
 - El preview real de esa versión devolvió una imagen PNG de 33.962 bytes.
 - El worker separado reutiliza `generateZpl`, resuelve la versión vigente y
   aplica variables productivas; permanece deshabilitado hasta la puesta en
   marcha descrita en `impresion-etiquetas-worker.md`.
+- `POLCURA16` versión 4 fue regenerada desde `CONFIGETI` con variables semánticas
+  compatibles con el worker. Las versiones históricas anteriores se conservaron.
+  El Code 128 usa módulo 2 para no invadir los textos regulatorios y la impresión
+  de prueba resuelve el calibre sin ceros en vez de imprimir el marcador. El ZPL
+  de referencia quedó en `docs/gx8/recovered/POLCURA16.worker.zpl`.
 - El diseñador versionado incorpora `Imprimir prueba`: selecciona una
   configuración con IP y envía el diseño abierto con valores de muestra mediante
   el backend de impresión, protegido por el permiso `110/1/1`.

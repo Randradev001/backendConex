@@ -68,6 +68,8 @@ la diferencia es trabajo incompleto, cambio no documentado o una regresion.
 
 ### Procesos
 
+- [Dashboard de inicio y atajos](migration/dashboard-inicio.md): portada
+  operacional filtrada por el menu autorizado de cada usuario.
 - [operacion de ordenes de proceso](migration/ordenes-proceso-operacion.md):
   seleccion de saldos, alta transaccional y confirmacion del correlativo.
 - [tablero de control de lineas](migration/configuracion-lineas-tablero.md):

@@ -11,9 +11,10 @@ const createImpresionRepository = ({ poolProvider = getPool, empCod = Number(pro
       .input('Pending', sql.SmallInt, PRINT_STATUS.PENDING)
       .input('Processing', sql.SmallInt, PRINT_STATUS.PROCESSING)
       .query(`
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
         ;WITH siguiente AS (
           SELECT TOP (1) *
-          FROM dbo.OrdenImpresion WITH (UPDLOCK, READPAST, ROWLOCK)
+          FROM dbo.OrdenImpresion WITH (UPDLOCK, READPAST, READCOMMITTEDLOCK, ROWLOCK)
           WHERE OPLCProc=@Pending
           ORDER BY ISNULL(OPLCFechaIns, CONVERT(datetime,'19000101',112)), OPLCID
         )
@@ -44,18 +45,23 @@ const createImpresionRepository = ({ poolProvider = getPool, empCod = Number(pro
         c.Calibre, c.EnvCod, c.Catcod, c.Especod, c.LConfCodPer,
         o.Ordpnum, o.OrdpFecha, o.ProdCod, o.VarCod,
         LTRIM(RTRIM(e.EspeNom)) AS EspeNom,
+        LTRIM(RTRIM(e.EspeNomExt)) AS EspeNomExt,
         LTRIM(RTRIM(v.VarNom)) AS VarNom,
-        LTRIM(RTRIM(p.ProdNom)) AS ProdNom,
+        LTRIM(RTRIM(p.ProdNom)) AS OrderProducerName,
+        LTRIM(RTRIM(p.ProdNom2)) AS ProdNom2,
+        LTRIM(RTRIM(p.ProdCodExt)) AS ProdCodExt,
         LTRIM(RTRIM(p.ProdComuna)) AS ProdComuna,
         LTRIM(RTRIM(p.ProdProvincia)) AS ProdProvincia,
         LTRIM(RTRIM(env.EnvNom)) AS EnvNom,
         LTRIM(RTRIM(env.EnvNomExt)) AS EnvNomExt,
         LTRIM(RTRIM(cat.CatNom)) AS CatNom,
+        LTRIM(RTRIM(cat.CatNomExt)) AS CatNomExt,
         cal.CalCod,
         LTRIM(RTRIM(i.CIMPNombre)) AS CIMPNombre,
         LTRIM(RTRIM(i.CIMPIP)) AS CIMPIP,
         LTRIM(RTRIM(lbl.EtiCod)) AS EtiCod,
-        ver.EtiVersion, ver.EtiDesignJson
+        ver.EtiVersion, ver.EtiDesignJson,
+        cfg.ConfTipFecha, LTRIM(RTRIM(cfg.ConfSepFec)) AS ConfSepFec
       FROM dbo.LINEAS l
       LEFT JOIN dbo.LINCONFIG c ON c.EmpCod=l.EmpCod AND c.LinMaquina=l.LinMaquina
         AND c.LinID=l.LinID AND c.ConfID=1
@@ -72,6 +78,8 @@ const createImpresionRepository = ({ poolProvider = getPool, empCod = Number(pro
       LEFT JOIN dbo.ETIQUETA lbl ON lbl.EmpCod=o.EmpCod
         AND lbl.EtiCod=COALESCE(NULLIF(x.ConfCod,''),@LabelCode) AND lbl.EtiActiva=1
       LEFT JOIN dbo.ETIQUETAVERSION ver ON ver.EmpCod=lbl.EmpCod AND ver.EtiCod=lbl.EtiCod AND ver.EtiVigente=1
+      LEFT JOIN dbo.CONFIGETI cfg ON cfg.EmpCod=lbl.EmpCod
+        AND cfg.ConfCod=lbl.EtiConfCodOrigen AND cfg.ConfLinea=1
       WHERE l.EmpCod=@EmpCod AND l.LinID=@LinID
       ORDER BY CASE WHEN l.LinMaquina=l.LinID THEN 0 ELSE 1 END, l.LinMaquina;
     `);
@@ -86,9 +94,12 @@ const createImpresionRepository = ({ poolProvider = getPool, empCod = Number(pro
       empCod: Number(row.EmpCod), machine: Number(row.LinMaquina), lineId: Number(row.LinID), lineState: Number(row.LinEstado),
       caliber: trim(row.Calibre), envCode: Number(row.EnvCod), categoryCode: Number(row.Catcod), personCode: Number(row.LConfCodPer || 0),
       processNumber: Number(row.Ordpnum), processDate: row.OrdpFecha, producerCode: trim(row.ProdCod),
-      speciesName: trim(row.EspeNom), varietyName: trim(row.VarNom), producerName: trim(row.ProdNom),
+      speciesName: trim(row.EspeNom), speciesExternalName: trim(row.EspeNomExt), varietyName: trim(row.VarNom),
+      producerName: trim(row.OrderProducerName), producerSecondaryName: trim(row.ProdNom2), producerExternalCode: trim(row.ProdCodExt),
       producerCommune: trim(row.ProdComuna), producerProvince: trim(row.ProdProvincia),
-      containerName: trim(row.EnvNom), containerExternalName: trim(row.EnvNomExt), categoryName: trim(row.CatNom), caliberCode: Number(row.CalCod),
+      containerName: trim(row.EnvNom), containerExternalName: trim(row.EnvNomExt),
+      categoryName: trim(row.CatNom), categoryExternalName: trim(row.CatNomExt), caliberCode: Number(row.CalCod),
+      dateFormatType: Number(row.ConfTipFecha || 1), dateSeparator: trim(row.ConfSepFec) || '/',
       printerName: trim(row.CIMPNombre), printerIp: trim(row.CIMPIP), printerPort: Number(process.env.PRINT_PORT || 9100),
       printerTimeoutMs: Number(process.env.PRINT_TIMEOUT_MS || 5000), labelCode: trim(row.EtiCod),
       labelVersion: Number(row.EtiVersion), labelDesign

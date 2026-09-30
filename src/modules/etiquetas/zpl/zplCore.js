@@ -13,7 +13,8 @@ class ZplValidationError extends Error {
 }
 
 const VARIABLE_SAMPLES = Object.freeze({
-  calibre: '00LL'
+  calibre: '00LL',
+  calibre_sin_ceros: 'XLD'
 });
 
 const numeric = (value, fallback = 0) => {
@@ -109,6 +110,7 @@ const parseZpl = (input, options = {}) => {
   let fieldRotation = 0;
   let reversed = false;
   let by = { moduleWidth: 2, ratio: 3, heightDots: 50 };
+  let bySourceStart = null;
   let pending = null;
   let content = '';
   const elements = [];
@@ -224,6 +226,7 @@ const parseZpl = (input, options = {}) => {
     else if (token.code[0] === 'A' && token.prefix === '^') font = parseFont(token);
     else if (token.code === 'BY') {
       const values = token.payload.split(',');
+      bySourceStart = token.start;
       by = {
         moduleWidth: clampInteger(values[0], 1, 10, by.moduleWidth),
         ratio: numeric(values[1], by.ratio),
@@ -234,6 +237,8 @@ const parseZpl = (input, options = {}) => {
       const values = token.payload.split(',');
       pending = { type: 'box', start: token.start, values: [integer(values[0]), integer(values[1]), integer(values[2], 1), values[3], integer(values[4])] };
     } else if (token.code === 'BC') {
+      if (bySourceStart !== null && bySourceStart < (position.start ?? token.start)) position.start = bySourceStart;
+      bySourceStart = null;
       beginField(token);
       pending = { type: 'barcode', start: token.start, rotation: rotationFromZpl(token.payload.slice(0, 1)), values: token.payload.split(',') };
     } else if (token.code === 'BQ') {

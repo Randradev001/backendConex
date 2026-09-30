@@ -1,0 +1,46 @@
+// Fuente recuperada de C:\Users\andre\Downloads\GXW.xpz
+// Procedure: Eti_CV_VINA2016
+// Description: Etiqueta Caja Vina
+// LastUpdate: 2016-11-17 17:23:54GMT
+// Parm: &LinImpre(), &LinImpreb(), &CodigoFin, &FecTx
+
+//
+// FOGE
+//
+
+//' + trim(&LinImpre(1)) + ' ' + trim(&LinImpreb(1)) + '
+
+&Linea(1) = '^XA~TA000~JSN^LT0^MNW^MTT^PON^PMN^LH0,0^JMA^PR2,2~SD15^JUS^LRN^CI0^XZ'
+&Linea(2) = '^XA'
+&Linea(3) = '^MMT'
+&Linea(4) = '^PW799'
+&Linea(5) = '^LL0400'
+&Linea(6) = '^LS0'
+&Linea(7) = '^FT479,246^A0I,25,24^FH\^FD' + trim(&LinImpreb(3)) + '^FS' //PACKED
+&Linea(8) = '^FT784,246^A0I,25,24^FH\^FD' + trim(&LinImpre(3)) + '^FS' //GROWER
+&Linea(9) = '^FT189,302^A0I,25,24^FH\^FD' + trim(&LinImpreb(2)) + '^FS' //MN5G 5.00 KG
+//&Linea(10) = '^FT115,302^A0I,25,24^FH\^FD5.00 KG^FS' //5.00 KG
+&Linea(11) = '^FT181,350^A0I,28,28^FH\^FD' + trim(&LinImpreb(1)) + '^FS' //CSE: 153275
+&Linea(12) = '^FT550,296^A0I,39,38^FH\^FD' + trim(&LinImpre(2)) + '^FS' //BROOKS
+&Linea(13) = '^FT775,350^A0I,45,45^FH\^FD' + trim(&LinImpre(12)) + '^FS' //EXPORTADORA LA VI\A5A S.A.
+&Linea(14) = '^FT707,296^A0I,39,38^FH\^FD' + trim(&LinImpre(1)) + '^FS' //CHERRY
+&Linea(15) = '^FO17,281^GB772,0,4^FS'
+&Linea(16) = '^FO13,139^GB777,0,3^FS'
+&Linea(17) = '^FT359,21^A0I,20,19^FH\^FD' + trim(&LinImpre(11)) + '^FS' //GGN:4049928853332
+&Linea(18) = '^FT359,111^A0I,20,19^FH\^FD' + trim(&LinImpreb(8)) + ' ' + &FecTx + '^FS' //FECHA/DATE:17/06/2016
+&Linea(19) = '^FT359,81^A0I,20,19^FH\^FD' + trim(&LinImpre(9)) + '^FS' //PRODUCE OF CHILE
+&Linea(20) = '^FT359,51^A0I,20,19^FH\^FD' + trim(&LinImpre(10)) + '^FS' //VI REGION
+&Linea(21) = '^FT479,174^A0I,20,19^FH\^FD' + trim(&LinImpreb(6)) + '^FS' //PROVINCIA/PROVINCE: CACHAPOAL
+&Linea(22) = '^FT479,150^A0I,20,19^FH\^FD' + trim(&LinImpreb(5)) + '^FS' //COMUNA/TOWNSHIP: CODEGUA
+&Linea(23) = '^FT784,174^A0I,20,19^FH\^FD' + trim(&LinImpre(6)) + '^FS' //PROVINCIA/PROVINCE:CACHAPOAL
+&Linea(24) = '^FT784,150^A0I,20,19^FH\^FD' + trim(&LinImpre(5)) + '^FS' //COMUNA/TOWNSHIP:CODEGUA
+&Calibre = &LinImpre(7)
+&Calibre = trim(strReplace(&Calibre, '0',''))
+&Linea(25) = '^FT479,203^A0I,39,38^FH\^FD' + trim(&LinImpreb(4)) + '^FS' //CSP:112117
+&Linea(26) = '^FT178,181^A0I,79,79^FH\^FD' + trim(&Calibre) + '^FS' //SXJD (CALIBRE)
+&Linea(27) = '^FT784,203^A0I,39,38^FH\^FD' + trim(&LinImpre(4)) + '^FS' //CSG:88510
+&Linea(28) = '^FO182,147^GB0,131,8^FS'
+&Linea(29) = '^FO490,147^GB0,132,8^FS'
+&Linea(30) = '^BY4,3,64^FT739,60^BCI,,Y,N'
+&Linea(31) = '^FD>;' + &CodigoFin + '^FS' //0123456789 (codigo de barra)
+&Linea(32) = '^PQ1,0,1,Y^XZ'

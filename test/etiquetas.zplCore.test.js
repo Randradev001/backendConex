@@ -65,11 +65,21 @@ test('usa muestras representativas incluso en disenos historicos con muestras ge
   assert.match(generateZpl(design, { useSamples: true }), /\^FD00LL\^FS/);
 });
 
+test('muestra el calibre VINASA sin ceros en el preview', () => {
+  const design = parseZpl('^XA\n^PW799\n^LL400\n^FT178,181^A0I,79,79^FD{{calibre_sin_ceros}}^FS\n^XZ');
+
+  assert.equal(design.variables[0].sampleValue, 'XLD');
+  assert.match(generateZpl(design, { useSamples: true }), /\^FDXLD\^FS/);
+});
+
 test('un codigo de barras sin alto explicito hereda el alto configurado en BY', () => {
   const design = parseZpl('^XA\n^PW799\n^LL400\n^BY4,3,64^FT739,60^BCI,,Y,N^FD>;{{codigo}}^FS\n^XZ');
   const barcode = design.elements.find((element) => element.type === 'barcode');
+  const generated = generateZpl(design, { variableValues: { codigo: '00000100203400701016000' } });
 
   assert.equal(barcode.heightDots, 64);
+  assert.equal((generated.match(/\^BY/g) || []).length, 1);
+  assert.match(generated, /\^BY4,3,64\^FT739,60\^BCI,64,Y,N/);
 });
 
 test('rechaza documentos con ids duplicados o medidas invalidas', () => {

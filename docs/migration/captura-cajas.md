@@ -29,13 +29,20 @@ cabecera informativa y métricas visuales, y permite descargar desde un icono
 los campos de todas sus páginas. La descarga actual usa el helper HTML
 compatible con Excel y extensión `.xls`; no constituye todavía un exportador
 XLSX de producción.
-La información previa, la operación de captura, la reclasificación y la generación
-por rango se presentan en diálogos normales y responsivos. Reclasificación lista a la izquierda las cajas
+La información previa se presenta en un diálogo responsivo. La operación de
+captura se abre como página normal dentro del layout y conserva la orden en la
+URL mediante `tempCod` y `ordpnum`, por lo que admite recarga, enlace directo y
+navegación del navegador. Reclasificación y generación por rango permanecen en
+diálogos auxiliares. Reclasificación lista a la izquierda las cajas
 disponibles de la orden, permite filtrarlas y carga a la derecha los datos actuales
 y el formulario de cambio de la caja seleccionada. Generación por rango muestra un
 banner bloqueado con la orden y organiza rango, clasificación y origen técnico en
 secciones separadas. Detalle se abre desde la grilla en pantalla completa y mantiene
 la orden bloqueada, sus métricas y la descarga de todas las cajas de la orden.
+El ADM de ordenes de proceso reutiliza esa pantalla completa cuando la orden ya
+no presenta la accion iniciar/desactivar. Las rutas `GET` aceptan el programa de
+Captura `100/8/1` o el programa del ADM `110/2/2`; altas, cierre, generacion y
+reclasificacion siguen exigiendo exclusivamente `100/8/1`.
 `GenCajas` genera entre 1 y 1.000 cajas en una sola transacción para una orden
 activa, rechazando todo el rango si alguna caja ya existe. Paletizado, despacho y
 SAG quedan fuera de esta entrega.
