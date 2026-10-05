@@ -32,6 +32,36 @@ PRINT_TIMEOUT_MS=5000
 Iniciar con `npm run start:printer`. No debe habilitarse mientras el trigger
 histórico `Imprime` siga ejecutando el programa antiguo.
 
+## Perfiles de entorno
+
+El backend HTTP y el worker pueden usar archivos separados. Copie las plantillas
+sin versionar sus valores reales:
+
+```text
+.env.backend.example       -> .env.backend
+.env.print-worker.example  -> .env.print-worker
+```
+
+Diagnostique el perfil sin iniciar el worker ni tocar la cola:
+
+```bash
+CONEX_ENV_FILE=.env.print-worker npm run print:config:check
+```
+
+En Node.js 20 también puede iniciar directamente los perfiles:
+
+```bash
+npm run start:backend:profile
+npm run start:printer:profile
+```
+
+`PRINT_QUEUE_SOURCE=database` es obligatorio: el PLC y la simulación insertan
+en `OrdenImpresion` de la base local. `PRINT_CONTEXT_SOURCE=database` conserva
+la resolución SQL actual. El valor `api` queda reservado para obtener desde el
+backend web el contexto y ZPL del trabajo local, pero todavía no está
+implementado; el proceso se detiene expresamente si se intenta iniciarlo. La
+validación nunca imprime contraseñas ni tokens.
+
 ## Pruebas desde React
 
 El router autenticado `/backendDocker/impresion` permite listar impresoras,

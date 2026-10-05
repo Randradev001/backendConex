@@ -78,6 +78,9 @@ la diferencia es trabajo incompleto, cambio no documentado o una regresion.
 - [CRUD visual de etiquetas y diseñador ZPL versionado](migration/etiquetas-editor-zpl.md):
   cards de etiquetas, versiones de diseño, persistencia JSON/ZPL, rescate GX8,
   seguridad y límites de preview e impresión.
+- [Agente local de impresión conectado al backend web](migration/impresion-worker-remoto-estudio.md):
+  perfiles separados, origen SQL/API, seguridad, leases, spool y etapas para
+  conservar el modo local mientras se incorpora la impresión remota.
 
 ### Inventario GX8
 

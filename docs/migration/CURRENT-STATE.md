@@ -235,6 +235,17 @@ ceros y bloquea el envío si queda un marcador sin resolver. `POLCURA16` versió
 orden activa 177 y la línea 1 generó el ZPL completo sin imprimir ni consumir el
 correlativo `ETILIN`.
 
+Desde el 2026-10-05, backend y worker pueden cargar perfiles aislados mediante
+`CONEX_ENV_FILE`. Las plantillas `.env.backend.example` y
+`.env.print-worker.example`, el diagnóstico `npm run print:config:check` y la
+separación `PRINT_QUEUE_SOURCE`/`PRINT_CONTEXT_SOURCE` permiten probar
+configuraciones sin mostrar secretos. La cola permanece siempre en
+`OrdenImpresion` local porque allí inserta el PLC; `database` conserva la
+resolución SQL actual. El contexto `api` todavía no procesa trabajos: se rechaza
+expresamente al iniciar hasta implementar la preparación web, autenticación del
+agente y spool local descritos en
+`docs/migration/impresion-worker-remoto-estudio.md`.
+
 La toma atomica de la cola fija `READ COMMITTED` antes de usar `READPAST`. Esto
 evita el error SQL 650 cuando el pool entrega una conexion que habia quedado en
 `SERIALIZABLE` despues de incrementar el correlativo `ETILIN`; `UPDLOCK` y la
