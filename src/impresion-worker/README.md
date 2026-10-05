@@ -57,10 +57,23 @@ npm run start:printer:profile
 
 `PRINT_QUEUE_SOURCE=database` es obligatorio: el PLC y la simulación insertan
 en `OrdenImpresion` de la base local. `PRINT_CONTEXT_SOURCE=database` conserva
-la resolución SQL actual. El valor `api` queda reservado para obtener desde el
-backend web el contexto y ZPL del trabajo local, pero todavía no está
-implementado; el proceso se detiene expresamente si se intenta iniciarlo. La
-validación nunca imprime contraseñas ni tokens.
+la resolución SQL integrada. Con `PRINT_CONTEXT_SOURCE=api`, el worker mantiene
+esa cola local pero solicita contexto y ZPL a
+`/backendDocker/print-agent/v1`, valida el checksum, escribe el spool y luego
+imprime en la LAN. La validación nunca imprime contraseñas ni tokens.
+
+Antes de usar el modo remoto, aplique
+`database/20261005_print_agent_remoto_2016.sql` en la base web y configure el
+mismo `PRINT_AGENT_ID`, `PRINT_INSTALLATION_ID` y `PRINT_AGENT_TOKEN` en ambos
+perfiles. El backend usa además `PRINT_AGENT_API_ENABLED=true` y
+`PRINT_AGENT_EMP_COD`. HTTPS es obligatorio salvo la excepción transitoria y
+explícita `PRINT_API_ALLOW_INSECURE_HTTP=true`.
+
+Genere un token nuevo sin reutilizar la contraseña SQL:
+
+```bash
+npm run print:token
+```
 
 ## Pruebas desde React
 

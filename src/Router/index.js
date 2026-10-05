@@ -10,6 +10,7 @@ const capturaCajasRouter = require('../modules/capturaCajas/capturaCajas.routes'
 const controlLineasRouter = require('./controlLineas.routes')
 const etiquetasRouter = require('../modules/etiquetas/etiquetas.routes')
 const impresionRouter = require('../impresion-worker/impresion.routes')
+const printAgentRouter = require('../print-agent/printAgent.routes')
 
 router.use('/maestros',maestrosRouter)
 router.use('/seguridad', seguridadRouter)
@@ -21,6 +22,7 @@ router.use('/captura-cajas', capturaCajasRouter);
 router.use('/control-lineas', controlLineasRouter)
 router.use('/etiquetas', etiquetasRouter)
 router.use('/impresion', impresionRouter)
+router.use('/print-agent/v1', printAgentRouter)
 
 // test para confirmar que este router está montado
 router.get('/test', (req, res) => res.send('Router raíz OK'));

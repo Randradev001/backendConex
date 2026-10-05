@@ -1,6 +1,6 @@
 # Estado vigente de la migracion CONEX
 
-Ultima actualizacion documental: 2026-09-30.
+Ultima actualizacion documental: 2026-10-05.
 
 Este es el documento de entrada para continuar el proyecto. Describe el estado
 observado en el codigo y en `CONEX_MIGRACION`. Antes de trabajar, ejecutar
@@ -241,9 +241,17 @@ Desde el 2026-10-05, backend y worker pueden cargar perfiles aislados mediante
 separación `PRINT_QUEUE_SOURCE`/`PRINT_CONTEXT_SOURCE` permiten probar
 configuraciones sin mostrar secretos. La cola permanece siempre en
 `OrdenImpresion` local porque allí inserta el PLC; `database` conserva la
-resolución SQL actual. El contexto `api` todavía no procesa trabajos: se rechaza
-expresamente al iniciar hasta implementar la preparación web, autenticación del
-agente y spool local descritos en
+resolución SQL actual. El contexto `api` ya implementa el flujo distribuido:
+el worker reclama la fila local, solicita al backend web una preparación
+idempotente por instalación y `OPLCID`, valida el SHA-256, guarda ZPL y metadatos
+en el spool local, imprime por TCP dentro de la planta y confirma el resultado
+en ambas bases. Una caída HTTP antes de preparar devuelve la fila local a
+pendiente sin consumir otro correlativo. El backend autentica el agente con
+token, identificador e instalación separados de la sesión React y nunca abre
+TCP hacia la Zebra. La persistencia central se agrega mediante
+`database/20261005_print_agent_remoto_2016.sql`, aplicada en
+`CONEX_MIGRACION`; su despliegue en `CONEX` del servidor web y la prueba física
+controlada continúan pendientes. Ver
 `docs/migration/impresion-worker-remoto-estudio.md`.
 
 La toma atomica de la cola fija `READ COMMITTED` antes de usar `READPAST`. Esto
@@ -268,6 +276,11 @@ como el flujo productivo. El menú dinámico del maestro se registra como
 `database/20260909_impresoras_lineas_menu_2016.sql`, aplicado en
 `CONEX_MIGRACION` el 2026-09-09. La asignación a usuarios o roles queda
 explícitamente bajo Seguridad.
+
+Las dos acciones HTTP de prueba directa se conservan solo para el perfil
+integrado. Cuando `PRINT_AGENT_API_ENABLED=true`, el backend las rechaza para
+garantizar que el servidor web no abra TCP hacia una Zebra ni escriba por error
+en una `OrdenImpresion` central distinta de la cola local del PLC.
 
 Los scripts con `BDCONEXCO` en el nombre son antecedentes de la etapa previa.
 No ejecutarlos sobre la base actual sin estudiar su objetivo y precondiciones.

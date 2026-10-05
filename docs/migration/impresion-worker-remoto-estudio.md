@@ -1,13 +1,26 @@
 # Estudio: agente local de impresión conectado al backend web
 
-Estado de implementación inicial (2026-10-05): el cargador acepta perfiles
-aislados mediante `CONEX_ENV_FILE`; existen plantillas separadas para backend y
-worker y un diagnóstico que no expone secretos. La cola se fija en
+Estado de implementación (2026-10-05): el cargador acepta perfiles aislados
+mediante `CONEX_ENV_FILE`; existen plantillas separadas para backend y worker y
+un diagnóstico que no expone secretos. La cola se fija en
 `PRINT_QUEUE_SOURCE=database` porque el PLC inserta en `OrdenImpresion` local.
 `PRINT_CONTEXT_SOURCE=database|api` selecciona dónde se resuelven los datos de
-la etiqueta. `database` conserva el funcionamiento actual. La preparación por
-API y el spool siguen pendientes y el worker rechaza iniciar con contexto `api`
-mientras no estén implementados.
+la etiqueta. `database` conserva el funcionamiento integrado y `api` ejecuta el
+flujo distribuido solicitado.
+
+La API `/backendDocker/print-agent/v1` autentica un agente por token, agente e
+instalación; prepara una sola vez cada `installationId + localJobId`, reserva
+`ETILIN`, genera el ZPL central y persiste su SHA-256. El worker valida el hash,
+guarda primero ZPL y metadatos mediante renombre atómico en el spool, entrega a
+la Zebra local y reporta `printed`, `failed_before_send` o `uncertain`. La
+migración `database/20261005_print_agent_remoto_2016.sql` fue aplicada y
+verificada en `CONEX_MIGRACION`. Falta desplegar código, migración y secretos en
+el servidor web, además de ejecutar la prueba física controlada.
+
+La verificación local aprobó las 103 pruebas backend. La migración se ejecutó
+dos veces sobre `CONEX_MIGRACION` para comprobar repetibilidad; dejó una tabla,
+un índice único de idempotencia y cero preparaciones de prueba, sin consumir
+`ETILIN` ni imprimir.
 
 ## Objetivo
 

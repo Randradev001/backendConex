@@ -59,14 +59,34 @@ Los estados 3, 4 y 9 no se toman automáticamente. El 4 representa un resultado
 incierto después de iniciar la entrega; no reintentarlo evita duplicados cuando
 la impresora pudo recibir el ZPL antes de cortarse la conexión.
 
+## Contexto obtenido desde el backend web
+
+Con `PRINT_CONTEXT_SOURCE=api`, el worker conserva el reclamo y la confirmación
+de `OrdenImpresion` en el SQL local, pero ya no consulta allí orden, catálogos,
+etiqueta ni correlativo. Envía `OPLCID` y `OPLCIMP` a
+`/backendDocker/print-agent/v1/jobs/prepare`. El backend central resuelve el
+contexto, reserva `ETILIN`, genera ZPL y persiste una preparación única por
+instalación y orden local. Repetir la solicitud devuelve el mismo ZPL.
+
+Antes de abrir TCP, el worker valida SHA-256 y guarda ZPL y metadatos en
+`PRINT_LOCAL_SPOOL`. Solo el worker local conoce la red de impresoras. Luego
+confirma el estado en `OrdenImpresion` local y reporta el resultado al backend.
+Si la web no responde antes de preparar, la fila vuelve a estado pendiente y no
+se consume un correlativo adicional.
+
 ## Archivos
 
 - `src/impresion-worker/`: worker, repositorio SQL, servicio, código de caja y
   cliente TCP.
 - `database/20260909_impresion_worker_2016.sql`: columnas operacionales e índice
   de pendientes, compatible con SQL Server 2016.
+- `database/20261005_print_agent_remoto_2016.sql`: preparación central
+  idempotente, checksum, destino y resultado reportado por el agente.
+- `src/print-agent/`: autenticación de dispositivo, preparación web y resultado.
 - `test/impresionWorker.test.js`: composición histórica, orden de confirmación,
   entrega incierta y línea inactiva.
+- `test/printAgent.test.js`: autenticación, checksum, flujo remoto y recuperación
+  cuando la web no está disponible.
 
 ## Pendientes de puesta en marcha
 
@@ -95,10 +115,14 @@ la impresora pudo recibir el ZPL antes de cortarse la conexión.
   del maestro `100/6/12`.
 - El diseñador versionado ofrece `Imprimir prueba`. Solicita una fila de
   `ConfImpresoras`, genera el diseño abierto con valores de muestra y lo envía
-  directamente mediante el cliente TCP. Requiere permiso `110/1/1`.
+  directamente mediante el cliente TCP solo en modo integrado. En modo agente
+  remoto se rechaza para impedir que el servidor web intente alcanzar la LAN de
+  impresoras. Requiere permiso `110/1/1`.
 - El modal de edición de línea ofrece `Simular impresión`. Se deshabilita si
   existen cambios sin guardar e inserta una orden pendiente equivalente a la
-  botonera. Requiere permiso `100/6/11`, la migración aplicada y el worker.
+  botonera en modo integrado. En modo remoto se rechaza porque la web no tiene
+  acceso a la cola local del PLC. Requiere permiso `100/6/11`, la migración
+  aplicada y el worker.
 - La API rechaza la simulación mientras el trigger histórico `Imprime` esté
   habilitado, evitando que una prueba ejecute simultáneamente el flujo antiguo.
 - La empresa procede de la sesión. La simulación rechaza empresas distintas de

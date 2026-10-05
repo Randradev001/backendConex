@@ -43,6 +43,22 @@ const unresolvedVariables = (zpl) => [...new Set(
   [...String(zpl).matchAll(/\{\{\s*([a-z][a-z0-9_]*)\s*\}\}/gi)].map((match) => match[1].toLowerCase())
 )];
 
+const buildPreparedLabel = (context, boxNumber) => {
+  const code = buildLegacyBoxCode({
+    boxNumber,
+    envCode: context.envCode,
+    categoryCode: context.categoryCode,
+    caliberCode: context.caliberCode,
+    machine: context.machine,
+    line: context.lineId,
+    person: context.personCode
+  });
+  const zpl = generateZpl(context.labelDesign, { variableValues: variableValues(context, code) });
+  const unresolved = unresolvedVariables(zpl);
+  if (unresolved.length) throw new Error(`La etiqueta contiene variables sin resolver: ${unresolved.join(', ')}.`);
+  return { code, zpl, labelCode: context.labelCode, labelVersion: context.labelVersion };
+};
+
 const createImpresionService = ({ repository, printer, logger = console, workerId = `printer-${process.pid}` }) => {
   const processNext = async () => {
     const job = await repository.claimNext(workerId);
@@ -57,30 +73,18 @@ const createImpresionService = ({ repository, printer, logger = console, workerI
       }
 
       const boxNumber = await repository.nextBoxNumber(context.empCod);
-      const code = buildLegacyBoxCode({
-        boxNumber,
-        envCode: context.envCode,
-        categoryCode: context.categoryCode,
-        caliberCode: context.caliberCode,
-        machine: context.machine,
-        line: context.lineId,
-        person: context.personCode
-      });
-      const values = variableValues(context, code);
-      const zpl = generateZpl(context.labelDesign, { variableValues: values });
-      const unresolved = unresolvedVariables(zpl);
-      if (unresolved.length) throw new Error(`La etiqueta contiene variables sin resolver: ${unresolved.join(', ')}.`);
+      const prepared = buildPreparedLabel(context, boxNumber);
       await repository.savePrepared(job.id, {
-        labelCode: context.labelCode,
-        labelVersion: context.labelVersion,
-        zpl
+        labelCode: prepared.labelCode,
+        labelVersion: prepared.labelVersion,
+        zpl: prepared.zpl
       });
 
       await printer.send({
         host: context.printerIp,
         port: context.printerPort || 9100,
         timeoutMs: context.printerTimeoutMs,
-        zpl
+        zpl: prepared.zpl
       });
       delivered = true;
       await repository.markPrinted(job.id);
@@ -98,4 +102,4 @@ const createImpresionService = ({ repository, printer, logger = console, workerI
   return { processNext };
 };
 
-module.exports = { createImpresionService, variableValues, formatDate, unresolvedVariables };
+module.exports = { createImpresionService, variableValues, formatDate, unresolvedVariables, buildPreparedLabel };

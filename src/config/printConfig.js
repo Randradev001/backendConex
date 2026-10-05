@@ -62,14 +62,20 @@ const buildPrintConfig = (env = process.env) => {
       throw new Error('PRINT_API_URL debe ser una URL válida.');
     }
     const localHttp = parsedUrl.protocol === 'http:' && ['localhost', '127.0.0.1', '::1'].includes(parsedUrl.hostname);
-    if (parsedUrl.protocol !== 'https:' && !localHttp) {
-      throw new Error('PRINT_API_URL debe usar HTTPS, salvo localhost para desarrollo.');
+    const insecureHttpAllowed = parseEnabled(env.PRINT_API_ALLOW_INSECURE_HTTP);
+    if (parsedUrl.protocol !== 'https:' && !localHttp && !insecureHttpAllowed) {
+      throw new Error('PRINT_API_URL debe usar HTTPS; para una transición HTTP explícita configure PRINT_API_ALLOW_INSECURE_HTTP=true.');
     }
+    const token = requireValue(env, 'PRINT_AGENT_TOKEN');
     config.api = {
       url: parsedUrl.toString().replace(/\/$/, ''),
       agentId: requireValue(env, 'PRINT_AGENT_ID'),
-      tokenConfigured: Boolean(requireValue(env, 'PRINT_AGENT_TOKEN'))
+      installationId: requireValue(env, 'PRINT_INSTALLATION_ID'),
+      tokenConfigured: true,
+      insecureHttp: parsedUrl.protocol === 'http:' && !localHttp,
+      spoolPath: requireValue(env, 'PRINT_LOCAL_SPOOL')
     };
+    Object.defineProperty(config.api, 'token', { value: token, enumerable: false });
   }
 
   return config;

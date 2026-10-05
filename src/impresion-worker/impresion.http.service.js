@@ -46,7 +46,11 @@ const testVariables = (design, supplied = {}) => Object.fromEntries((design.vari
   return [name, explicit ?? sample ?? `{{${name}}}`];
 }));
 
-const createImpresionHttpService = ({ poolProvider = getPool, send = sendZpl } = {}) => {
+const createImpresionHttpService = ({
+  poolProvider = getPool,
+  send = sendZpl,
+  remoteAgentEnabled = ['1', 'true', 'yes', 'si'].includes(String(process.env.PRINT_AGENT_API_ENABLED || '').trim().toLowerCase())
+} = {}) => {
   const listPrinters = async (company) => {
     const empCod = positiveInteger(company, 'Empresa');
     const pool = await poolProvider();
@@ -126,6 +130,9 @@ const createImpresionHttpService = ({ poolProvider = getPool, send = sendZpl } =
   };
 
   const printLabelTest = async (company, payload = {}) => {
+    if (remoteAgentEnabled) {
+      throw new ImpresionHttpError(409, 'REMOTE_PRINT_AGENT_REQUIRED', 'El servidor web no imprime por TCP; la prueba debe ingresar a la cola local del agente.');
+    }
     const empCod = positiveInteger(company, 'Empresa');
     const printerId = positiveInteger(payload.printerId, 'Impresora');
     const labelCode = trim(payload.labelCode).slice(0, 10);
@@ -160,6 +167,9 @@ const createImpresionHttpService = ({ poolProvider = getPool, send = sendZpl } =
   };
 
   const simulateLine = async (company, machineValue, lineValue) => {
+    if (remoteAgentEnabled) {
+      throw new ImpresionHttpError(409, 'REMOTE_PRINT_AGENT_REQUIRED', 'La simulación web no puede escribir en la cola SQL local del PLC.');
+    }
     const empCod = positiveInteger(company, 'Empresa');
     const machine = positiveInteger(machineValue, 'Máquina');
     const line = positiveInteger(lineValue, 'Línea');

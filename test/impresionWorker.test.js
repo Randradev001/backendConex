@@ -178,6 +178,21 @@ test('la prueba del diseñador muestra el calibre VINASA y no un marcador técni
   assert.equal(values.codigo, '00000100203400701016000');
 });
 
+test('el servidor web remoto nunca intenta abrir TCP hacia la Zebra', async () => {
+  let sent = false;
+  const service = createImpresionHttpService({
+    remoteAgentEnabled: true,
+    poolProvider: async () => assert.fail('No debe consultar SQL para imprimir directamente'),
+    send: async () => { sent = true; }
+  });
+
+  await assert.rejects(
+    () => service.printLabelTest(1, { printerId: 1, labelCode: 'POLCURA16', version: 4 }),
+    (error) => error.code === 'REMOTE_PRINT_AGENT_REQUIRED'
+  );
+  assert.equal(sent, false);
+});
+
 test('la impresión directa rechaza variables desconocidas antes de enviar', async () => {
   let sent = false;
   const rawDesign = {

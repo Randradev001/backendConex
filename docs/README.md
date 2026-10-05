@@ -81,6 +81,9 @@ la diferencia es trabajo incompleto, cambio no documentado o una regresion.
 - [Agente local de impresión conectado al backend web](migration/impresion-worker-remoto-estudio.md):
   perfiles separados, origen SQL/API, seguridad, leases, spool y etapas para
   conservar el modo local mientras se incorpora la impresión remota.
+- [Despliegue del agente local de impresión](deployment/print-agent-remoto.md):
+  variables del servidor y la planta, migración, heartbeat y puesta en marcha
+  controlada.
 
 ### Inventario GX8
 
