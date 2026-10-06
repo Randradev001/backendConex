@@ -26,6 +26,11 @@ entregado en la sesion y procesado por `buildAuthorizedMenu`. Una ruta que no
 esta autorizada no aparece en ninguna tarjeta. Esto mejora la experiencia, pero
 no reemplaza el middleware de autorizacion de cada endpoint Node.
 
+Las pantallas de administracion de Seguridad vuelven a consultar la sesion al
+guardar permisos directos, asignar o quitar roles y modificar una plantilla de
+rol. De este modo el menu lateral y los atajos del dashboard se actualizan en la
+misma sesion, sin exigir cerrar y volver a entrar.
+
 ## Alcance de datos
 
 La portada no presenta indicadores agricolas simulados ni interpreta listados
@@ -35,6 +40,7 @@ permanecen en sus dashboards especializados.
 
 ## Verificacion
 
-El 2026-09-30 se ejecuto ESLint dirigido sobre
-`src/pages/dashboard/default.jsx` y el build Vite completo, que transformo
-6.046 modulos correctamente.
+El 2026-10-05 se ejecuto ESLint dirigido sobre los componentes de
+administracion de permisos sin errores y el build Vite completo, que transformo
+6.046 modulos correctamente. El lint global conserva cuatro errores preexistentes
+y ajenos en `src/pages/maestros/empresas.jsx`.

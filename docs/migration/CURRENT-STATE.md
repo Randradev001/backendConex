@@ -254,6 +254,12 @@ TCP hacia la Zebra. La persistencia central se agrega mediante
 controlada continúan pendientes. Ver
 `docs/migration/impresion-worker-remoto-estudio.md`.
 
+El servidor web también debe conservar las estructuras GX8 `ConfImpresoras` y
+`ETIXCAL`, que participan en la resolución de impresora y etiqueta por calibre.
+Para instalaciones donde no fueron migradas se dispone de
+`database/20261005_print_agent_contexto_web_2016.sql`; el script solo crea las
+tablas ausentes y se detiene ante una estructura parcial incompatible.
+
 La toma atomica de la cola fija `READ COMMITTED` antes de usar `READPAST`. Esto
 evita el error SQL 650 cuando el pool entrega una conexion que habia quedado en
 `SERIALIZABLE` despues de incrementar el correlativo `ETILIN`; `UPDLOCK` y la
@@ -314,6 +320,8 @@ La pantalla `Asignacion de accesos` selecciona una vez el usuario. Muestra una
 pestana `Directos`, todas las pestanas de roles asignados y controles para
 agregar o quitar roles. Administrar una pestana de rol modifica la plantilla y
 afecta dinamicamente a todos sus usuarios; no modifica asignaciones directas.
+Tras cualquiera de esas operaciones, React renueva la sesion autenticada para
+reflejar inmediatamente el menu lateral y los atajos autorizados del dashboard.
 
 La importacion historica no cargo automaticamente las plantillas de rol porque
 los codigos de `PROGRAM` de las dos bases no son equivalentes. La homologacion

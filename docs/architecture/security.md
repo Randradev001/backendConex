@@ -154,6 +154,10 @@ permanecen fuera del menu hasta completar su migracion.
 El endpoint `GET /backendDocker/seguridad/menu` permite consultar el mismo arbol
 que se incluye en las respuestas de login y sesion.
 
+Despues de una mutacion de asignaciones o roles, la administracion React vuelve
+a consultar `GET /backendDocker/seguridad/session`. Esto evita conservar en el
+cliente un menu anterior cuando cambia el acceso del usuario autenticado.
+
 `POST /backendDocker/seguridad/verificar-acceso` implementa la consulta equivalente a `VA2` sobre los permisos cargados en la sesion. El middleware `requirePermission` queda disponible para proteger cada futura ruta de negocio con `SistCod`, `Modcod`, `ProgCod` y, cuando corresponda, `ProgOPCod`.
 
 Las pantallas migradas mantienen esta correspondencia:

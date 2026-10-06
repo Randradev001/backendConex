@@ -15,6 +15,8 @@ El backend web resuelve los datos de negocio y genera el ZPL. El worker es el
 
 1. Publicar el código backend que contiene `src/print-agent/`.
 2. Aplicar `database/20261005_print_agent_remoto_2016.sql` en `CONEX`.
+   Si la base web no conserva las tablas GX8 `ConfImpresoras` y `ETIXCAL`,
+   aplicar también `database/20261005_print_agent_contexto_web_2016.sql`.
 3. Generar un token con `npm run print:token`. No reutilizar la contraseña SQL.
 4. Agregar al `.env` existente:
 
