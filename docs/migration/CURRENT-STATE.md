@@ -1,6 +1,6 @@
 # Estado vigente de la migracion CONEX
 
-Ultima actualizacion documental: 2026-10-05.
+Ultima actualizacion documental: 2026-10-06.
 
 Este es el documento de entrada para continuar el proyecto. Describe el estado
 observado en el codigo y en `CONEX_MIGRACION`. Antes de trabajar, ejecutar
@@ -56,6 +56,12 @@ nombre del objeto GX y documentar su descripcion de negocio.
 9. El menu se arma desde `SISTEMAS -> MODULOS -> PROGRAM` y permisos efectivos.
 10. La marca visual es CONEX-CO, Control de exportacion, con paleta verde. No
     volver a textos, colores o documentacion de Mantis.
+
+En la administracion de Seguridad, los selectores de modulo, programa y accion
+se filtran en cascada por sus claves padre. Los codigos de modulo son locales a
+cada sistema; por ejemplo, `70/8` y `100/8` son registros distintos y validos.
+La interfaz conserva esa clave compuesta y limpia las selecciones descendientes
+cuando cambia sistema, modulo o programa.
 
 ## Diseñador visual de etiquetas ZPL
 
@@ -171,6 +177,9 @@ Estado operativo:
 - `database/20260907_control_lineas_cap001_compatibilidad.sql` corrige de forma
   aditiva instalaciones donde `CAP001` fue creada como tabla auxiliar parcial;
   agrega las columnas y el indice requeridos por el contador de cajas.
+- `database/20261006_captura_cajas_compatibilidad_2016.sql` completa esas bases
+  parciales con todas las columnas GX usadas por Captura de cajas y agrega
+  `LINCONFIG.VarCod`, requerido al resolver lineas por especie y variedad.
 
 ## Captura de cajas
 

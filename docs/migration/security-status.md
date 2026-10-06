@@ -38,6 +38,15 @@ preparar otra copia se ejecuta
 | AsigProg nivel 1 | Selector de programas por modulo | Implementado para prueba |
 | AsigProg nivel 2 | Acceso avanzado de acciones + `ASIGPROG1` | Implementado para prueba |
 
+Los selectores de los CRUD de Seguridad respetan las claves compuestas
+confirmadas en la exportacion GX8: `MODULOS` depende de `SistCod + Modcod`,
+`PROGRAM` de `SistCod + Modcod + ProgCod` y `PROGRAM1` agrega `ProgOPCod`.
+Sistema, modulo, programa y accion se presentan en cascada tanto en filtros
+como en formularios. Cambiar un nivel limpia sus descendientes para impedir
+que una seleccion perteneciente a otro sistema quede combinada con la nueva
+cabecera. Esto permite conservar codigos locales repetidos, como el modulo 8
+de los sistemas 70 y 100, sin ambiguedad visual ni alteracion de datos.
+
 El editor de asignaciones muestra contadores por sistema y guarda cada rama en
 una sola transaccion. Las reglas de sincronizacion tienen pruebas unitarias y
 las consultas de resumen/detalle fueron verificadas contra la base CONEX; falta

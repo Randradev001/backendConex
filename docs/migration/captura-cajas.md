@@ -2,6 +2,12 @@
 
 Estado: primera entrega implementada y verificada contra `CONEX_MIGRACION`.
 
+Para bases creadas con el instalador SQL Server 2016 que conservaron `CAP001`
+como tabla auxiliar parcial, se debe aplicar
+`database/20261006_captura_cajas_compatibilidad_2016.sql`. El parche agrega de
+forma aditiva las columnas GX requeridas por consulta, captura, generacion y
+reclasificacion, y completa `LINCONFIG.VarCod` sin eliminar datos existentes.
+
 La ruta React es `/captura-cajas` y el backend es `/backendDocker/captura-cajas`.
 Reimplementa `CAPCajas02` con `INSCajasProc`: recibe solo un código de 23 dígitos,
 obtiene empresa y usuario de sesión, valida `ORDPROC.OrdpEstado=1`, resuelve envase,
