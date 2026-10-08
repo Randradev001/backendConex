@@ -40,6 +40,21 @@ test('imprime una orden y recién entonces la marca procesada', async () => {
   assert.match(calls[0][2].zpl, /0001230020340070202600>60/);
 });
 
+test('entrega al worker un ZPL de folio ya preparado', async () => {
+  const calls = [];
+  const repository = {
+    claimNext: async () => null,
+    claimNextFolio: async () => ({ id: 30, printerIp: '192.168.1.60', printerPort: 9100, zpl: '^XA FOLIO ^XZ' }),
+    markFolioPrinted: async (id) => calls.push(['printed', id]),
+    finishFolio: async (...args) => calls.push(['finish', ...args])
+  };
+  const printer = { send: async (value) => calls.push(['send', value]) };
+  const result = await createImpresionService({ repository, printer, logger: {} }).processNext();
+  assert.equal(result.status, PRINT_STATUS.PRINTED);
+  assert.deepEqual(calls.map((call) => call[0]), ['send', 'printed']);
+  assert.equal(calls[0][1].zpl, '^XA FOLIO ^XZ');
+});
+
 test('una falla después de comenzar el envío queda incierta y no impresa', async () => {
   const calls = [];
   const repository = {

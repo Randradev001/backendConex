@@ -147,7 +147,8 @@ en `ASIGPROG` y plantillas de los roles vigentes. Un sistema o modulo sin
 programas autorizados no se envia al frontend.
 
 Cada programa conserva `ProgNomGX`, `ProgIDmenu` y `ProgTarget`. React traduce
-`ProgNomGX` a una ruta mediante `menu-items/authorizedMenu.jsx`. Solo se muestra
+`ProgNomGX` a una ruta mediante `menu-items/authorizedMenu.jsx`; también acepta
+rutas internas directas que comienzan con `/`. Solo se muestra
 un llamado cuando ya existe su pantalla React; los llamados `.aspx` pendientes
 permanecen fuera del menu hasta completar su migracion.
 

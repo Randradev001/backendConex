@@ -68,8 +68,13 @@ la diferencia es trabajo incompleto, cambio no documentado o una regresion.
 
 ### Procesos
 
+- [Despachos SAG](migration/despachos-sag.md): listado por planilla, PDF y
+  archivo `.des` por fila; el ABM queda para una segunda entrega.
 - [operacion de ordenes de proceso](migration/ordenes-proceso-operacion.md):
   seleccion de saldos, alta transaccional y confirmacion del correlativo.
+- [Folios Procesados e Ingreso de Tarjas](migration/ingreso-tarjas.md):
+  listado, alta, consulta, modificacion, eliminacion controlada, Excel y
+  Ventana de Impresión.
 - [tablero de control de lineas](migration/configuracion-lineas-tablero.md):
   rediseño de `linconfig`, monitoreo animado, alta y edicion, tablas, estados,
   permisos y pendientes de eliminacion e impresion.

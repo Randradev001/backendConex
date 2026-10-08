@@ -44,7 +44,7 @@ BEGIN
     Modcod numeric(3,0) NOT NULL,
     ProgCod numeric(3,0) NOT NULL,
     ProgDes varchar(35) NOT NULL,
-    ProgNomGX varchar(20) NULL,
+    ProgNomGX varchar(100) NULL,
     ProgTipo numeric(1,0) NULL,
     ProgFcrea date NULL,
     CONSTRAINT PK_PROGRAM PRIMARY KEY (SistCod, Modcod, ProgCod)

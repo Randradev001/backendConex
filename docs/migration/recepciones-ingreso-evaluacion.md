@@ -210,10 +210,12 @@ su efecto sobre stock requiere decision funcional previa.
     `CalRecPorCalidad` dentro del chip del lote. En fruta se obtiene desde el
     ultimo control vigente; si no existe un control, el chip no presenta un
     porcentaje artificial.
-21. En `/recepciones/ingreso`, Origen usa `Autocomplete` de Material UI tanto
-    en el filtro como en la cabecera del formulario, permitiendo escribir y
-    buscar. En las lupas de documento y movimiento, la accion de seleccion se
-    presenta como icono a la izquierda de cada resultado.
+21. En `/recepciones/ingreso`, Origen y Tipo de Documento usan `Autocomplete`
+    de Material UI en la cabecera del formulario: despliegan el catálogo,
+    filtran al escribir y, al salir del campo con un código exacto, completan
+    automáticamente su descripción. Los tres campos, incluidos Origen y Tipo
+    de Documento, conservan una lupa que abre el modal de selección; la acción
+    de selección se presenta como icono a la izquierda de cada resultado.
 22. El listado de `/recepciones/ingreso` inicia con un rango local desde la
     misma fecha del mes anterior hasta hoy. Para dias que no existen en el mes
     anterior, se usa su ultimo dia, evitando tambien desfases por UTC.

@@ -119,7 +119,7 @@ const catalogs = {
       ProgDes: text(35, { required: true }),
       ProgFcrea: date({ serverValueOnInsert: 'serverDate' }),
       ProgTipo: number({ defaultValue: 0 }),
-      ProgNomGX: text(20, { defaultValue: ' ' }),
+      ProgNomGX: text(100, { defaultValue: ' ' }),
       ProgIDmenu: text(20, { defaultValue: ' ' }),
       ProgTarget: text(20, { defaultValue: ' ' })
     },

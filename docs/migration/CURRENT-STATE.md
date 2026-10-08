@@ -1,6 +1,6 @@
 # Estado vigente de la migracion CONEX
 
-Ultima actualizacion documental: 2026-09-29.
+Ultima actualizacion documental: 2026-10-08.
 
 Este es el documento de entrada para continuar el proyecto. Describe el estado
 observado en el codigo y en `CONEX_MIGRACION`. Antes de trabajar, ejecutar
@@ -162,6 +162,217 @@ Estado operativo:
   aditiva instalaciones donde `CAP001` fue creada como tabla auxiliar parcial;
   agrega las columnas y el indice requeridos por el contador de cajas.
 
+## Folios Procesados e Ingreso de Tarjas
+
+Implementado en `/procesos-sag/folios-procesados` y
+`/backendDocker/ingreso-tarjas` con permiso `100/20/5`. El menú abre el listado
+`Folios Procesados`; Agregar, Visualizar y Modificar llaman a la pantalla
+`Ingreso de Tarjas` en el modo correspondiente. El listado conserva los filtros
+GX por fecha, especie, estado y folio, muestra los campos y totales de ambas
+grillas y usa el `DataGrid` compacto con paginación server-side. Ofrece
+únicamente Agregar, Cargar Folios, Ventana de Impresión y Excel en la barra superior, más Visualizar,
+Modificar y Eliminar como iconos por cada folio en la columna Acciones al extremo
+izquierdo.
+
+El alta, la modificación y la carga masiva por Excel validan la temporada activa, orden opcional, lotes,
+catálogos, duplicados y, cuando existe una fuente asociada, el saldo dentro de
+una transacción serializable. La orden
+no se muestra ni se solicita en `Ingreso de Tarjas`: React la obtiene del lote
+seleccionado cuando existe asociación y deja editable el detalle cuando no la
+hay. Envase se selecciona en la cabecera y variedad y categoría se capturan por
+cada fila de detalle, filtradas por especie y envase respectivamente. El detalle
+se presenta en una sola línea. La cabecera conserva Configuración del pallet
+con Envase, Base de pallet, Destino y Tipo de altura; dichos valores permanecen
+seleccionados para el siguiente ingreso después de guardar. Las columnas
+aditivas `DestCod`, `FPNCaja`, `FPServicio` y `TEtCod` se mantienen por
+compatibilidad, aunque N° de Caja, Servicio y Etiqueta ya no se capturan en la
+pantalla. La migración es
+`database/20260930_ingreso_tarjas_cabecera_pallet_2016.sql`. `FP2NProc` admite
+el valor `0` en el ingreso manual y en la carga Excel;
+en ese caso no se exige una fuente de lote ni se aplica saldo. La especie de cada detalle se toma exclusivamente de la especie de la
+cabecera. El saldo se controla solo cuando existe una fuente asociada. En altas
+manuales, `FPFechaIng` toma la Fecha de cabecera y se guarda con hora `00:00:00`;
+las integraciones que no la informan usan la fecha del servidor. Eliminar y modificar
+se bloquean para folios automáticos o usados por inspección/despacho. Excel se
+genera en Node como `.xlsx` con todo el resultado filtrado. El script
+`database/20260929_ingreso_tarjas_2016.sql` fue aplicado sobre `CONEX` el
+2026-09-29 y registró `wfoliosprocesados`; su asignación a usuarios o roles
+queda bajo Seguridad. Evidencia: [ingreso-tarjas.md](ingreso-tarjas.md).
+El filtro de folio del listado usa coincidencia parcial y la exportación Excel
+reutiliza ese mismo criterio.
+El detalle de `FOLIOSPROC1.FP2Kilos` se persiste como `money` (en lugar de
+`smallmoney`) para evitar que cantidades válidas de cajas desborden el rango
+del peso calculado; el backend envía el parámetro con `sql.Money` y la
+migración es `database/20261001_ingreso_tarjas_fp2kilos_money_2016.sql`.
+El listado incorpora la pantalla `Cargar Folios`, que recibe el formato `.xlsx`
+legado de diez columnas con los mismos codigos internos de Ingreso de Tarjas, aplica un limite de 1 GB y
+procesa cada folio en una transaccion independiente. Folios existentes se
+rechazan, los folios repetidos en el archivo conservan solo la primera fila y
+la respuesta muestra un reporte de linea, folio y error para cada rechazo; los
+folios validos continuan cargandose. La carga conserva `FPOrigen=5`,
+`FP2NProc=0`, estado completo y fecha de ingreso a medianoche. Evidencia:
+pruebas de `readImportRows`, resolucion de catalogos y origen de carga en
+`test/ingresoTarjas.service.test.js`.
+Al seleccionar una cabecera se muestra el detalle en un segundo `DataGrid`,
+filtrado por la empresa de sesión, la temporada activa y el folio seleccionado.
+En escritorio ambos listados se distribuyen en columnas 60/40 y en pantallas
+pequeñas se apilan. `Ventana de Impresión` se abre desde el botón del listado,
+mantiene los filtros parciales y permite seleccionar varios folios. La etiqueta
+usa el ZPL histórico de `Eti_VentanaP1`, adaptado a la Zebra GK420t (10 x 19,5
+cm; 799 x 1558 puntos a 203 dpi), y lo envía directamente por TCP al puerto
+9100 de la impresora seleccionada en `ConfImpresoras`; no usa worker ni cola
+SQL. Si falta la IP de red o el envío falla, la pantalla informa el error y no
+abre una representación en el navegador.
+`EnvPesoSag` se agrega a `ENVCAT` y
+se inicializa desde `EnvPeso`; fue aplicado y verificado el 2026-09-30 sobre
+los 15 envases de la base configurada, sin valores nulos. Los cuarteles se conservan en los detalles.
+La migración correspondiente es `database/20260930_ventana_impresion_2016.sql`.
+
+## Inspecciones
+
+La primera fase del WorkPanel GX8 `Inspecciones` está disponible en
+`/procesos-sag/inspecciones` y `/backendDocker/inspecciones`, protegida por el
+permiso histórico `100/20/1`. Consulta la temporada activa y las solicitudes
+`INS` de los últimos 60 días, ofrece los filtros GX y presenta sus totales de
+solicitudes, cajas y pallets. Cinco cards de colores muestran el total y el
+desglose por estado (En curso, Aprobadas, Rechazadas y Anuladas) según los
+mismos filtros. Las cards son presionables con clic, Enter o Espacio y abren
+un modal con el listado paginado del estado respectivo, conservando los demás
+filtros activos. Agregar abre
+`/procesos-sag/inspecciones/nueva`: crea una sola cabecera `SOLICITUDES1` en
+estado En curso y vuelve al listado Inspecciones mostrando el mensaje de creación
+exitosa. Los folios pueden
+prepararse antes de guardar mediante casillas de selección múltiple y se
+vinculan con la cabecera en una sola transacción; después de guardar también se
+puede agregar uno o varios folios desde el selector del detalle. Cada alta copia sus detalles a `SOLICITUDES2/3`,
+incluye las cantidades del folio en `Sol2CajasDes/Sol2KilosDes` y
+`Sol3CajasDes/Sol3KilosDes` para mantenerlo disponible para Despachos, recalcula
+los totales y reserva el folio dentro de una transacción serializable.
+La cabecera de la solicitud expone además, en modo lectura, los datos de
+aprobación/rechazo (`SollogAP`, `SolFecAP`, `SollogRE`, `SolFecRE`) y las cajas
+totales por rango (`solcajasRA`, `SolcajasRB`, `SolcajasRC`) desde
+`SOLICITUDES1`. Ambos bloques se muestran solo en modos Visualizar o Modificar;
+se ocultan al crear o eliminar la solicitud.
+Los selectores de folios usan `EmpCod`, `TempCod`, `FPEspe`, `FPEstado=10` y
+`FPDisponible=1`; en Inspecciones excluyen además los folios ya presentes en
+`SOLICITUDES2`, incluso si una marca histórica de disponibilidad quedó
+inconsistente. No agregan filtros de correlativos duplicados ajenos al flujo.
+Las claves duplicadas de `SOLICITUDES3` se traducen a un mensaje funcional con
+el folio y correlativo de detalle involucrados, en lugar de mostrar el error
+técnico de SQL Server.
+En el detalle de una solicitud en curso se puede quitar el folio seleccionado
+con confirmación; en modo Modificar, agregar y quitar solo quedan pendientes
+hasta pulsar Guardar. En ese momento la API elimina o inserta las filas de
+`SOLICITUDES3/2`, libera o reserva `FOLIOSPROC.FPDisponible`, ajusta
+`FPIns/Fp2Ins` y recalcula los totales. Se rechaza la operación si el folio
+tiene movimientos o marcas de despacho, repaletizaje o anulación.
+Antes de guardar, el detalle del folio seleccionado se muestra en modo lectura
+desde `FOLIOSPROC1` y no modifica su disponibilidad.
+Los banners de Inspecciones, Nueva solicitud, Detalle de solicitud e Ingreso de
+Tarjas muestran el nombre de la empresa autenticada consultando `DEFEMP.EmpNom`.
+Cada fila aprobada del listado ofrece Archivo: genera el `.INS` histórico sin
+modificar datos, usando `PARAMGE1 20/30`, `ESPECIES.EspeSag`, solo detalles con
+cajas y el terminador `&&`; permite elegir una carpeta en Chrome/Edge y aplica
+la descarga estándar como respaldo. Todas las filas ofrecen PDF: el botón
+genera un único PDF carta vertical que combina los campos de `Solicit01` y
+`Solicit02` en ese orden, presenta el campo como `N° SOLICITUD INSPECCIÓN`, y abre una ventana flotante del visor del
+navegador, mantiene los ceros de la solicitud y ubica la página abajo a la
+derecha. `Solicit01CU` y `SolicitCU` no se usan en este flujo. En la tabla de
+`DETALLE DEL LOTE POR PALLET`, cada folio con más de una línea incluye una fila
+adicional de subtotal inmediatamente debajo, con sus totales de Kilos y Cajas;
+los folios de una sola línea no agregan una fila adicional. Las filas del listado
+usan una altura vertical compacta y las filas de subtotal conservan espacio para
+sus dos líneas.
+La carátula compacta integra el bloque de campos reservados del SAG en la
+primera página cuando el contenido lo permite y valida el espacio disponible
+antes de dibujarlo, evitando páginas en blanco intermedias en el PDF. Dentro del bloque
+  se muestran casillas para Aprobado, Rechazado y Objetado, además de líneas
+  horizontales para completar certificados, inspector, firma, fecha y
+  observaciones, manteniendo el layout de GeneXus. Observaciones conserva dos
+  líneas de escritura: la primera junto a la etiqueta y la segunda desde el margen izquierdo. El resumen de totales se
+  organiza en dos filas compactas, con las métricas principales separadas de los
+  rangos y las reservas para mejorar la lectura. La tarjeta de datos de la
+  solicitud reduce el espacio vertical entre sus dos filas sin cambiar los
+  campos ni su orden.
+La pantalla de alta y la antigua vista `Detalle Solicitudes` se unifican: la
+ruta `/procesos-sag/inspecciones/nueva` crea solicitudes y
+`/procesos-sag/inspecciones/:solNum` usa el mismo componente para visualizar o
+modificar según el modo de navegación. El título cambia a **Nueva solicitud de
+inspección**, **Visualizar solicitud de inspección** o **Modificar solicitud de
+inspección**; ya no existe una pantalla de detalle independiente. La cabecera
+se muestra como resumen en visualización y como formulario en modificación.
+Visualizar es solo de consulta; Modificar habilita campos y acciones de folios
+solo para solicitudes en curso.
+Modificar queda habilitado para solicitudes en curso, actualiza la cabecera a
+través de `PUT /solicitudes/:solNum` en una transacción serializable y no permite
+cambiar la especie cuando ya tiene folios. El botón Eliminar solicita
+confirmación y anula (estado 5) las solicitudes en curso; la misma transacción
+elimina sus líneas de `SOLICITUDES3/2` y libera los folios asociados en
+`FOLIOSPROC/FOLIOSPROC1`. Si un folio tiene movimientos o marcas de uso que
+impiden liberarlo, la API rechaza la anulación para preservar la integridad de
+los datos; las cantidades iniciales `Sol2CajasDes/Sol2KilosDes` no son una
+marca de uso y no bloquean la liberación. La API no realiza borrado físico. El listado incorpora el botón visual
+Cambiar Estado para solicitudes en curso; abre un modal pequeño basado en
+`CambiaEstadoSol` y consume el endpoint `PATCH /solicitudes/:solNum/status`
+con estado 1 o 2 al confirmar Aprobar o Rechazar, registra el usuario y la
+fecha en `SollogAP/SolFecAP` o `SollogRE/SolFecRE`, actualiza los contadores y
+rechaza transiciones desde estados cerrados. La misma pantalla conserva el
+resumen por folio y las líneas de detalle, junto con las reglas de
+agregar/quitar folios.
+Evidencia y reglas en `docs/migration/inspecciones.md`.
+
+## Despachos SAG
+
+La primera fase del WorkPanel GX8 `DespachosSAG` está disponible en
+`/procesos-sag/despachos-sag` y `/backendDocker/despachos-sag`, protegida por
+el permiso histórico `100/20/3`. Consulta la temporada activa y conserva los
+filtros GX: rango de fecha de los últimos 30 días, estado (En Proceso,
+Finalizado, Nula o Todos), número de planilla y número de guía. El listado
+usa `DESORIGEN` con `DorTipPlani=1`, muestra los campos visibles del SubFile y
+pagina en el servidor.
+
+Cada fila ofrece Agregar, Visualizar, Modificar, Finalizar, Anular, PDF,
+Archivo y MultiPuerto. MultiPuerto se abre sobre el listado, reutiliza o crea
+`DATMP`, permite escritura libre en los campos de texto y usa el Combo Box del
+XPZ para las ubicaciones, y genera el archivo
+histórico `MP<CodigoSAG><DORNumf>.txt` con el formato de `ArchiMP`; no agrega
+la condición `DorEstado` que no existe en el XPZ.
+El formulario limita en el navegador y valida nuevamente en backend los largos
+del XPZ: códigos de 4 dígitos, ubicaciones mediante el Combo Box con valores 1
+a 6, textos de 30 o 50 caracteres según el atributo y fecha de tratamiento
+seleccionable mediante `DateCalendar`, visible en formato `DD/MM/YYYY`.
+Finalizar solo está disponible para `DorEstado=0`; valida los campos obligatorios y
+la existencia de folios, cambia a `DorEstado=1` y bloquea posteriores cambios de
+cabecera y folios. PDF combina la cabecera y todos los detalles
+de `DESORIGEN1/2` en el orden de los reportes GX `PlaniDSAG` y `DPlaniSAG`,
+siempre en páginas verticales tamaño Carta. El anexo de detalle agrega una
+fila verde de totales por folio solo cuando el folio se repite, con subtotales
+de Kilos y Cajas.
+Archivo está habilitado solo para despachos finalizados y conserva el formato
+`.des` de `ArchiDES`: código de planta de `PARAMGE1 20/30`, destino normalizado,
+fecha `YYYYMMDD`, total de folios, una línea por folio con cajas y código SAG
+de especie, y terminador `&&`. La pantalla permite seleccionar carpeta en
+Chrome/Edge y conserva una descarga estándar como respaldo.
+
+La migración aditiva `database/20261006_despachos_sag_2016.sql` completa las
+columnas descriptivas necesarias en `DESORIGEN/1/2` e incorpora índices de
+consulta; fue aplicada sobre `CONEX` el 2026-10-06. La pantalla unificada
+`Despacho` está disponible con títulos dinámicos por modo, bloques Accordion,
+alta/modificación/visualización y anulación histórica a estado `Nula`.
+Cuando Guardar completa la operación, tanto en alta como en modificación, la
+pantalla vuelve al listado Despachos SAG con el mensaje de confirmación. Si una
+asociación de folio falla después de crear la cabecera, permanece en el despacho
+creado para permitir corregir el detalle.
+El selector del detalle de folios conserva las condiciones de los WorkPanels
+GX8 `BajaFolDespa` y `BajaFolDesUS`: para origen exige `Sol2CajasDes > 0`,
+`Sol2Dispo=0` y `SolEstado=1`; para USDA exige `PUS1CajDes > 0`,
+`PUS1Dispo=1` y `PUSEstado=1`, además de empresa, temporada, tipo y especie.
+La asociación vuelve a validar esas mismas condiciones dentro de una
+transacción antes de copiar los detalles;
+los tipos 2 y 3 requieren que `PROCUSDA/PROCUSDA1/PROCUSDA2` estén instaladas
+en la base operativa. Multipuerto sigue fuera de alcance.
+Evidencia y reglas en `docs/migration/despachos-sag.md`.
+
 ## Captura de cajas
 
 La primera entrega de `CAPCajas02` está implementada en
@@ -232,6 +443,11 @@ El corte final se describe en `conex-single-database-cutover.md` y requiere
 pruebas completas, `verify:conex` y `DBCC CHECKDB` antes del renombre.
 
 ## Seguridad implementada
+
+`PROGRAM.ProgNomGX` admite 100 caracteres tanto en el catálogo React/Node como
+en SQL Server. La ampliación repetible está en
+`database/20260929_program_prognomgx_100_2016.sql` y fue aplicada sobre `CONEX`
+el 2026-09-29.
 
 | Area | Estado | Implementacion |
 |---|---|---|

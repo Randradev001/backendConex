@@ -102,7 +102,7 @@ CREATE TABLE dbo.PROGRAM (
   Modcod smallint NOT NULL,
   ProgCod smallint NOT NULL,
   ProgDes varchar(35) NOT NULL,
-  ProgNomGX varchar(20) NULL,
+  ProgNomGX varchar(100) NULL,
   ProgTipo smallint NULL,
   ProgFcrea date NULL,
   ProgIDmenu varchar(20) NULL,
@@ -306,6 +306,7 @@ CREATE TABLE dbo.ENVCAT (
   EnvCod smallint NOT NULL,
   EnvNom varchar(20) NOT NULL,
   EnvPeso decimal(10,4) NULL,
+  EnvPesoSag decimal(10,4) NULL,
   EnvDestare decimal(10,4) NULL,
   EnvPesoB decimal(10,4) NULL,
   EnvUso smallint NULL,
@@ -791,7 +792,8 @@ CREATE TABLE dbo.LISTPRECIOS (EmpCod smallint NULL, CliCod int NULL, MonCod smal
 CREATE TABLE dbo.PACKLIST (EmpCod smallint NULL, CliCod int NULL, ExpCod int NULL, ConsCod smallint NULL, AgeCod smallint NULL, DestCod smallint NULL, DACod smallint NULL);
 CREATE TABLE dbo.DESORIGEN (EmpCod smallint NULL, ExpCod int NULL, ConsCod smallint NULL, AgeCod smallint NULL, DestCod smallint NULL, DACod smallint NULL);
 CREATE TABLE dbo.CNTFOLIOS (EmpCod smallint NULL, ExpCod int NULL);
-CREATE TABLE dbo.FOLIOSPROC (EmpCod smallint NULL, ExpCod int NULL, TEtCod int NULL, TBPCod int NULL, TAlCod int NULL);
+CREATE TABLE dbo.FOLIOSPROC (EmpCod smallint NOT NULL, TempCod char(9) NOT NULL, FPFolio char(10) NOT NULL, FPOrdProc decimal(10,0) NULL, ExpCod smallint NULL, FPEspe smallint NULL, FPEstado smallint NULL, FPFechaIng datetime NULL, FPIns decimal(10,0) NULL, FPDesOri decimal(10,0) NULL, FPDesOT decimal(10,0) NULL, FPDesUsda decimal(10,0) NULL, FPDisponible smallint NULL, TEtCod smallint NULL, TAlCod smallint NULL, TBPCod smallint NULL, FPOrigen smallint NULL, DestCod smallint NULL, FPNCaja decimal(10,0) NULL, FPServicio varchar(30) NULL, CONSTRAINT PK_FOLIOSPROC PRIMARY KEY (EmpCod,TempCod,FPFolio));
+CREATE TABLE dbo.FOLIOSPROC1 (EmpCod smallint NOT NULL, TempCod char(9) NOT NULL, FPFolio char(10) NOT NULL, FP2NProc decimal(10,0) NOT NULL, FP2Cor smallint NOT NULL, FP2Fecha datetime NULL, ProdCod char(6) NULL, fp2especod smallint NULL, fp2varcod int NULL, EnvCod smallint NULL, Catcod smallint NULL, Calibre char(10) NULL, FP2Cajas smallint NULL, FP2Kilos money NULL, fp2expcod smallint NULL, Fp2MovRep smallint NULL, Fp2Estado smallint NULL, Fp2Tipo smallint NULL, Fp2Ins decimal(10,0) NULL, Fp2CajasO smallint NULL, FP2CajasRep smallint NULL, CuarCod int NULL, CONSTRAINT PK_FOLIOSPROC1 PRIMARY KEY (EmpCod,TempCod,FPFolio,FP2NProc,FP2Cor));
 CREATE TABLE dbo.ORDPROC (EmpCod smallint NULL, ExpCod int NULL);
 CREATE TABLE dbo.PALETIZA01 (EmpCod smallint NULL, ExpCod int NULL);
 CREATE TABLE dbo.ANUINS (CAnCod smallint NULL);

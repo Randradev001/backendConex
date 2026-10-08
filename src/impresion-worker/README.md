@@ -1,8 +1,9 @@
 # Worker de impresión CONEX
 
 Proceso Node.js independiente del servidor HTTP. Lee `OrdenImpresion`, reproduce
-el flujo histórico de `ImprimeETBD`, genera ZPL mediante el core de etiquetas y
-lo envía directamente a la IP configurada.
+el flujo histórico de `ImprimeETBD`, y también consume `OrdenImpresionFolio`, que
+recibe ZPL ya generado por `Ventana de Impresión`. Ambos flujos envían a la IP
+configurada.
 
 ## Compatibilidad GX8
 
@@ -17,9 +18,9 @@ no se reintentan automáticamente para evitar duplicados.
 
 ## Activación
 
-Aplicar primero `database/20260909_impresion_worker_2016.sql`, cargar las
-impresoras y validar las etiquetas vigentes. El worker está deshabilitado por
-defecto:
+Aplicar primero `database/20260909_impresion_worker_2016.sql` y
+`database/20260930_ventana_impresion_2016.sql`, cargar las impresoras y validar
+las etiquetas vigentes. El worker está deshabilitado por defecto:
 
 ```text
 PRINT_WORKER_ENABLED=true

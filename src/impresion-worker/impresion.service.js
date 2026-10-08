@@ -26,53 +26,83 @@ const variableValues = (context, code) => ({
 });
 
 const createImpresionService = ({ repository, printer, logger = console, workerId = `printer-${process.pid}` }) => {
-  const processNext = async () => {
-    const job = await repository.claimNext(workerId);
-    if (!job) return { processed: false };
-
+  const processFolio = async (job) => {
     let delivered = false;
     try {
-      const context = await repository.loadContext(job);
-      if (Number(context.lineState) !== 1) {
-        await repository.finish(job.id, PRINT_STATUS.LINE_INACTIVE, 'La línea está inactiva.');
-        return { processed: true, id: job.id, status: PRINT_STATUS.LINE_INACTIVE };
-      }
-
-      const boxNumber = await repository.nextBoxNumber(context.empCod);
-      const code = buildLegacyBoxCode({
-        boxNumber,
-        envCode: context.envCode,
-        categoryCode: context.categoryCode,
-        caliberCode: context.caliberCode,
-        machine: context.machine,
-        line: context.lineId,
-        person: context.personCode
-      });
-      const values = variableValues(context, code);
-      const zpl = generateZpl(context.labelDesign, { variableValues: values });
-      await repository.savePrepared(job.id, {
-        labelCode: context.labelCode,
-        labelVersion: context.labelVersion,
-        zpl
-      });
-
+      if (!trim(job.printerIp)) throw new Error('La impresora del folio no tiene una IP configurada.');
       await printer.send({
-        host: context.printerIp,
-        port: context.printerPort || 9100,
-        timeoutMs: context.printerTimeoutMs,
-        zpl
+        host: job.printerIp,
+        port: job.printerPort || 9100,
+        timeoutMs: job.printerTimeoutMs,
+        zpl: job.zpl
       });
       delivered = true;
-      await repository.markPrinted(job.id);
-      logger.info?.(`Orden de impresión ${job.id} enviada a ${context.printerIp}.`);
-      return { processed: true, id: job.id, status: PRINT_STATUS.PRINTED };
+      await repository.markFolioPrinted(job.id);
+      logger.info?.(`Folio de impresión ${job.id} enviado a ${job.printerIp}.`);
+      return { processed: true, id: job.id, status: PRINT_STATUS.PRINTED, kind: 'folio' };
     } catch (error) {
       const uncertain = Boolean(error?.uncertain || delivered);
       const status = uncertain ? PRINT_STATUS.UNCERTAIN : PRINT_STATUS.FAILED;
-      await repository.finish(job.id, status, error.message).catch((finishError) => logger.error?.(finishError));
-      logger.error?.(`Orden de impresión ${job.id}: ${error.message}`);
-      return { processed: true, id: job.id, status, error };
+      if (typeof repository.finishFolio === 'function') {
+        await repository.finishFolio(job.id, status, error.message).catch((finishError) => logger.error?.(finishError));
+      }
+      logger.error?.(`Folio de impresión ${job.id}: ${error.message}`);
+      return { processed: true, id: job.id, status, error, kind: 'folio' };
     }
+  };
+
+  const processNext = async () => {
+    const job = await repository.claimNext(workerId);
+    if (job) {
+      let delivered = false;
+      try {
+        const context = await repository.loadContext(job);
+        if (Number(context.lineState) !== 1) {
+          await repository.finish(job.id, PRINT_STATUS.LINE_INACTIVE, 'La línea está inactiva.');
+          return { processed: true, id: job.id, status: PRINT_STATUS.LINE_INACTIVE };
+        }
+
+        const boxNumber = await repository.nextBoxNumber(context.empCod);
+        const code = buildLegacyBoxCode({
+          boxNumber,
+          envCode: context.envCode,
+          categoryCode: context.categoryCode,
+          caliberCode: context.caliberCode,
+          machine: context.machine,
+          line: context.lineId,
+          person: context.personCode
+        });
+        const values = variableValues(context, code);
+        const zpl = generateZpl(context.labelDesign, { variableValues: values });
+        await repository.savePrepared(job.id, {
+          labelCode: context.labelCode,
+          labelVersion: context.labelVersion,
+          zpl
+        });
+
+        await printer.send({
+          host: context.printerIp,
+          port: context.printerPort || 9100,
+          timeoutMs: context.printerTimeoutMs,
+          zpl
+        });
+        delivered = true;
+        await repository.markPrinted(job.id);
+        logger.info?.(`Orden de impresión ${job.id} enviada a ${context.printerIp}.`);
+        return { processed: true, id: job.id, status: PRINT_STATUS.PRINTED };
+      } catch (error) {
+        const uncertain = Boolean(error?.uncertain || delivered);
+        const status = uncertain ? PRINT_STATUS.UNCERTAIN : PRINT_STATUS.FAILED;
+        await repository.finish(job.id, status, error.message).catch((finishError) => logger.error?.(finishError));
+        logger.error?.(`Orden de impresión ${job.id}: ${error.message}`);
+        return { processed: true, id: job.id, status, error };
+      }
+    }
+
+    if (typeof repository.claimNextFolio !== 'function') return { processed: false };
+    const folioJob = await repository.claimNextFolio(workerId);
+    if (!folioJob) return { processed: false };
+    return processFolio(folioJob);
   };
 
   return { processNext };
