@@ -3,27 +3,61 @@ const { buildLegacyBoxCode } = require('./barcode');
 const { PRINT_STATUS } = require('./constants');
 
 const trim = (value) => String(value ?? '').trim();
-const formatDate = (value) => {
+const formatDate = (value, type = 1, separator = '/') => {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  return [String(date.getDate()).padStart(2, '0'), String(date.getMonth() + 1).padStart(2, '0'), date.getFullYear()].join('/');
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear());
+  const parts = {
+    1: [day, month, year],
+    2: [month, day, year],
+    3: [year, month, day],
+    4: [year, day, month]
+  }[Number(type)] || [day, month, year];
+  return parts.join(trim(separator) || '/');
 };
 
 const variableValues = (context, code) => ({
   producto: trim(context.speciesName),
   especie: trim(context.speciesName),
+  especie_externa: trim(context.speciesExternalName || context.speciesName),
   variedad: trim(context.varietyName),
-  fecha: formatDate(context.processDate),
+  fecha: formatDate(context.processDate, context.dateFormatType, context.dateSeparator),
   productor: trim(context.producerName || context.producerCode),
+  productor_codigo: trim(context.producerExternalCode || context.producerCode),
+  productor_secundario: trim(context.producerSecondaryName || context.producerName || context.producerCode),
   comuna: trim(context.producerCommune),
   provincia: trim(context.producerProvince),
   envase: trim(context.containerName || context.envCode),
   envase_externo: trim(context.containerExternalName || context.containerName || context.envCode),
   categoria: trim(context.categoryName || context.categoryCode),
+  categoria_externa: trim(context.categoryExternalName || context.categoryName || context.categoryCode),
   calibre: trim(context.caliber),
+  calibre_sin_ceros: trim(context.caliber).replace(/0/g, ''),
   codigo: code,
   lote: trim(context.processNumber)
 });
+
+const unresolvedVariables = (zpl) => [...new Set(
+  [...String(zpl).matchAll(/\{\{\s*([a-z][a-z0-9_]*)\s*\}\}/gi)].map((match) => match[1].toLowerCase())
+)];
+
+const buildPreparedLabel = (context, boxNumber) => {
+  const code = buildLegacyBoxCode({
+    boxNumber,
+    envCode: context.envCode,
+    categoryCode: context.categoryCode,
+    caliberCode: context.caliberCode,
+    machine: context.machine,
+    line: context.lineId,
+    person: context.personCode
+  });
+  const zpl = generateZpl(context.labelDesign, { variableValues: variableValues(context, code) });
+  const unresolved = unresolvedVariables(zpl);
+  if (unresolved.length) throw new Error(`La etiqueta contiene variables sin resolver: ${unresolved.join(', ')}.`);
+  return { code, zpl, labelCode: context.labelCode, labelVersion: context.labelVersion };
+};
 
 const createImpresionService = ({ repository, printer, logger = console, workerId = `printer-${process.pid}` }) => {
   const processFolio = async (job) => {
@@ -63,28 +97,18 @@ const createImpresionService = ({ repository, printer, logger = console, workerI
         }
 
         const boxNumber = await repository.nextBoxNumber(context.empCod);
-        const code = buildLegacyBoxCode({
-          boxNumber,
-          envCode: context.envCode,
-          categoryCode: context.categoryCode,
-          caliberCode: context.caliberCode,
-          machine: context.machine,
-          line: context.lineId,
-          person: context.personCode
-        });
-        const values = variableValues(context, code);
-        const zpl = generateZpl(context.labelDesign, { variableValues: values });
+        const prepared = buildPreparedLabel(context, boxNumber);
         await repository.savePrepared(job.id, {
-          labelCode: context.labelCode,
-          labelVersion: context.labelVersion,
-          zpl
+          labelCode: prepared.labelCode,
+          labelVersion: prepared.labelVersion,
+          zpl: prepared.zpl
         });
 
         await printer.send({
           host: context.printerIp,
           port: context.printerPort || 9100,
           timeoutMs: context.printerTimeoutMs,
-          zpl
+          zpl: prepared.zpl
         });
         delivered = true;
         await repository.markPrinted(job.id);
@@ -108,4 +132,4 @@ const createImpresionService = ({ repository, printer, logger = console, workerI
   return { processNext };
 };
 
-module.exports = { createImpresionService, variableValues, formatDate };
+module.exports = { createImpresionService, variableValues, formatDate, unresolvedVariables, buildPreparedLabel };

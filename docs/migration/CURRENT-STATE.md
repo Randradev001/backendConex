@@ -57,6 +57,12 @@ nombre del objeto GX y documentar su descripcion de negocio.
 10. La marca visual es CONEX-CO, Control de exportacion, con paleta verde. No
     volver a textos, colores o documentacion de Mantis.
 
+En la administracion de Seguridad, los selectores de modulo, programa y accion
+se filtran en cascada por sus claves padre. Los codigos de modulo son locales a
+cada sistema; por ejemplo, `70/8` y `100/8` son registros distintos y validos.
+La interfaz conserva esa clave compuesta y limpia las selecciones descendientes
+cuando cambia sistema, modulo o programa.
+
 ## Diseñador visual de etiquetas ZPL
 
 Implementado como CRUD visual que reutiliza el programa de Seguridad de
@@ -84,7 +90,7 @@ Implementado como CRUD visual que reutiliza el programa de Seguridad de
   Sus 24 filas `CONFIGETI` no se muestran ni editan en el flujo nuevo; solo se
   usan para rescatar el primer diseño histórico.
 - En ambos ejemplos, `Rescatar desde GX8` recompone el layout de
-  `Eti_CV_VINA2016` como un diseño de 799 por 400 puntos, 22 elementos y
+  `Eti_CV_VINA2016` como un diseño de 799 por 400 puntos, 23 elementos y
   variables editables al crear una versión. Preview y canvas aplican una orientación visual de 180
   grados para mostrarlo en posición de lectura sin modificar las coordenadas ni
   rotaciones ZPL. Canvas y preview sustituyen la muestra genérica `CALIBRE` por
@@ -139,11 +145,21 @@ Estado operativo:
   Cada lote destaca la cantidad restante en envases y kilos. Tras crear, un
   dialogo resume lo persistido y da protagonismo al `Ordpnum` generado por el
   backend. Ese resumen puede descargarse como PDF real desde el dialogo o las
-  acciones del ADM. El alta persiste la exportadora seleccionada en `ExpCod`;
+  acciones del ADM. La visualizacion del ADM presenta los 25 campos de cabecera
+  en tarjetas tematicas y conserva el `DataGrid` completo de lotes. El alta
+  persiste la exportadora seleccionada en `ExpCod`;
+  la grilla presenta los nombres `ProdNom` y `ExpNom` asociados a esas claves.
+  El tema compartido de `DataGrid` centra verticalmente las acciones y normaliza
+  sus iconos interactivos a tamano medio en los listados del sistema. La impresion resuelve
+  `{{productor}}` desde el `ProdCod` persistido en la orden activa;
   ver `docs/migration/ordenes-proceso-operacion.md`.
 - El ADM de ordenes de proceso incorpora una accion confirmada para iniciar o
   desactivar una orden. El backend registra los datos de apertura y evita que
   dos ordenes queden activas simultaneamente para la misma empresa y temporada.
+  En estados distintos de 0/1, el mismo espacio de accion muestra las lecturas
+  CAPCAJAS en pantalla completa. La lectura de `CAP001` acepta `100/8/1` o
+  `110/2/2`; altas, cierre, generacion y reclasificacion conservan solo
+  `100/8/1`.
 - `database/20260818_importar_usuarios_rut_real_login_2016.sql` importa desde
   `CONEX_MIGRACION` a `CONEX` solo usuarios activos con RUT/DV valido y empresa
   asignada; copia empresas, `SEGUSUEMP`, credenciales modernas si existen y
@@ -161,6 +177,9 @@ Estado operativo:
 - `database/20260907_control_lineas_cap001_compatibilidad.sql` corrige de forma
   aditiva instalaciones donde `CAP001` fue creada como tabla auxiliar parcial;
   agrega las columnas y el indice requeridos por el contador de cajas.
+- `database/20261006_captura_cajas_compatibilidad_2016.sql` completa esas bases
+  parciales con todas las columnas GX usadas por Captura de cajas y agrega
+  `LINCONFIG.VarCod`, requerido al resolver lineas por especie y variedad.
 
 ## Folios Procesados e Ingreso de Tarjas
 
@@ -392,6 +411,9 @@ catálogos y la preservación de sus valores originales el 2026-09-21.
 `GenCajas` genera rangos de 1 a 1.000 cajas para órdenes activas en una sola
 transacción; valida catálogos, origen técnico y duplicados antes de insertar
 cualquier fila. La validación automática cubre el límite del rango.
+La operación principal de Captura de cajas se presenta como página normal del
+layout, no como diálogo. La orden queda identificada por `tempCod` y `ordpnum`
+en la URL para admitir recarga, enlace directo y navegación Atrás/Adelante.
 El 2026-09-28 se ejecutó además una simulación automática visible en navegador
 sobre `2016-2017 / 146`. Cubrió filtros e indicadores, apertura de todos los
 flujos, rechazo por largo y duplicado, selección para reclasificar y bloqueo de
@@ -425,16 +447,66 @@ marca `OPLCProc=1` y actualiza `OPLCFecha`. Queda deshabilitado por defecto y no
 debe habilitarse mientras permanezca activo el trigger SQL `Imprime`. Ver
 [impresion-etiquetas-worker.md](impresion-etiquetas-worker.md).
 
+El worker completa todas las variables que puede producir el rescate `VINASA`,
+respeta el formato de fecha de `CONFIGETI`, conserva el calibre histórico sin
+ceros y bloquea el envío si queda un marcador sin resolver. `POLCURA16` versión
+4 fue regenerada desde sus 12 filas GX8 y quedó vigente, con Code 128 de módulo
+2, número humano visible y sin superposición con los textos regulatorios; una comprobación de la
+orden activa 177 y la línea 1 generó el ZPL completo sin imprimir ni consumir el
+correlativo `ETILIN`.
+
+Desde el 2026-10-05, backend y worker pueden cargar perfiles aislados mediante
+`CONEX_ENV_FILE`. Las plantillas `.env.backend.example` y
+`.env.print-worker.example`, el diagnóstico `npm run print:config:check` y la
+separación `PRINT_QUEUE_SOURCE`/`PRINT_CONTEXT_SOURCE` permiten probar
+configuraciones sin mostrar secretos. La cola permanece siempre en
+`OrdenImpresion` local porque allí inserta el PLC; `database` conserva la
+resolución SQL actual. El contexto `api` ya implementa el flujo distribuido:
+el worker reclama la fila local, solicita al backend web una preparación
+idempotente por instalación y `OPLCID`, valida el SHA-256, guarda ZPL y metadatos
+en el spool local, imprime por TCP dentro de la planta y confirma el resultado
+en ambas bases. Una caída HTTP antes de preparar devuelve la fila local a
+pendiente sin consumir otro correlativo. El backend autentica el agente con
+token, identificador e instalación separados de la sesión React y nunca abre
+TCP hacia la Zebra. La persistencia central se agrega mediante
+`database/20261005_print_agent_remoto_2016.sql`, aplicada en
+`CONEX_MIGRACION`; su despliegue en `CONEX` del servidor web y la prueba física
+controlada continúan pendientes. Ver
+`docs/migration/impresion-worker-remoto-estudio.md`.
+
+El servidor web también debe conservar las estructuras GX8 `ConfImpresoras` y
+`ETIXCAL`, que participan en la resolución de impresora y etiqueta por calibre.
+Para instalaciones donde no fueron migradas se dispone de
+`database/20261005_print_agent_contexto_web_2016.sql`; el script solo crea las
+tablas ausentes y se detiene ante una estructura parcial incompatible.
+
+La toma atomica de la cola fija `READ COMMITTED` antes de usar `READPAST`. Esto
+evita el error SQL 650 cuando el pool entrega una conexion que habia quedado en
+`SERIALIZABLE` despues de incrementar el correlativo `ETILIN`; `UPDLOCK` y la
+actualizacion en una sola sentencia siguen impidiendo reclamos duplicados.
+
 El diseñador versionado incluye una impresión directa con valores de muestra e
 impresora seleccionada. El modal de edición de Control de líneas incluye una
 simulación que crea una fila pendiente igual al PLC y exige guardar primero
-cualquier cambio de configuración. La pantalla también incorpora un CRUD de
-`ConfImpresoras` para asignar nombre e IPv4 por línea, con soporte para
-direcciones compartidas. Su menú dinámico se registra como `100/6/12`,
+cualquier cambio de configuración. La administracion de `ConfImpresoras` se
+separo en el maestro `/procesos/impresoras-lineas`: lista todas las lineas de la
+empresa y cada fila ofrece un lapiz para editar nombre e IPv4, con soporte para
+direcciones compartidas. Control de lineas ya no presenta el boton
+`Impresoras`. Las filas configuradas ofrecen un boton de impresion directa que
+encola la linea en `OrdenImpresion`; el worker imprime la etiqueta operacional,
+prioriza `ETIXCAL` para el calibre configurado y usa `ORDPROC.OrdpCodEti` como
+respaldo. Requiere linea y orden activas, version vigente y consume `ETILIN`
+como el flujo productivo. El menú dinámico del maestro se registra como
+`100/6/12`,
 `ProgNomGX=wconfimpresoras`, mediante
 `database/20260909_impresoras_lineas_menu_2016.sql`, aplicado en
 `CONEX_MIGRACION` el 2026-09-09. La asignación a usuarios o roles queda
 explícitamente bajo Seguridad.
+
+Las dos acciones HTTP de prueba directa se conservan solo para el perfil
+integrado. Cuando `PRINT_AGENT_API_ENABLED=true`, el backend las rechaza para
+garantizar que el servidor web no abra TCP hacia una Zebra ni escriba por error
+en una `OrdenImpresion` central distinta de la cola local del PLC.
 
 Los scripts con `BDCONEXCO` en el nombre son antecedentes de la etapa previa.
 No ejecutarlos sobre la base actual sin estudiar su objetivo y precondiciones.
@@ -448,6 +520,13 @@ pruebas completas, `verify:conex` y `DBCC CHECKDB` antes del renombre.
 en SQL Server. La ampliación repetible está en
 `database/20260929_program_prognomgx_100_2016.sql` y fue aplicada sobre `CONEX`
 el 2026-09-29.
+
+El dashboard de inicio fue reemplazado por una portada operacional sin cifras
+simuladas. Sus tarjetas principales y atajos secundarios se derivan del menu
+autorizado de la sesion, muestran solo rutas disponibles para el usuario y
+conservan la autorizacion definitiva en los endpoints Node. Presenta usuario,
+empresa y fecha local sin contadores intermedios. Ver
+`docs/migration/dashboard-inicio.md`.
 
 | Area | Estado | Implementacion |
 |---|---|---|
@@ -466,6 +545,8 @@ La pantalla `Asignacion de accesos` selecciona una vez el usuario. Muestra una
 pestana `Directos`, todas las pestanas de roles asignados y controles para
 agregar o quitar roles. Administrar una pestana de rol modifica la plantilla y
 afecta dinamicamente a todos sus usuarios; no modifica asignaciones directas.
+Tras cualquiera de esas operaciones, React renueva la sesion autenticada para
+reflejar inmediatamente el menu lateral y los atajos autorizados del dashboard.
 
 La importacion historica no cargo automaticamente las plantillas de rol porque
 los codigos de `PROGRAM` de las dos bases no son equivalentes. La homologacion
@@ -902,6 +983,15 @@ En la ola anterior, 2026-07-30:
 La capa de Seguridad y los maestros anteriores tienen evidencia detallada en
 sus documentos de modulo. No extender esta evidencia a objetos que no fueron
 probados.
+
+En la separacion del maestro de impresoras por linea, 2026-09-30:
+
+- la consulta real devolvio las 21 lineas de la empresa 1, incluidas 20 sin
+  configuracion y una con `ConfImpresoras`;
+- lectura y escritura del maestro exigen el programa propio `100/6/12`, mientras
+  el diseñador conserva su consulta de impresoras configuradas;
+- la suite backend aprobo 81 pruebas, ESLint dirigido termino sin errores y el
+  frontend compilo 6.033 modulos.
 
 ## Definicion de terminado
 

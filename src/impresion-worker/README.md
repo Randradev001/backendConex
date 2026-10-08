@@ -33,6 +33,49 @@ PRINT_TIMEOUT_MS=5000
 Iniciar con `npm run start:printer`. No debe habilitarse mientras el trigger
 histórico `Imprime` siga ejecutando el programa antiguo.
 
+## Perfiles de entorno
+
+El backend HTTP y el worker pueden usar archivos separados. Copie las plantillas
+sin versionar sus valores reales:
+
+```text
+.env.backend.example       -> .env.backend
+.env.print-worker.example  -> .env.print-worker
+```
+
+Diagnostique el perfil sin iniciar el worker ni tocar la cola:
+
+```bash
+CONEX_ENV_FILE=.env.print-worker npm run print:config:check
+```
+
+En Node.js 20 también puede iniciar directamente los perfiles:
+
+```bash
+npm run start:backend:profile
+npm run start:printer:profile
+```
+
+`PRINT_QUEUE_SOURCE=database` es obligatorio: el PLC y la simulación insertan
+en `OrdenImpresion` de la base local. `PRINT_CONTEXT_SOURCE=database` conserva
+la resolución SQL integrada. Con `PRINT_CONTEXT_SOURCE=api`, el worker mantiene
+esa cola local pero solicita contexto y ZPL a
+`/backendDocker/print-agent/v1`, valida el checksum, escribe el spool y luego
+imprime en la LAN. La validación nunca imprime contraseñas ni tokens.
+
+Antes de usar el modo remoto, aplique
+`database/20261005_print_agent_remoto_2016.sql` en la base web y configure el
+mismo `PRINT_AGENT_ID`, `PRINT_INSTALLATION_ID` y `PRINT_AGENT_TOKEN` en ambos
+perfiles. El backend usa además `PRINT_AGENT_API_ENABLED=true` y
+`PRINT_AGENT_EMP_COD`. HTTPS es obligatorio salvo la excepción transitoria y
+explícita `PRINT_API_ALLOW_INSECURE_HTTP=true`.
+
+Genere un token nuevo sin reutilizar la contraseña SQL:
+
+```bash
+npm run print:token
+```
+
 ## Pruebas desde React
 
 El router autenticado `/backendDocker/impresion` permite listar impresoras,

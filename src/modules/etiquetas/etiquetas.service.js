@@ -107,11 +107,13 @@ const buildVinasaZpl = (rows = []) => {
     `^FT784,174^A0I,20,19^FH\\^FD${a(6)}^FS`,
     `^FT784,150^A0I,20,19^FH\\^FD${a(5)}^FS`,
     `^FT479,203^A0I,39,38^FH\\^FD${b(4)}^FS`,
-    '^FT178,181^A0I,79,79^FH\\^FD{{calibre}}^FS',
+    // Eti_CV_VINA2016 elimina los ceros del código de calibre antes de imprimirlo.
+    '^FT178,181^A0I,79,79^FH\\^FD{{calibre_sin_ceros}}^FS',
     `^FT784,203^A0I,39,38^FH\\^FD${a(4)}^FS`,
     '^FO182,147^GB0,131,8^FS',
     '^FO490,147^GB0,132,8^FS',
-    '^BY4,3,64^FT739,60^BCI,,Y,N',
+    // Módulo 2 deja zona de silencio y evita invadir los textos regulatorios.
+    '^BY2,3,64^FT739,60^BCI,,Y,N',
     '^FD>;{{codigo}}^FS',
     '^PQ1,0,1,Y',
     '^XZ'

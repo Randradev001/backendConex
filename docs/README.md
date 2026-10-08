@@ -70,6 +70,8 @@ la diferencia es trabajo incompleto, cambio no documentado o una regresion.
 
 - [Despachos SAG](migration/despachos-sag.md): listado por planilla, PDF y
   archivo `.des` por fila; el ABM queda para una segunda entrega.
+- [Dashboard de inicio y atajos](migration/dashboard-inicio.md): portada
+  operacional filtrada por el menu autorizado de cada usuario.
 - [operacion de ordenes de proceso](migration/ordenes-proceso-operacion.md):
   seleccion de saldos, alta transaccional y confirmacion del correlativo.
 - [Folios Procesados e Ingreso de Tarjas](migration/ingreso-tarjas.md):
@@ -81,6 +83,12 @@ la diferencia es trabajo incompleto, cambio no documentado o una regresion.
 - [CRUD visual de etiquetas y diseñador ZPL versionado](migration/etiquetas-editor-zpl.md):
   cards de etiquetas, versiones de diseño, persistencia JSON/ZPL, rescate GX8,
   seguridad y límites de preview e impresión.
+- [Agente local de impresión conectado al backend web](migration/impresion-worker-remoto-estudio.md):
+  perfiles separados, origen SQL/API, seguridad, leases, spool y etapas para
+  conservar el modo local mientras se incorpora la impresión remota.
+- [Despliegue del agente local de impresión](deployment/print-agent-remoto.md):
+  variables del servidor y la planta, migración, heartbeat y puesta en marcha
+  controlada.
 
 ### Inventario GX8
 

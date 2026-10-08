@@ -19,7 +19,11 @@
     "test": "node --test",
     "dev": "nodemon index.js",
     "start": "node index.js",
+    "start:backend:profile": "node --env-file=.env.backend index.js",
     "start:printer": "node src/impresion-worker/index.js",
+    "start:printer:profile": "node --env-file=.env.print-worker src/impresion-worker/index.js",
+    "print:config:check": "node scripts/check-print-config.js",
+    "print:token": "node scripts/generate-print-agent-token.js",
     "test:printer": "node --test test/impresionWorker.test.js"
   },
   "keywords": [],

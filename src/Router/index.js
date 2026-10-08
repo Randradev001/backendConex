@@ -13,6 +13,7 @@ const impresionRouter = require('../impresion-worker/impresion.routes')
 const ingresoTarjasRouter = require('../modules/ingresoTarjas/ingresoTarjas.routes')
 const inspeccionesRouter = require('../modules/inspecciones/inspecciones.routes')
 const despachosSAGRouter = require('../modules/despachosSAG/despachosSAG.routes')
+const printAgentRouter = require('../print-agent/printAgent.routes')
 
 router.use('/maestros',maestrosRouter)
 router.use('/seguridad', seguridadRouter)
@@ -27,6 +28,7 @@ router.use('/impresion', impresionRouter)
 router.use('/ingreso-tarjas', ingresoTarjasRouter)
 router.use('/inspecciones', inspeccionesRouter)
 router.use('/despachos-sag', despachosSAGRouter)
+router.use('/print-agent/v1', printAgentRouter)
 
 // test para confirmar que este router está montado
 router.get('/test', (req, res) => res.send('Router raíz OK'));

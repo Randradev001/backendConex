@@ -1,6 +1,7 @@
 const { getPool, sql } = require('../conectorMysql/conectorSqlServer');
 const { validateDocument, generateZpl } = require('../modules/etiquetas/zpl/zplCore');
 const { sendZpl } = require('./printerClient');
+const { unresolvedVariables } = require('./impresion.service');
 
 class ImpresionHttpError extends Error {
   constructor(status, code, message) {
@@ -30,19 +31,26 @@ const printerPayload = (payload = {}) => {
 };
 const TEST_VALUES = Object.freeze({
   codigo: '00000100203400701016000', producto: 'CEREZAS', especie: 'CEREZAS',
+  especie_externa: 'CHERRIES',
   variedad: 'BING', fecha: '09/09/2026', productor: 'PRODUCTOR PRUEBA',
+  productor_codigo: 'CSG:88510', productor_secundario: 'PREDIO PRUEBA',
   comuna: 'COMUNA PRUEBA', provincia: 'PROVINCIA PRUEBA', calibre: '00LL',
-  envase: '5 KG', envase_externo: '5 KG', categoria: 'EXPORTACIÓN', lote: '1'
+  calibre_sin_ceros: 'XLD', envase: '5 KG', envase_externo: '5 KG',
+  categoria: 'EXPORTACIÓN', categoria_externa: 'EXPORT', lote: '1'
 });
 const testVariables = (design, supplied = {}) => Object.fromEntries((design.variables || []).map((variable) => {
   const name = trim(variable.name).toLowerCase();
   const explicit = Object.prototype.hasOwnProperty.call(supplied, name) ? supplied[name] : undefined;
   const stored = trim(variable.sampleValue);
   const sample = stored && stored.toLowerCase() !== name ? stored : TEST_VALUES[name];
-  return [name, explicit ?? sample ?? `PRUEBA ${name.toUpperCase()}`];
+  return [name, explicit ?? sample ?? `{{${name}}}`];
 }));
 
-const createImpresionHttpService = ({ poolProvider = getPool, send = sendZpl } = {}) => {
+const createImpresionHttpService = ({
+  poolProvider = getPool,
+  send = sendZpl,
+  remoteAgentEnabled = ['1', 'true', 'yes', 'si'].includes(String(process.env.PRINT_AGENT_API_ENABLED || '').trim().toLowerCase())
+} = {}) => {
   const listPrinters = async (company) => {
     const empCod = positiveInteger(company, 'Empresa');
     const pool = await poolProvider();
@@ -56,6 +64,26 @@ const createImpresionHttpService = ({ poolProvider = getPool, send = sendZpl } =
       ORDER BY i.CIMPID;
     `);
     return { rows: result.recordset.map((row) => ({ id: Number(row.id), name: trim(row.name), ip: trim(row.ip), machine: row.machine == null ? null : Number(row.machine), lineDescription: trim(row.lineDescription) })) };
+  };
+
+  const listPrinterLines = async (company) => {
+    const empCod = positiveInteger(company, 'Empresa');
+    const pool = await poolProvider();
+    const result = await pool.request().input('EmpCod', sql.SmallInt, empCod).query(`
+      SELECT l.LinID AS id,l.LinMaquina AS machine,LTRIM(RTRIM(l.LinDesc)) AS lineDescription,
+        l.LinEstado AS lineActive,LTRIM(RTRIM(i.CIMPNombre)) AS name,LTRIM(RTRIM(i.CIMPIP)) AS ip
+      FROM dbo.LINEAS l
+      LEFT JOIN dbo.ConfImpresoras i ON i.EmpCod=l.EmpCod AND i.CIMPID=l.LinID
+      WHERE l.EmpCod=@EmpCod
+      ORDER BY l.LinMaquina,l.LinID;
+    `);
+    return {
+      rows: result.recordset.map((row) => ({
+        id: Number(row.id), machine: Number(row.machine), lineDescription: trim(row.lineDescription),
+        lineActive: Boolean(row.lineActive), configured: row.name != null || row.ip != null,
+        name: trim(row.name), ip: trim(row.ip)
+      }))
+    };
   };
 
   const createPrinter = async (company, payload = {}) => {
@@ -102,6 +130,9 @@ const createImpresionHttpService = ({ poolProvider = getPool, send = sendZpl } =
   };
 
   const printLabelTest = async (company, payload = {}) => {
+    if (remoteAgentEnabled) {
+      throw new ImpresionHttpError(409, 'REMOTE_PRINT_AGENT_REQUIRED', 'El servidor web no imprime por TCP; la prueba debe ingresar a la cola local del agente.');
+    }
     const empCod = positiveInteger(company, 'Empresa');
     const printerId = positiveInteger(payload.printerId, 'Impresora');
     const labelCode = trim(payload.labelCode).slice(0, 10);
@@ -127,11 +158,18 @@ const createImpresionHttpService = ({ poolProvider = getPool, send = sendZpl } =
     try { design = payload.design ? validateDocument(payload.design) : validateDocument(JSON.parse(row.EtiDesignJson)); }
     catch (error) { throw new ImpresionHttpError(400, 'INVALID_LABEL_DESIGN', error.message); }
     const zpl = generateZpl(design, { variableValues: testVariables(design, payload.variables || {}) });
+    const unresolved = unresolvedVariables(zpl);
+    if (unresolved.length) {
+      throw new ImpresionHttpError(422, 'UNRESOLVED_LABEL_VARIABLES', `La etiqueta contiene variables sin resolver: ${unresolved.join(', ')}.`);
+    }
     await send({ host: trim(row.PrinterIp), port: Number(process.env.PRINT_PORT || 9100), timeoutMs: Number(process.env.PRINT_TIMEOUT_MS || 5000), zpl });
     return { printed: true, printer: { id: printerId, name: trim(row.PrinterName), ip: trim(row.PrinterIp) }, label: { code: labelCode, version } };
   };
 
   const simulateLine = async (company, machineValue, lineValue) => {
+    if (remoteAgentEnabled) {
+      throw new ImpresionHttpError(409, 'REMOTE_PRINT_AGENT_REQUIRED', 'La simulación web no puede escribir en la cola SQL local del PLC.');
+    }
     const empCod = positiveInteger(company, 'Empresa');
     const machine = positiveInteger(machineValue, 'Máquina');
     const line = positiveInteger(lineValue, 'Línea');
@@ -179,7 +217,7 @@ const createImpresionHttpService = ({ poolProvider = getPool, send = sendZpl } =
     }
   };
 
-  return { listPrinters, createPrinter, updatePrinter, deletePrinter, printLabelTest, simulateLine };
+  return { listPrinters, listPrinterLines, createPrinter, updatePrinter, deletePrinter, printLabelTest, simulateLine };
 };
 
 module.exports = { createImpresionHttpService, ImpresionHttpError, printerPayload, testVariables };

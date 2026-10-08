@@ -16,18 +16,21 @@ const printerListPermission = (req, res, next) => {
   if (roles.some((role) => String(role).trim().toUpperCase() === 'ADMINFULL')) return next();
   return requireAnyPermission([LABEL_PERMISSION, LINE_PERMISSION, PRINTER_PERMISSION])(req, res, next);
 };
-const printerWritePermission = requireAnyPermission([LINE_PERMISSION, PRINTER_PERMISSION]);
+const printerWritePermission = requirePermission(PRINTER_PERMISSION);
+const printerPrintPermission = requireAnyPermission([LINE_PERMISSION, PRINTER_PERMISSION]);
 
 router.use(authContext);
 router.get('/impresoras', printerListPermission, controller.printers);
+router.get('/impresoras/lineas', requirePermission(PRINTER_PERMISSION), controller.printerLines);
 router.post('/impresoras', printerWritePermission, controller.createPrinter);
 router.put('/impresoras/:id', printerWritePermission, controller.updatePrinter);
 router.delete('/impresoras/:id', printerWritePermission, controller.deletePrinter);
 router.post('/pruebas/etiqueta', labelPermission, controller.printLabelTest);
-router.post('/lineas/:machine/:line/simular', requirePermission(LINE_PERMISSION), controller.simulateLine);
+router.post('/lineas/:machine/:line/simular', printerPrintPermission, controller.simulateLine);
 
 module.exports = router;
 module.exports.LABEL_PERMISSION = LABEL_PERMISSION;
 module.exports.LINE_PERMISSION = LINE_PERMISSION;
 module.exports.PRINTER_PERMISSION = PRINTER_PERMISSION;
 module.exports.labelPermission = labelPermission;
+module.exports.printerPrintPermission = printerPrintPermission;

@@ -1,10 +1,19 @@
 require('../config/loadEnv');
 const { runWorker } = require('./worker');
+const { buildPrintConfig } = require('../config/printConfig');
 
-if (!['1', 'true', 'yes', 'si'].includes(String(process.env.PRINT_WORKER_ENABLED || '').toLowerCase())) {
+let printConfig;
+try {
+  printConfig = buildPrintConfig();
+} catch (error) {
+  console.error(`Configuración inválida del worker: ${error.message}`);
+  process.exitCode = 2;
+}
+
+if (printConfig && !printConfig.enabled) {
   console.error('Worker de impresión deshabilitado. Configure PRINT_WORKER_ENABLED=true para iniciarlo.');
   process.exitCode = 2;
-} else {
+} else if (printConfig) {
   const controller = new AbortController();
   process.once('SIGINT', () => controller.abort());
   process.once('SIGTERM', () => controller.abort());

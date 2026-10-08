@@ -922,10 +922,13 @@ const listCatalog = (catalogName) => async (req, res) => {
     const pool = await getPool();
     if (catalogName === 'ordenesProcesoAdm') {
       const request = pool.request().input('EmpCod', sql.SmallInt, getContextEmpCod(req)).input('TempCod', sql.Char(9), getParam(req, 'TempCod') || null).input('Limit', sql.Int, getLimit(req));
-      const result = await request.query(`SELECT TOP (@Limit) o.*, RTRIM(p.ProdNom) ProdNom,
+      const result = await request.query(`SELECT TOP (@Limit) o.*, RTRIM(p.ProdNom) ProdNom, RTRIM(x.ExpNom) ExpNom,
         STUFF((SELECT ', ' + CAST(d.Ordp1Nlote AS varchar(20)) + ' (' + CAST(d.Ordp1Env AS varchar(20)) + ' env, ' + CAST(d.Ordp1Kilos AS varchar(30)) + ' kg)' FROM ORDPROC1 d WHERE d.EmpCod=o.EmpCod AND d.TempCod=o.TempCod AND d.Ordpnum=o.Ordpnum ORDER BY d.Ordp1Nlote FOR XML PATH(''),TYPE).value('.','nvarchar(max)'),1,2,'') lotesUsados,
         STUFF((SELECT ', ' + CAST(d.Ordp1Nlote AS varchar(20)) + ' - ' + COALESCE(CAST(q.CalRecPorCalidad AS varchar(20)),'-') + '%' FROM ORDPROC1 d OUTER APPLY (SELECT TOP 1 c.CalRecPorCalidad FROM CALRECEP c WHERE c.EmpCod=d.EmpCod AND c.TempCod=d.TempCod AND c.Mov1Nlote=d.Ordp1Nlote AND c.CalRecEstado='F' ORDER BY c.CalRecFecha DESC,c.CalRecHora DESC,c.CalRecId DESC) q WHERE d.EmpCod=o.EmpCod AND d.TempCod=o.TempCod AND d.Ordpnum=o.Ordpnum ORDER BY d.Ordp1Nlote FOR XML PATH(''),TYPE).value('.','nvarchar(max)'),1,2,'') calidadLotes
-        FROM ORDPROC o LEFT JOIN PRODUCTORES p ON p.EmpCod=o.EmpCod AND p.ProdCod=o.ProdCod WHERE o.EmpCod=@EmpCod AND (@TempCod IS NULL OR o.TempCod=@TempCod) ORDER BY o.OrdpFecha DESC,o.Ordpnum DESC`);
+        FROM ORDPROC o
+        LEFT JOIN PRODUCTORES p ON p.EmpCod=o.EmpCod AND p.ProdCod=o.ProdCod
+        LEFT JOIN EXPORT1 x ON x.EmpCod=o.EmpCod AND x.ExpCod=o.ExpCod
+        WHERE o.EmpCod=@EmpCod AND (@TempCod IS NULL OR o.TempCod=@TempCod) ORDER BY o.OrdpFecha DESC,o.Ordpnum DESC`);
       return res.json({ success: true, catalog: catalogName, count: result.recordset.length, data: result.recordset });
     }
     const request = pool.request();
