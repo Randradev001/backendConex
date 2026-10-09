@@ -68,6 +68,25 @@ const addFolioTotals = (rows) => {
   });
 };
 
+const paginateDetailRows = (rows, { normalCapacity, finalCapacity }) => {
+  const source = Array.isArray(rows) ? rows : [];
+  const regularRows = Math.max(1, Number(normalCapacity) || 1);
+  const lastPageRows = Math.max(0, Number(finalCapacity) || 0);
+  const pages = [];
+  let offset = 0;
+
+  // Las páginas anteriores se llenan hasta el límite normal. La última queda
+  // con el espacio reservado para totales y firmas.
+  while (source.length - offset > lastPageRows) {
+    const remaining = source.length - offset;
+    const take = Math.min(regularRows, remaining);
+    pages.push(source.slice(offset, offset + take));
+    offset += take;
+  }
+  pages.push(source.slice(offset));
+  return pages;
+};
+
 const renderDespachoPdf = (data) =>
   new Promise((resolve, reject) => {
     const header = data.header || {};
@@ -595,10 +614,17 @@ const renderDespachoPdf = (data) =>
 
     drawMainPlanilla();
 
+    const drawDetailPageHeader = (includeSection = true) => {
+      y = document.page.margins.top;
+      drawPageTitle("DESPACHO DE FRUTA INSPECCIONADA", `ANEXO PLANILLA DESPACHO N° ${planilla}`);
+      if (includeSection) {
+        section("DETALLE DE LA PLANILLA", { label: "FECHA EMISION", value: date(valueOf(header, "shipmentDate")) });
+      }
+      return y;
+    };
+
     document.addPage({ size: "LETTER", layout: "portrait", margin: 28 });
-    y = document.page.margins.top;
-    drawPageTitle("DESPACHO DE FRUTA INSPECCIONADA", `ANEXO PLANILLA DESPACHO N° ${planilla}`);
-    section("DETALLE DE LA PLANILLA", { label: "FECHA EMISION", value: date(valueOf(header, "shipmentDate")) });
+    const detailStartY = drawDetailPageHeader();
     const folioHeaders = new Map((data.folios || []).map((row) => [clean(row.folio), row]));
     const detailColumns = [
       { label: "Nº", width: 26, key: "lineNumber", align: "right" },
@@ -635,23 +661,26 @@ const renderDespachoPdf = (data) =>
         return row[column.key];
       },
     });
-    drawDetailTable(detailRows.slice(0, 20));
-    for (let offset = 20; offset < detailRows.length; offset += 20) {
-      document.addPage({ size: "LETTER", layout: "portrait", margin: 28 });
-      y = document.page.margins.top;
-      drawPageTitle("DESPACHO DE FRUTA INSPECCIONADA", `ANEXO PLANILLA DESPACHO N° ${planilla}`);
-      section("DETALLE DE LA PLANILLA", { label: "FECHA EMISION", value: date(valueOf(header, "shipmentDate")) });
-      drawDetailTable(detailRows.slice(offset, offset + 20));
-    }
     const detailTotalsHeight = 20;
     const detailSignatureHeight = 58;
     const detailFooterGap = 4;
     const detailSignatureTop = document.page.height - 42 - detailSignatureHeight;
-    if (y + detailTotalsHeight + detailFooterGap > detailSignatureTop) {
-      document.addPage({ size: "LETTER", layout: "portrait", margin: 28 });
-      y = document.page.margins.top;
-      drawPageTitle("DESPACHO DE FRUTA INSPECCIONADA", `ANEXO PLANILLA DESPACHO N° ${planilla}`);
-    }
+    const detailHeaderHeight = 24;
+    const detailRowHeight = 20;
+    const normalCapacity = Math.max(1, Math.floor((bottom() - detailStartY - detailHeaderHeight) / detailRowHeight));
+    const finalCapacity = Math.max(0, Math.floor((detailSignatureTop - detailStartY - detailHeaderHeight - detailTotalsHeight - detailFooterGap) / detailRowHeight));
+    const detailPages = paginateDetailRows(detailRows, { normalCapacity, finalCapacity });
+
+    detailPages.forEach((rows, index) => {
+      if (index > 0) {
+        document.addPage({ size: "LETTER", layout: "portrait", margin: 28 });
+        drawDetailPageHeader(rows.length > 0);
+      }
+      // Una página final vacía puede ser necesaria para ubicar los totales y
+      // las firmas cuando la página anterior quedó completamente ocupada.
+      if (rows.length > 0 || detailPages.length === 1) drawDetailTable(rows);
+    });
+
     document.rect(left(), y, width(), detailTotalsHeight).fill(colors.greenLight);
     document.rect(left(), y, width(), detailTotalsHeight).lineWidth(0.3).strokeColor(colors.border).stroke();
     const detailTotalColumns = detailColumns.map((column, index) => ({
@@ -735,4 +764,4 @@ const renderDespachoPdf = (data) =>
     document.end();
   });
 
-module.exports = { addFolioTotals, renderDespachoPdf };
+module.exports = { addFolioTotals, paginateDetailRows, renderDespachoPdf };

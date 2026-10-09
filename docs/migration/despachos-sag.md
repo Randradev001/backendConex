@@ -160,6 +160,10 @@ color, los campos de nombre y firma de la contraparte profesional. Las filas
 de subtotal muestran `Totales` y el folio en líneas verticalmente alineadas.
 La fecha de emisión se muestra junto al título `DETALLE DE LA PLANILLA` en
 cada página del anexo.
+Las páginas intermedias del detalle se llenan con todas las filas que permite
+el espacio disponible; la última reserva el espacio inferior para la fila de
+totales y las firmas. Si una página de datos queda completamente ocupada, se
+crea una página final adicional únicamente para esos elementos.
 El bloque de firma usa dos columnas con el nombre de la contraparte y la firma,
 siguiendo el layout de `DPlaniSAG`, sin recuadro ni fondo de color.
 

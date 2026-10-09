@@ -16,7 +16,7 @@ const {
   normalizeMultipuertoPayload,
   statusLabel,
 } = require("../src/modules/despachosSAG/despachosSAG.service");
-const { addFolioTotals, renderDespachoPdf } = require("../src/modules/despachosSAG/despachosSAG.pdf");
+const { addFolioTotals, paginateDetailRows, renderDespachoPdf } = require("../src/modules/despachosSAG/despachosSAG.pdf");
 
 const poolFrom = (result, capture = () => {}) => ({
   request() {
@@ -353,6 +353,13 @@ test("agrega totales solo para folios repetidos en el detalle del despacho", () 
   assert.equal(rows.length, 4);
   assert.equal(rows.filter((row) => row.__folioTotals).length, 1);
   assert.deepEqual(rows[3], { __totals: true, __folioTotals: true, folio: "100", boxes: 18, kilos: 100 });
+});
+
+test("aprovecha las filas disponibles y reserva espacio solo para la última página", () => {
+  const rows = Array.from({ length: 57 }, (_, index) => ({ folio: String(index + 1) }));
+  const pages = paginateDetailRows(rows, { normalCapacity: 30, finalCapacity: 26 });
+
+  assert.deepEqual(pages.map((page) => page.length), [30, 27, 0]);
 });
 
 test("mantiene todas las páginas del PDF en carta vertical", async () => {
