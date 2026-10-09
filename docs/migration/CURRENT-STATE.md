@@ -1007,3 +1007,9 @@ Un objeto queda `READY` solo cuando:
 - exportaciones cumplen el alcance declarado;
 - pruebas y evidencia quedaron documentadas;
 - inventario y estado vigente fueron actualizados.
+
+## Vistas de origen para guías centralizadas en APERP (2026-10-07)
+
+Se crearon y verificaron cuatro vistas `integracion.vGuia*Origen` y `integracion.vPackingCabeceraOrigen` en la base local CONEX. Exponen cabecera, detalle histórico, cliente y cabecera de packing para lectura futura desde APERP; no generan guías ni cambian estados de migración GX. La base APERP local pudo consultar la vista de cabeceras entre bases. El detalle físico de packing sigue sin identificar. Evidencia y límites: [guias-origen-conex.md](guias-origen-conex.md).
+
+En desarrollo, el `wguiasd` autorizado del menú Conex abre el listado prototipo APERP dentro del layout Conex, con contexto Conex y datos ficticios. Desde el listado se puede entrar al formulario de ejemplo y volver. Se verificó visualmente la navegación local. No existe todavía SSO ni acceso productivo a la guía; el enlace de producción sigue pendiente.
