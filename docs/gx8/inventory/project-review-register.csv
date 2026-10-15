@@ -501,7 +501,7 @@
 "Table","ValMExt","","","","","","DISCOVERED",""
 "Theme","Thm01","","","","","","DISCOVERED",""
 "Transaction","Agentes","Maestros","Maestros","","","","DISCOVERED",""
-"Transaction","AnuINS","Anulaciones","Anulaciones","","","","DISCOVERED",""
+"Transaction","AnuINS","Anulaciones","Anulaciones","Listado, cabecera-detalle de folios, Archivo .det, PDF AnuFolios14 y eliminación con liberación de folios; permiso GX 100/20/4.","CRUD_REACT_NODE","/procesos-sag/anulaciones","IMPLEMENTED","Pendiente ejecutar migración SQL y verificación funcional sobre base objetivo."
 "Transaction","Asig","Seguridad","Seguridad","","","","DISCOVERED",""
 "Transaction","AsigProg","Seguridad","Seguridad","","","","DISCOVERED",""
 "Transaction","AsigSist","Seguridad","Seguridad","","","","DISCOVERED",""

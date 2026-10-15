@@ -28,8 +28,8 @@ creado queda al inicio en todas las páginas.
 
 Cada fila ofrece dos salidas:
 
-- **PDF**: genera un PDF real en Node para una sola planilla, siempre vertical
-  y en tamaño Carta. Conserva el orden de las salidas GeneXus: `PlaniDSAG` y
+- **PDF**: genera un PDF real en Node para una sola planilla, en tamaño Carta
+  vertical. Conserva el orden de las salidas GeneXus: `PlaniDSAG` y
   luego `DPlaniSAG`, con la cabecera y todos los folios/detalles de la planilla.
 - **Archivo**: genera un `.des` por una sola planilla. Se habilita solamente
   para `DorEstado=1`, usa `PARAMGE1` `20/30`, normaliza destino mayor a 700 a

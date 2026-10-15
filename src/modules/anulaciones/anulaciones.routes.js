@@ -1,0 +1,18 @@
+const router=require('express').Router();
+const authContext=require('../../middleware/authContext');
+const {requirePermission}=require('../../middleware/securityAuthorization');
+const service=require('./anulaciones.service');
+const run=(handler)=>async(req,res,next)=>{try{return await handler(req,res);}catch(error){if(error instanceof service.AnulacionesError)return res.status(error.status).json({code:error.code,message:error.message});return next(error);}};
+router.use(authContext,requirePermission(service.permission));
+router.get('/form-data',run(async(req,res)=>res.json(await service.getFormData(req.context.empCod))));
+router.get('/candidates',run(async(req,res)=>res.json(await service.listCandidates(req.context.empCod,req.query))));
+router.get('/',run(async(req,res)=>res.json(await service.listAnulaciones(req.context.empCod,req.query))));
+router.post('/',run(async(req,res)=>res.status(201).json(await service.createAnulacion(req.context.empCod,req.context.login,req.body))));
+router.get('/:folio/archivo',run(async(req,res)=>{const file=await service.generateArchivo(req.context.empCod,req.params.folio);res.setHeader('Content-Type','application/octet-stream');res.setHeader('Content-Disposition',`attachment; filename="${file.filename}"`);res.send(file.content);}));
+router.get('/:folio/pdf',run(async(req,res)=>{const file=await service.generatePdf(req.context.empCod,req.params.folio);res.setHeader('Content-Type','application/pdf');res.setHeader('Content-Disposition',`inline; filename="${file.filename}"`);res.send(file.content);}));
+router.get('/:folio',run(async(req,res)=>res.json(await service.getDetail(req.context.empCod,req.params.folio))));
+router.put('/:folio',run(async(req,res)=>res.json(await service.updateAnulacion(req.context.empCod,req.params.folio,req.body))));
+router.post('/:folio/folios',run(async(req,res)=>res.json(await service.addFolio(req.context.empCod,req.params.folio,req.body))));
+router.delete('/:folio/folios',run(async(req,res)=>res.json(await service.removeFolio(req.context.empCod,req.params.folio,req.body))));
+router.delete('/:folio',run(async(req,res)=>res.json(await service.deleteAnulacion(req.context.empCod,req.params.folio))));
+module.exports=router;

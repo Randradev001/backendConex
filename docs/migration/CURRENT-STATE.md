@@ -340,6 +340,33 @@ resumen por folio y las líneas de detalle, junto con las reglas de
 agregar/quitar folios.
 Evidencia y reglas en `docs/migration/inspecciones.md`.
 
+## Anulaciones de folios inspeccionados
+
+La migración de `Anulaciones`/`AnuINS` se incorporó en
+`/procesos-sag/anulaciones` y `/backendDocker/anulaciones`, protegida por el
+programa GX `100/20/4` (`wanulaciones`). El listado conserva los campos de
+folio, fecha, causal, total de folios, observación, datos de creación y
+autorizado; sus acciones son Agregar, Visualizar, Modificar, Eliminar, PDF y
+Archivo. El alta integra cabecera y detalle de folios en una pantalla.
+
+El detalle usa `SOLICITUDES2`: marcar una anulación registra `Sol2NumAnu` y
+`Sol2Dispo`; `CanPE` controla la disponibilidad para reinspección. Eliminar
+libera `Sol2Dispo` y limpia `Sol2NumAnu`; cuando `CanPE=1` también libera
+`FOLIOSPROC.FPDisponible`, y luego elimina la cabecera `ANUINS` dentro de la
+misma transacción.
+Archivo genera el `.det` histórico y PDF genera el reporte `AnuFolios14` desde
+Node en blanco y negro, conservando el orden, títulos y estructura del layout
+XPZ. La estructura y seguridad se completan con
+`database/20261013_anulaciones_inspeccion_2016.sql`; la observación fue
+ampliada a 200 caracteres mediante
+`database/20261014_anulaciones_observacion_200_2016.sql`. Evidencia y reglas:
+`docs/migration/anulaciones.md`.
+La revisión contra el XPZ confirmó la obligatoriedad de fecha, correlativo
+automático, autorizador vigente y disponibilidad de folios; el detalle muestra
+`SolnumI` como número de solicitud y conserva `SolNum` solo como clave interna.
+El selector `Agregar folios` conserva los filtros y estados de `AgrFol_Anu` y
+solo permite seleccionar filas disponibles.
+
 ## Despachos SAG
 
 La primera fase del WorkPanel GX8 `DespachosSAG` está disponible en
@@ -364,7 +391,7 @@ Finalizar solo está disponible para `DorEstado=0`; valida los campos obligatori
 la existencia de folios, cambia a `DorEstado=1` y bloquea posteriores cambios de
 cabecera y folios. PDF combina la cabecera y todos los detalles
 de `DESORIGEN1/2` en el orden de los reportes GX `PlaniDSAG` y `DPlaniSAG`,
-siempre en páginas verticales tamaño Carta. El anexo de detalle agrega una
+en páginas tamaño Carta vertical. El anexo de detalle agrega una
 fila verde de totales por folio solo cuando el folio se repite, con subtotales
 de Kilos y Cajas.
 Archivo está habilitado solo para despachos finalizados y conserva el formato
