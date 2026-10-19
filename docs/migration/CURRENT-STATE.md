@@ -195,11 +195,12 @@ Estado operativo:
 Implementado en `/procesos-sag/folios-procesados` y
 `/backendDocker/ingreso-tarjas` con permiso `100/20/5`. El menú abre el listado
 `Folios Procesados`; Agregar, Visualizar y Modificar llaman a la pantalla
-`Ingreso de Tarjas` en el modo correspondiente. El listado conserva los filtros
+`Ingreso de Tarjas` en el modo correspondiente dentro de un componente `Dialog`;
+las rutas directas se mantienen por compatibilidad. El listado conserva los filtros
 GX por fecha, especie, estado y folio, muestra los campos y totales de ambas
 grillas y usa el `DataGrid` compacto con paginación server-side. Ofrece
 únicamente Agregar, Cargar Folios, Ventana de Impresión y Excel en la barra superior, más Visualizar,
-Modificar y Eliminar como iconos por cada folio en la columna Acciones al extremo
+Modificar y Anular Folio como iconos por cada folio en la columna Acciones al extremo
 izquierdo.
 
 El alta, la modificación y la carga masiva por Excel validan la temporada activa, orden opcional, lotes,
@@ -220,8 +221,13 @@ el valor `0` en el ingreso manual y en la carga Excel;
 en ese caso no se exige una fuente de lote ni se aplica saldo. La especie de cada detalle se toma exclusivamente de la especie de la
 cabecera. El saldo se controla solo cuando existe una fuente asociada. En altas
 manuales, `FPFechaIng` toma la Fecha de cabecera y se guarda con hora `00:00:00`;
-las integraciones que no la informan usan la fecha del servidor. Eliminar y modificar
-se bloquean para folios automáticos o usados por inspección/despacho. Excel se
+las integraciones que no la informan usan la fecha del servidor. Anular y modificar
+se bloquean para folios automáticos o usados por inspección/despacho. Anular conserva
+la cabecera y detalle, asigna `FPEstado=0` (Anulado), `FPDisponible=0` y
+`Fp2Estado=0` en una transacción serializable. Su confirmación muestra bloques de
+Folio y Fecha Ingreso. Los iconos Modificar y Anular Folio permanecen visibles,
+pero se deshabilitan para folios automáticos, inspeccionados, despachados, no
+disponibles o anulados; Visualizar continúa operativo. Excel se
 genera en Node como `.xlsx` con todo el resultado filtrado. El script
 `database/20260929_ingreso_tarjas_2016.sql` fue aplicado sobre `CONEX` el
 2026-09-29 y registró `wfoliosprocesados`; su asignación a usuarios o roles
@@ -267,9 +273,12 @@ desglose por estado (En curso, Aprobadas, Rechazadas y Anuladas) según los
 mismos filtros. Las cards son presionables con clic, Enter o Espacio y abren
 un modal con el listado paginado del estado respectivo, conservando los demás
 filtros activos. Agregar abre
-`/procesos-sag/inspecciones/nueva`: crea una sola cabecera `SOLICITUDES1` en
-estado En curso y vuelve al listado Inspecciones mostrando el mensaje de creación
-exitosa. Los folios pueden
+un `Dialog` con la pantalla unificada; las rutas
+`/procesos-sag/inspecciones/nueva` y `/procesos-sag/inspecciones/:solNum` se
+mantienen para compatibilidad. Agregar crea una sola cabecera `SOLICITUDES1`
+en estado En curso y cierra el diálogo mostrando en el listado Inspecciones el
+mensaje de creación exitosa. Visualizar es solo consulta y Modificar permite
+editar solicitudes en curso. Los folios pueden
 prepararse antes de guardar mediante casillas de selección múltiple y se
 vinculan con la cabecera en una sola transacción; después de guardar también se
 puede agregar uno o varios folios desde el selector del detalle. Cada alta copia sus detalles a `SOLICITUDES2/3`,
@@ -357,6 +366,10 @@ programa GX `100/20/4` (`wanulaciones`). El listado conserva los campos de
 folio, fecha, causal, total de folios, observación, datos de creación y
 autorizado; sus acciones son Agregar, Visualizar, Modificar, Eliminar, PDF y
 Archivo. El alta integra cabecera y detalle de folios en una pantalla.
+Desde el listado, Agregar, Visualizar y Modificar abren la pantalla de
+anulación dentro de un `Dialog` de pantalla completa. Visualizar incorpora un
+encabezado de consulta, indicador de solo lectura y un resumen de folio, fecha,
+causa y folios asociados; las rutas directas se conservan por compatibilidad.
 
 El detalle usa `SOLICITUDES2`: marcar una anulación registra `Sol2NumAnu` y
 `Sol2Dispo`; `CanPE` controla la disponibilidad para reinspección. Eliminar
@@ -481,6 +494,13 @@ columnas descriptivas necesarias en `DESORIGEN/1/2` e incorpora índices de
 consulta; fue aplicada sobre `CONEX` el 2026-10-06. La pantalla unificada
 `Despacho` está disponible con títulos dinámicos por modo, bloques Accordion,
 alta/modificación/visualización y anulación histórica a estado `Nula`.
+Desde el listado, Agregar, Visualizar y Modificar se presentan en un `Dialog`
+de pantalla completa; Visualizar añade encabezado de consulta, estado e
+indicadores visuales manteniendo el contenido en solo lectura. Las rutas
+directas de mantenimiento permanecen disponibles para compatibilidad.
+Anular se confirma en un diálogo compacto sobre el listado con los campos N°
+interno, N° de planilla SAG y fecha de despacho, sin abrir la pantalla de
+mantenimiento.
 El 2026-10-15 se detectó que la base local `CONEX` ya no contenía las columnas
 aditivas de esa migración (entre ellas `DESORIGEN.DANombre`); se volvió a
 ejecutar el script idempotente. Se verificaron el listado, los datos del

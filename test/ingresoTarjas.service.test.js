@@ -6,7 +6,7 @@ const path = require('path');
 const ExcelJS = require('exceljs');
 
 const {
-  IngresoTarjasError, normalizeFolio, listFilters, listTarjas, createTarja, updateTarja, deleteTarja, readImportRows, resolveImportRow, importFoliosExcel
+  IngresoTarjasError, normalizeFolio, listFilters, listTarjas, createTarja, updateTarja, anularTarja, readImportRows, resolveImportRow, importFoliosExcel
 } = require('../src/modules/ingresoTarjas/ingresoTarjas.service');
 
 const dependencies = ({ usedBoxes = 2, editing = false, destinationExists = true } = {}) => {
@@ -46,6 +46,11 @@ test('completa el folio a diez posiciones', () => {
 
 test('conserva el folio de búsqueda para coincidencia parcial', () => {
   assert.equal(listFilters({ from: '2026-09-01', to: '2026-09-30', folio: '73' }).folio, '73');
+});
+
+test('permite filtrar el estado Anulado sin confundirlo con Todos', () => {
+  assert.equal(listFilters({ status: 0 }).status, 0);
+  assert.equal(listFilters({}).status, -1);
 });
 
 test('consulta el folio con coincidencia parcial', async () => {
@@ -237,7 +242,7 @@ test('modifica cabecera y reemplaza el detalle en una sola transaccion', async (
   assert.ok(deps.statements.some(({ statement }) => /INSERT FOLIOSPROC1/.test(statement)));
 });
 
-test('elimina cabecera y detalle manual cuando no tienen uso posterior', async () => {
+test('anula cabecera y detalle manual cuando no tienen uso posterior', async () => {
   const statements = [];
   const transaction = { async begin() {}, async commit() { this.committed = true; }, async rollback() { this.rolledBack = true; } };
   const requestFactory = () => ({
@@ -245,14 +250,34 @@ test('elimina cabecera y detalle manual cuando no tienen uso posterior', async (
     async query(statement) {
       statements.push(statement);
       if (/SELECT TOP 1 h\.TempCod/.test(statement)) {
-        return { recordset: [{ TempCod: '2017-2018', FPOrigen: 0, FPIns: 0, FPDesOri: 0, FPDesOT: 0, FPDesUsda: 0 }] };
+        return { recordset: [{ TempCod: '2017-2018', FPOrigen: 0, FPIns: 0, FPDesOri: 0, FPDesOT: 0, FPDesUsda: 0, FPDisponible: 1, FPEstado: 10 }] };
       }
       return { recordset: [] };
     }
   });
-  const result = await deleteTarja(1, '73', { poolProvider: async () => ({}), transactionFactory: () => transaction, requestFactory });
+  const result = await anularTarja(1, '73', { poolProvider: async () => ({}), transactionFactory: () => transaction, requestFactory });
   assert.equal(result.folio, '0000000073');
+  assert.equal(result.statusLabel, 'Anulado');
   assert.equal(transaction.committed, true);
-  assert.ok(statements.some((statement) => /DELETE FROM FOLIOSPROC1/.test(statement) && /DELETE FROM FOLIOSPROC WHERE/.test(statement)));
+  assert.ok(statements.some((statement) => /UPDATE FOLIOSPROC/.test(statement) && /UPDATE FOLIOSPROC1/.test(statement)));
+  assert.ok(!statements.some((statement) => /DELETE FROM FOLIOSPROC/.test(statement)));
+});
+
+test('rechaza anular un folio que ya está anulado', async () => {
+  const transaction = { async begin() {}, async commit() {}, async rollback() { this.rolledBack = true; } };
+  const requestFactory = () => ({
+    input() { return this; },
+    async query(statement) {
+      if (/SELECT TOP 1 h\.TempCod/.test(statement)) {
+        return { recordset: [{ TempCod: '2017-2018', FPEstado: 0, FPOrigen: 0, FPDisponible: 0 }] };
+      }
+      return { recordset: [] };
+    }
+  });
+  await assert.rejects(
+    () => anularTarja(1, '73', { poolProvider: async () => ({}), transactionFactory: () => transaction, requestFactory }),
+    (error) => error.code === 'FOLIO_ALREADY_CANCELLED'
+  );
+  assert.equal(transaction.rolledBack, true);
 });
 

@@ -26,6 +26,11 @@ El listado `Folios anulados` conserva las columnas del XPZ y sus títulos:
 `Sol2CajasDes` (Total Cajas Des), `SolNDest` (Mercado) y `Sol2NumAnu`
 (N°Anulación).
 
+En el listado, Agregar, Visualizar y Modificar reutilizan el formulario de
+`AnuINS` dentro de un `Dialog` de pantalla completa. La modalidad Visualizar
+es de solo lectura y muestra un resumen visual de la anulación antes de los
+campos y el detalle asociado.
+
 El botón Eliminar replica la liberación de `EliFoliosAnu` dentro de una misma
 transacción: captura los folios asociados, pone
 `SOLICITUDES2.Sol2Dispo=0` y `SOLICITUDES2.Sol2NumAnu=0`, y cuando

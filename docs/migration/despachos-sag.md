@@ -67,6 +67,15 @@ de mantenimiento reutiliza la
 cabecera y sus dos niveles dentro de la misma transacción `DesOrigen`; no son
 maestros separados.
 
+En el listado, Agregar, Visualizar y Modificar abren la pantalla unificada
+`Despacho` dentro de un `Dialog` de pantalla completa, por lo que la grilla se
+mantiene como contexto y las rutas directas de mantenimiento se conservan para
+compatibilidad. Visualizar usa un encabezado de consulta con estado, icono y
+fondo diferenciado, y mantiene todos los campos en solo lectura.
+Anular se confirma directamente desde el listado mediante un diálogo compacto
+que muestra el N° interno, N° de planilla SAG y fecha de despacho; al confirmar
+ejecuta la anulación histórica sin abrir el formulario de mantenimiento.
+
 ## Pantalla `Despacho` y detalle de folios
 
 La segunda entrega está disponible en `/procesos-sag/despachos/nuevo` y en las

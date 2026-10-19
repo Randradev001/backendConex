@@ -114,6 +114,8 @@ router.get('/export/excel', run(async (req, res) => {
 router.get('/:folio', run(async (req, res) => res.json(await service.getTarja(req.context.empCod, req.params.folio))));
 router.post('/', run(async (req, res) => res.status(201).json(await service.createTarja(req.context.empCod, req.body))));
 router.put('/:folio', run(async (req, res) => res.json(await service.updateTarja(req.context.empCod, req.params.folio, req.body))));
-router.delete('/:folio', run(async (req, res) => res.json(await service.deleteTarja(req.context.empCod, req.params.folio))));
+router.patch('/:folio/anular', run(async (req, res) => res.json(await service.anularTarja(req.context.empCod, req.params.folio))));
+// Conserva compatibilidad con clientes anteriores sin permitir bajas físicas.
+router.delete('/:folio', run(async (req, res) => res.json(await service.anularTarja(req.context.empCod, req.params.folio))));
 
 module.exports = router;

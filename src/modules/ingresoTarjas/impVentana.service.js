@@ -269,7 +269,8 @@ const loadPrintLabels = async (empCod, folios, { poolProvider = getPool } = {}) 
     FROM dbo.FOLIOSPROC h
     LEFT JOIN dbo.ESPECIES e ON e.EmpCod=h.EmpCod AND e.Especod=h.FPEspe
     LEFT JOIN dbo.EXPORT1 x ON x.EmpCod=h.EmpCod AND x.ExpCod=h.ExpCod
-    WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod AND h.FPFolio IN (${names.join(',')});
+    WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod AND h.FPFolio IN (${names.join(',')})
+      AND h.FPEstado IN (1,10);
 
     SELECT d.FPFolio AS folio,d.FP2NProc AS lot,d.FP2Cor AS correlation,d.fp2varcod AS varietyCode,
       RTRIM(v.VarNom) AS varietyName,d.Calibre AS caliber,d.EnvCod AS containerCode,

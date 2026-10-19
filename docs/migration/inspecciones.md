@@ -28,7 +28,10 @@ cards son controles presionables (clic, Enter o Espacio) y abren un modal con
 el listado paginado del estado correspondiente, conservando los demás filtros
 activos de la pantalla.
 
-La acción **Agregar** abre `/procesos-sag/inspecciones/nueva`. La pantalla
+Las acciones **Agregar**, **Visualizar** y **Modificar** abren la pantalla
+unificada dentro de un componente `Dialog`; las rutas
+`/procesos-sag/inspecciones/nueva` y `/procesos-sag/inspecciones/:solNum` se
+mantienen para compatibilidad. La pantalla
 reproduce la transacción GeneXus `Solicitudes`: captura únicamente una cabecera
 con fecha, especie, destino, solicitante y destinos aprobados; el número y el
 estado En curso son automáticos. Guardar crea una sola solicitud y vuelve al

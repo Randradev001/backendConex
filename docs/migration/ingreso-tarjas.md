@@ -4,10 +4,10 @@
 
 La entrega migra la transaccion GeneXus `FoliosProc` y el listado
 `FoliosProcesados`. El menu abre el listado y la pantalla `Ingreso de Tarjas`
-se llama desde sus acciones Agregar, Visualizar y Modificar. Incluye eliminacion
-controlada, exportacion Excel, carga masiva controlada por Excel y la pantalla
+se llama desde sus acciones Agregar, Visualizar y Modificar. Incluye anulacion
+logica controlada, exportacion Excel, carga masiva controlada por Excel y la pantalla
 `Ventana de Impresión`, llamada desde `Folios Procesados`. No incluye busqueda
-avanzada, ventas de pallet, anulacion ni los restantes botones GX.
+avanzada, ventas de pallet ni los restantes botones GX.
 
 El XPZ de referencia es `Pantallas y Procedimientos.xpz`, revisado el
 2026-09-29. Incluye la transaccion `FoliosProc`, sus tablas `FoliosProc` y
@@ -16,6 +16,13 @@ El XPZ de referencia es `Pantallas y Procedimientos.xpz`, revisado el
 
 El XPZ adicional `Listado.xpz`, revisado en la misma fecha, contiene el work
 panel `FoliosProcesados`, sus dos grillas, filtros y eventos.
+
+El inventario tambien registra el procedimiento `AnulaRepa_FR` en la carpeta
+`Ingreso_de_Folios`, pero no conserva su estructura ni dependencias. La fuente
+`C:\Users\andre\Downloads\GXW.xpz` indicada para contrastarlo no estuvo
+disponible durante el cambio del 2026-10-19. Por solicitud funcional, la accion
+web se implementa como anulacion logica trazable de `FoliosProc`; no se marca
+ese procedimiento GX como migrado por esta equivalencia.
 
 Los XPZ `ImpVentana.xpz` y `Eti_VentanaP1.xpz` fueron contrastados el
 2026-09-30. La pantalla nueva conserva sus filtros y la etiqueta ZPL historica;
@@ -72,9 +79,14 @@ detalle propio para no reducir falsamente el saldo disponible.
 
 ## Reglas migradas
 
-- Estados permitidos: `1`, En transito; `10`, Tarja completa.
+- Estados de listado: `0`, Anulado; `1`, En transito; `10`, Tarja completa.
+  El formulario solo permite capturar `1` o `10`; `0` lo asigna la anulacion.
 - `FPDisponible` inicia en `1`. Inspeccion, despacho, repaletizaje y anulacion
-  deberan cambiarlo a `0` en sus entregas respectivas.
+  deben cambiarlo a `0` en sus entregas respectivas.
+- Anular un folio manual o importado permitido conserva cabecera y nivel dos,
+  escribe `FPEstado=0` (Anulado), `FPDisponible=0` y `Fp2Estado=0` en todos
+  sus detalles dentro de una transaccion serializable. No elimina filas ni
+  libera el folio para inspeccion, despacho o modificacion.
 - `FPFechaIng` usa la fecha seleccionada en la cabecera y se guarda con hora
   `00:00:00` (`12:00:00 AM`); cuando una integración no informa la fecha se
   usa la fecha del servidor. `FPOrigen` inicia en `0`.
@@ -95,7 +107,7 @@ detalle propio para no reducir falsamente el saldo disponible.
   variedad, productor, envase, categoria y calibre.
 - `FP2Cor` se genera por folio y lote dentro de la misma transaccion.
 - Un error revierte cabecera y todos los detalles.
-- Modificar y eliminar se bloquean cuando el origen no es manual (`0` o `5`) o
+- Modificar y anular se bloquean cuando el origen no es manual (`0` o `5`) o
   cuando el folio ya participa en inspeccion o despacho.
 
 ## Presentacion
@@ -137,14 +149,15 @@ usa `int`, a 10 dígitos; los catálogos de etiqueta, altura y base conservan
 además el máximo funcional de 999 (3 dígitos). Las fechas se capturan con 10
 caracteres en formato `DD/MM/YYYY`.
 
-El listado conserva los filtros GX por fecha desde/hasta, especie, estado y
+El listado conserva los filtros GX por fecha desde/hasta, especie, estado (incluye
+Anulado) y
 folio, con los ultimos 30 dias como rango inicial. Usa el `DataGrid` compacto
 del frontend, con paginacion server-side, columnas densas y estado en chips.
 El filtro de folio usa coincidencia parcial, por lo que una entrada como `73`
 encuentra folios almacenados con ceros a la izquierda que contengan ese valor.
 Muestra los campos de la grilla de cabecera y totales generales. Agregar,
 Cargar Folios, Ventana de Impresión y Excel permanecen en la barra superior;
-Visualizar, Modificar y Eliminar se repiten como iconos en la columna Acciones
+Visualizar, Modificar y Anular Folio se repiten como iconos en la columna Acciones
 de cada folio. Excel
 genera un archivo `.xlsx` en Node con todas las filas filtradas, no solo la
 pagina visible. Al seleccionar una fila de cabecera se despliega un segundo
@@ -153,6 +166,19 @@ activo y `FPFolio` seleccionado. En escritorio ambos listados se presentan en
 paralelo, con la cabecera ocupando aproximadamente 60% y el detalle 40%; en
 pantallas pequenas se apilan. Ambos listados mantienen la misma altura visible
 para conservar la alineacion entre paneles.
+
+Las acciones Agregar, Visualizar y Modificar abren `IngresoTarjasPage` dentro de
+un componente `Dialog`, conservando respectivamente los modos de alta, consulta
+y edición. Las rutas directas de la pantalla se mantienen disponibles para
+compatibilidad.
+
+La confirmacion de `Anular Folio` presenta dos bloques de contexto: `Folio` y
+`Fecha Ingreso`. La accion deja de estar disponible visualmente cuando el
+estado ya es Anulado; el backend conserva la validacion definitiva. Los iconos
+`Modificar` y `Anular Folio` permanecen visibles, pero se deshabilitan cuando el
+folio es automatico, ya fue usado por inspeccion/despacho, no esta disponible,
+o ya esta Anulado. Cuando `FPIns=1`, el listado conserva ambos iconos
+deshabilitados y deja `Visualizar` como la unica accion operativa.
 
 ## Verificacion requerida
 
@@ -170,6 +196,8 @@ para conservar la alineacion entre paneles.
 12. Un folio repetido dentro del archivo conserva la primera fila y reporta el descarte de las siguientes.
 13. Un error de un folio revierte solo ese folio y aparece en el reporte sin impedir la carga de los folios validos.
 14. Destino inexistente se rechaza y Destino, N° de Caja y Servicio persisten al crear o modificar.
+15. Anular conserva `FOLIOSPROC` y `FOLIOSPROC1`, deja ambos estados en `0` y
+    deja `FPDisponible=0`; no se permite una segunda anulacion ni editarlo.
 
 > En el listado de detalle, Productor, Especie, Variedad, Envase y Categoría se presentan por descripción de catálogo; sus códigos numéricos se conservan internamente y no se muestran.
 
