@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const authContext = require("../../middleware/authContext");
-const { requirePermission } = require("../../middleware/securityAuthorization");
+const { requireAnyPermission } = require("../../middleware/securityAuthorization");
 const service = require("./inspecciones.service");
 
 const run = (handler) => async (req, res, next) => {
@@ -15,7 +15,7 @@ const run = (handler) => async (req, res, next) => {
   }
 };
 
-router.use(authContext, requirePermission(service.permission));
+router.use(authContext, requireAnyPermission([{ sistema: 120, modulo: 1, programa: 2 }, service.permission]));
 router.get(
   "/form-data",
   run(async (req, res) =>

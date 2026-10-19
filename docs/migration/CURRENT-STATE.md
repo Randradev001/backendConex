@@ -1,6 +1,15 @@
 # Estado vigente de la migracion CONEX
 
-Ultima actualizacion documental: 2026-10-16.
+## Packing List (2026-10-15)
+
+Los WorkPanels GX8 `PackingList`, `GenPack` y `DetPackList` tienen una primera
+implementación integrada en `/procesos/packing-list`. Lee `PACKLIST`, genera
+desde `DESORIGEN` o `DESCLI_FP` con correlativo transaccional y muestra folios
+desde las tablas de detalle del origen. La edición básica está disponible; los
+campos avanzados, impresión y precarga directa de guía APERP siguen pendientes.
+Detalle y verificación: [packing-list.md](packing-list.md).
+
+Ultima actualizacion documental: 2026-10-08.
 
 Este es el documento de entrada para continuar el proyecto. Describe el estado
 observado en el codigo y en `CONEX_MIGRACION`. Antes de trabajar, ejecutar
@@ -472,6 +481,12 @@ columnas descriptivas necesarias en `DESORIGEN/1/2` e incorpora índices de
 consulta; fue aplicada sobre `CONEX` el 2026-10-06. La pantalla unificada
 `Despacho` está disponible con títulos dinámicos por modo, bloques Accordion,
 alta/modificación/visualización y anulación histórica a estado `Nula`.
+El 2026-10-15 se detectó que la base local `CONEX` ya no contenía las columnas
+aditivas de esa migración (entre ellas `DESORIGEN.DANombre`); se volvió a
+ejecutar el script idempotente. Se verificaron el listado, los datos del
+formulario y la lectura de un despacho existente contra SQL Server. Después de
+restaurar o trasladar una base, confirmar esta migración antes de iniciar el
+backend.
 Cuando Guardar completa la operación, tanto en alta como en modificación, la
 pantalla vuelve al listado Despachos SAG con el mensaje de confirmación. Si una
 asociación de folio falla después de crear la cabecera, permanece en el despacho
@@ -1101,3 +1116,15 @@ Un objeto queda `READY` solo cuando:
 - exportaciones cumplen el alcance declarado;
 - pruebas y evidencia quedaron documentadas;
 - inventario y estado vigente fueron actualizados.
+
+## Vistas de origen para guías centralizadas en APERP (2026-10-07)
+
+Actualización 15-10-2026: se creó y aplicó en CONEX local el sistema `120 Procesos SAG`, módulo `1 Operacional`, con Folios Procesados, Inspecciones y Despachos SAG. La migración copia permisos equivalentes del sistema histórico 100 y conserva ambos códigos en el middleware; el menú prioriza el sistema 120 para evitar duplicados visuales. Rutas: `/procesos-sag/folios-procesados`, `/procesos-sag/inspecciones` y `/procesos-sag/despachos-sag`.
+
+Actualización 15-10-2026: se agregó en CONEX local el sistema `130 Guias electronicas`, módulo `1 Operacional`, programa `1 Guías de Despacho`. La migración `database/20261015_guias_electronicas_menu.sql` copia únicamente los permisos ya existentes para `wguiasd` (100/2/20 o 70/6/3), y el menú web prioriza la nueva agrupación. La ruta sigue abriendo la misma pantalla central de APERP; su administración electrónica permanece en el sistema de APERP y conserva permisos separados. En desarrollo, Conex usa `VITE_APERP_GUIDES_URL` para apuntar al frontend APERP cuando ambos corren en puertos distintos.
+
+Actualización 13-10-2026: `wguiasd` conduce al módulo operativo `/co/guias/electronicas`. Conex emite un acceso de un solo uso para la empresa y usuario autenticados; APERP lo canjea por una sesión breve limitada a Guías. El listado combina el histórico Conex con los borradores centrales, y el formulario puede precargarse desde Packing List o despacho comercial antes de guardar en APERP. La empresa requiere homologación explícita en `ge.ConexEmpresaMap`; el navegador no la selecciona. La emisión electrónica continúa deshabilitada hasta validar el sandbox Púlsar DTE 52. Ver [guias-origen-conex.md](guias-origen-conex.md).
+
+Se crearon y verificaron cuatro vistas `integracion.vGuia*Origen` y `integracion.vPackingCabeceraOrigen` en la base local CONEX. Exponen cabecera, detalle histórico, cliente y cabecera de packing para lectura futura desde APERP; no generan guías ni cambian estados de migración GX. La base APERP local pudo consultar la vista de cabeceras entre bases. El detalle físico de packing sigue sin identificar. Evidencia y límites: [guias-origen-conex.md](guias-origen-conex.md).
+
+En desarrollo, el `wguiasd` autorizado del menú Conex abre el listado prototipo APERP dentro del layout Conex, con contexto Conex y datos ficticios. Desde el listado se puede entrar al formulario de ejemplo y volver. Se verificó visualmente la navegación local. No existe todavía SSO ni acceso productivo a la guía; el enlace de producción sigue pendiente.
