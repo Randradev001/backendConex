@@ -1,6 +1,6 @@
 # Estado vigente de la migracion CONEX
 
-Ultima actualizacion documental: 2026-10-08.
+Ultima actualizacion documental: 2026-10-16.
 
 Este es el documento de entrada para continuar el proyecto. Describe el estado
 observado en el codigo y en `CONEX_MIGRACION`. Antes de trabajar, ejecutar
@@ -366,6 +366,73 @@ automático, autorizador vigente y disponibilidad de folios; el detalle muestra
 `SolnumI` como número de solicitud y conserva `SolNum` solo como clave interna.
 El selector `Agregar folios` conserva los filtros y estados de `AgrFol_Anu` y
 solo permite seleccionar filas disponibles.
+
+## Repaletizajes
+
+La primera entrega del WorkPanel GX8 `Repaletizajes` (`wrepaletizajes`) está
+disponible en `/procesos-sag/repaletizajes` y `/backendDocker/repaletizajes`,
+protegida por `100/20/2`. Consulta y opera sobre `REPALETIZAJE` y sus niveles
+dependientes `REPALETIZAJE1` y `REPALETIZAJE2`. La pantalla conserva el rango
+inicial GX de los últimos 30 días, permite ajustar las fechas y filtrar por
+estado y números de repaletizaje. Dos tabs separan el listado de cabeceras del
+listado de folios de la cabecera seleccionada; el segundo permanece vacío hasta
+seleccionar una cabecera. `EmpCod` proviene exclusivamente de la sesión y la
+temporada se resuelve en Node.
+El selector de folios de la alta inicial excluye asociaciones persistidas en
+`REPALETIZAJE1` de cabeceras activas; los niveles de un repaletizaje anulado
+(`REPEstado=5`) se conservan para la visualización histórica, pero sus folios
+vuelven a estar disponibles. También excluye los folios ya seleccionados en
+el borrador; tras quitar y persistir un folio, la consulta de disponibilidad
+vuelve a mostrarlo. Al agregar sobre una cabecera en proceso, el flujo XPZ
+`RepAgregar` usa un folio de salida nuevo y consume cajas de `PS_SALREP01`;
+la API rechaza folios existentes o asociados y registra `PS_SALREP02` junto a
+`REPALETIZAJE1/2` con `REP0TipAct=1`.
+La interfaz valida el folio nuevo al salir del campo mediante
+`GET /new-folio-check/:folio` antes de permitir confirmar el modal.
+En el tab de folios, Altura y Base se presentan con las descripciones de
+`TIPALT` y `TIPBPA`, conservando sus códigos solo como claves de relación.
+Los nombres de variedad, productor, envase y categoría se resuelven desde sus
+tablas catálogo; las columnas `Sol3N*` documentadas en el inventario histórico
+no existen en el esquema físico desplegado.
+
+La segunda etapa agrega `Agregar`, `Visualizar`, `Modificar`, `Subir cajas`,
+`Bajar cajas`, `Eliminar/Anular`, `PDF`, `Finalizar` y `Archivo`. La cabecera
+se inserta solo en `Guardar`; las acciones de edición se restringen al estado
+`0`; `Subir cajas` replica el flujo GX `RepSubir`/`GRepSube1_1`, consulta un
+folio inspeccionado aprobado/no despachado aunque todavía no esté agregado,
+muestra el detalle del folio seleccionado y superpone filas de `PS_SALREP01`
+solo cuando sus atributos coinciden; cuando no hay detalle de origen puede
+mostrar filas del pool aunque sus atributos aún no existan en el folio,
+consolida filas repetidas por sus atributos y las relaciona como el subprograma `buscaCorr`,
+aumenta la reserva por correlativo y crea o actualiza su movimiento positivo.
+Cuando no existe una fila `PS_SALREP01` para la sesión, la grilla usa como
+respaldo el saldo `SOLICITUDES3.Sol3CajasDes` del folio para no mostrar cero
+cuando el selector ya informó cajas disponibles.
+`Bajar cajas` replica el
+flujo GX `RepBajar`/`GRepBaja2_2`, registra movimientos negativos solo sobre
+cajas previamente repaletizadas y valida sus límites. `Finalizar` actualiza las
+solicitudes de los folios de inspección dentro de una transacción; los folios
+nuevos de `RepAgregar` también crean sus filas `SOLICITUDES2/3` con los
+atributos capturados, igual que `FinRepa` del XPZ. `Eliminar/Anular` conserva la cabecera
+con estado `5`, libera las reservas temporales sin modificar las solicitudes
+(esas cantidades solo se aplican al finalizar) y mantiene sus filas de
+`REPALETIZAJE1/2` para visualizar los folios y detalles anulados. PDF
+queda en blanco y negro, carta vertical, siguiendo el orden
+de `RepaV2`; Archivo permite seleccionar carpeta desde el navegador. Al abrir
+`Bajar cajas`, la disponibilidad se ajusta con los movimientos
+pendientes de `PS_SALREP02` del repaletizaje actual, igual que el cálculo
+`Sol3CajasRep = PSRM_Cajas * -1` y `Sol3CajasDes -= Sol3CajasRep` del XPZ.
+Las pantallas `Subir cajas` y `Bajar cajas`
+conservan el listado al pasar del
+selector de folio al campo de cantidad; el listado solo se reinicia al cambiar
+o limpiar explícitamente el folio. Las
+mutaciones exigen el permiso base `100/20/2`, sin una comprobación adicional
+de `ProgOPCod` en `ASIGPROG1`; la autorización por acción `PVA` del XPZ no se
+usa en esta pantalla. El PDF conserva las casillas de Aprobado/Rechazado del
+layout GX8 y ubica Cajas que pierden Condición dentro del bloque de
+observaciones; PAIS se resuelve desde los nombres únicos de `DESTINOS.DestNom`,
+enlazados por el código `SOLICITUDES1.SolDest` asociado a los folios. Evidencia y reglas:
+[repaletizaje.md](repaletizaje.md).
 
 ## Despachos SAG
 

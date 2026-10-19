@@ -14,6 +14,7 @@ const ingresoTarjasRouter = require('../modules/ingresoTarjas/ingresoTarjas.rout
 const inspeccionesRouter = require('../modules/inspecciones/inspecciones.routes')
 const despachosSAGRouter = require('../modules/despachosSAG/despachosSAG.routes')
 const anulacionesRouter = require('../modules/anulaciones/anulaciones.routes')
+const repaletizajeRouter = require('../modules/repaletizaje/repaletizaje.routes')
 const printAgentRouter = require('../print-agent/printAgent.routes')
 
 router.use('/maestros',maestrosRouter)
@@ -30,6 +31,7 @@ router.use('/ingreso-tarjas', ingresoTarjasRouter)
 router.use('/inspecciones', inspeccionesRouter)
 router.use('/despachos-sag', despachosSAGRouter)
 router.use('/anulaciones', anulacionesRouter)
+router.use('/repaletizajes', repaletizajeRouter)
 router.use('/print-agent/v1', printAgentRouter)
 
 // test para confirmar que este router está montado

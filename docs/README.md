@@ -77,6 +77,8 @@ la diferencia es trabajo incompleto, cambio no documentado o una regresion.
 - [Folios Procesados e Ingreso de Tarjas](migration/ingreso-tarjas.md):
   listado, alta, consulta, modificacion, eliminacion controlada, Excel y
   Ventana de Impresión.
+- [Repaletizajes](migration/repaletizaje.md): listado, captura, operaciones y
+  exportaciones de cabeceras y folios dependientes.
 - [tablero de control de lineas](migration/configuracion-lineas-tablero.md):
   rediseño de `linconfig`, monitoreo animado, alta y edicion, tablas, estados,
   permisos y pendientes de eliminacion e impresion.
