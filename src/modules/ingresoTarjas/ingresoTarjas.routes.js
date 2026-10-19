@@ -5,7 +5,7 @@ const os = require('os');
 const path = require('path');
 const multer = require('multer');
 const authContext = require('../../middleware/authContext');
-const { requirePermission } = require('../../middleware/securityAuthorization');
+const { requireAnyPermission } = require('../../middleware/securityAuthorization');
 const service = require('./ingresoTarjas.service');
 const impVentana = require('./impVentana.service');
 
@@ -63,7 +63,7 @@ const sendImportTemplate = async (_req, res) => {
   return res.send(Buffer.from(buffer));
 };
 
-router.use(authContext, requirePermission(service.permission));
+router.use(authContext, requireAnyPermission([{ sistema: 120, modulo: 1, programa: 1 }, service.permission]));
 router.get('/form-data', run(async (req, res) => res.json(await service.getFormData(req.context.empCod))));
 router.get('/folios', run(async (req, res) => res.json(await service.listTarjas(req.context.empCod, req.query))));
 router.get('/print-window/config', run(async (req, res) => res.json(await impVentana.getPrintWindowConfig(req.context.empCod))));

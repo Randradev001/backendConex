@@ -1,5 +1,29 @@
 # Vistas de origen Conex para el módulo de guías APERP
 
+> Actualización 13-10-2026: `wguiasd` abre un listado operativo de lectura de guías históricas Conex. La sesión y el permiso Conex filtran la empresa en el backend; la pantalla compartida vive en APERP. El resto del documento describe el prototipo inicial.
+
+## Precarga y guardado central habilitados
+
+La implementación operativa conserva una sola pantalla en APERP y aplica el tema verde cuando se abre desde Conex. El backend Conex crea un ticket aleatorio de un solo uso, con hash y vencimiento de dos minutos, después de comprobar la sesión y el permiso `70/6/3` o `100/2/20`. APERP consume el ticket en una transacción y entrega una sesión de 30 minutos limitada a las rutas de Guías. Esa sesión fija usuario, empresa Conex, empresa APERP homologada y origen `CONEX`; los parámetros del navegador no pueden sustituir esos valores.
+
+El script `database/20261013_guias_bridge_y_precarga.sql` agrega `integracion.GuiaAcceso` y vistas de precarga para Packing List y despacho comercial. APERP usa `ge.ConexEmpresaMap`, `ge.GuiaBridgeSesion` y `ge.GuiaOrigen`, creadas por su migración `20261013_guias_conex_bridge.sql`. La homologación de empresas se configura por instalación después de validar la entidad legal; las migraciones no inventan equivalencias.
+
+El formulario consulta hasta 100 orígenes por tipo y temporada. Al elegir un Packing List recupera cabecera, datos de exportación/transporte y líneas de `DESORIGEN2`; al elegir despacho comercial recupera `DESCLI_FP/DESCLI_FP1`. El guardado vuelve a consultar el documento desde servidor, persiste la guía en APERP con `SistemaOrigen=CONEX` y registra la clave completa de origen. Un índice único impide crear dos guías centrales para el mismo documento Conex. El listado Conex conserva las guías históricas y agrega los borradores centrales autorizados.
+
+Validación local: empresa Conex 1 homologada solamente en el ambiente de prueba con APERP 100. Se canjeó un ticket, se precargó el despacho comercial disponible 283 de temporada 2013-2014, se guardó y leyó el borrador con una línea y trazabilidad completa, y después se eliminó el registro de prueba. También se comprobó un Packing List disponible de 54 líneas. Los documentos que ya tienen guía relacionada se excluyen del selector y se rechazan en el guardado. Producción requiere su propia homologación revisada.
+
+## Listado operativo inicial
+
+`GET /backendDocker/guias-electronicas` usa exclusivamente `integracion.vGuiaCabeceraOrigen` y `integracion.vClienteGuiaOrigen`. Exige sesión Conex y uno de los programas `70/6/3` o `100/2/20`. La empresa proviene de la sesión; el navegador no envía un código de empresa. Entrega las columnas consolidadas para la tabla: número interno, folio legado, fecha, temporada, receptor, destino, cajas, tipo y estado originales. Los estados y tipos se muestran como «legado 0/1/5» hasta validar sus reglas GeneXus; la pantalla no los presenta como DTE emitidos.
+
+El menú `wguiasd` resuelve ahora `/co/guias/electronicas` en todos los modos. Conex consulta su API protegida y pasa las filas al componente de listado de APERP mediante `postMessage` con origen comprobado; así se reutilizan la pantalla y el tema verde. La ruta de APERP `/erp/integrado/guias/conex-listado` es solo un visor: no lee bases, no acepta escrituras y no concede sesión APERP. En producción se debe configurar `VITE_APERP_GUIDES_URL` con su URL absoluta y permitir el encuadre desde el origen Conex aprobado.
+
+La base APERP sigue siendo dueña de **nuevas** guías y borradores. Este primer listado muestra solo el histórico Conex; no une aún borradores APERP porque las empresas `EmpCod` y `GECODEMP` no tienen equivalencia confirmada en las bases locales. No hay generación electrónica, impresión ni modificación desde este listado. Antes de incorporar borradores centrales se requiere el mapa de empresas y una identidad de integración verificable para las operaciones de escritura.
+
+Verificación local: 1.522 registros para la empresa Conex 1, cero para la empresa 2, y respuesta 401 del endpoint sin sesión. Se compiló el frontend Conex y el APERP compartido.
+
+En desarrollo, el cliente Axios conserva el host usado para abrir Conex (`localhost` o `127.0.0.1`) al llamar al backend local. Esto evita que la cookie de sesión se envíe a un host distinto del de la pantalla. La URL de producción `VITE_API_URL` no cambia.
+
 Estado al 7 de octubre de 2026: vistas de **solo lectura** creadas y verificadas en la base local `CONEX`. No hay emisión, permisos externos ni escritura desde APERP hacia Conex.
 
 ## Fuente y finalidad

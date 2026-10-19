@@ -68,6 +68,8 @@ la diferencia es trabajo incompleto, cambio no documentado o una regresion.
 
 ### Procesos
 
+- [Packing List](migration/packing-list.md): `PackingList`, `GenPack` y
+  `DetPackList` reunidos en listado, generación desde origen y detalle de folios.
 - [Despachos SAG](migration/despachos-sag.md): listado por planilla, PDF y
   archivo `.des` por fila; el ABM queda para una segunda entrega.
 - [Dashboard de inicio y atajos](migration/dashboard-inicio.md): portada

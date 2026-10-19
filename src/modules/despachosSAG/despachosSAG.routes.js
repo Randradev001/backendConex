@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const authContext = require("../../middleware/authContext");
-const { requirePermission } = require("../../middleware/securityAuthorization");
+const { requireAnyPermission } = require("../../middleware/securityAuthorization");
 const service = require("./despachosSAG.service");
 
 const run = (handler) => async (req, res, next) => {
@@ -14,7 +14,7 @@ const run = (handler) => async (req, res, next) => {
   }
 };
 
-router.use(authContext, requirePermission(service.permission));
+router.use(authContext, requireAnyPermission([{ sistema: 120, modulo: 1, programa: 3 }, service.permission]));
 
 router.get(
   "/form-data",

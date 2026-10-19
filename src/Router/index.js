@@ -28,6 +28,8 @@ router.use('/impresion', impresionRouter)
 router.use('/ingreso-tarjas', ingresoTarjasRouter)
 router.use('/inspecciones', inspeccionesRouter)
 router.use('/despachos-sag', despachosSAGRouter)
+router.use('/packing-list', require('../modules/packingList/packingList.routes'))
+router.use('/guias-electronicas', require('./guiasElectronicas.routes'))
 router.use('/print-agent/v1', printAgentRouter)
 
 // test para confirmar que este router está montado
