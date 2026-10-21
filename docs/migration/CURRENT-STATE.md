@@ -9,7 +9,7 @@ desde las tablas de detalle del origen. La edición básica está disponible; lo
 campos avanzados, impresión y precarga directa de guía APERP siguen pendientes.
 Detalle y verificación: [packing-list.md](packing-list.md).
 
-Ultima actualizacion documental: 2026-10-08.
+Ultima actualizacion documental: 2026-10-21.
 
 Este es el documento de entrada para continuar el proyecto. Describe el estado
 observado en el codigo y en `CONEX_MIGRACION`. Antes de trabajar, ejecutar
@@ -457,6 +457,29 @@ layout GX8 y ubica Cajas que pierden Condición dentro del bloque de
 observaciones; PAIS se resuelve desde los nombres únicos de `DESTINOS.DestNom`,
 enlazados por el código `SOLICITUDES1.SolDest` asociado a los folios. Evidencia y reglas:
 [repaletizaje.md](repaletizaje.md).
+
+## Fruta Comercial (2026-10-21)
+
+La primera generación del WorkPanel GX8 `FComercial` (`wFCOMERCIAL`) está
+implementada en `/procesos-sag/fruta-comercial` y
+`/backendDocker/fruta-comercial`, con autorización `100/2/6`. Conserva los
+filtros del XPZ (rango de fecha, proceso, especie y movimiento), los totales
+de entradas/salidas/saldo y el orden por fecha/proceso/especie. `Agregar`
+abre un `Dialog` y la primera generación incluye `Crear`, `Visualizar`,
+`Modificar` y `Anular`.
+
+La pantalla usa el banner de procesos solicitado y la confirmación de anular
+usa el diseño de referencia con tarjetas de fecha, proceso y creador. El
+backend genera `FCOProceso` mediante `TraeCor`/`GenCor` con código `FCOMERCI`,
+fuerza `FCOOrigen=0` en altas manuales y mantiene solo lectura para filas con
+origen histórico `NULL` o despacho `1`. No se agregó PDF porque el XPZ no
+contiene un reporte para este objeto.
+
+La definición y los límites de captura están en
+[fruta-comercial.md](fruta-comercial.md). El código y las pruebas unitarias
+están listos; queda aplicar `database/20261021_fruta_comercial_2016.sql` en el
+ambiente objetivo y hacer la verificación integrada antes de marcar el objeto
+como `READY`.
 
 ## Despachos SAG
 

@@ -87,6 +87,8 @@ la diferencia es trabajo incompleto, cambio no documentado o una regresion.
   Ventana de Impresión.
 - [Repaletizajes](migration/repaletizaje.md): listado, captura, operaciones y
   exportaciones de cabeceras y folios dependientes.
+- [Fruta Comercial](migration/fruta-comercial.md): listado, filtros GX8, alta
+  en `Dialog`, visualización, modificación y anulación de fruta comercial.
 - [tablero de control de lineas](migration/configuracion-lineas-tablero.md):
   rediseño de `linconfig`, monitoreo animado, alta y edicion, tablas, estados,
   permisos y pendientes de eliminacion e impresion.
