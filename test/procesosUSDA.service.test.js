@@ -52,6 +52,8 @@ test("usa el permiso y las condiciones de ProcesosUSDA", () => {
       status: 2,
       species: 17,
       processNumber: 8,
+      search: "",
+      all: false,
       page: 2,
       pageSize: 50,
     },
@@ -104,7 +106,8 @@ test("lista los procesos USDA con los filtros visibles y la temporada activa", a
   assert.equal(result.tempCod, "2017-2018");
   assert.match(statement, /h\.EmpCod=@EmpCod AND h\.TempCod=@TempCod/);
   assert.match(statement, /\(@Type=9 OR h\.PUSTipo=@Type\)/);
-  assert.match(statement, /h\.PUSFecha>=@From AND h\.PUSFecha<DATEADD\(day,1,@To\)/);
+  assert.match(statement, /@From IS NULL OR h\.PUSFecha>=@From/);
+  assert.match(statement, /@To IS NULL OR h\.PUSFecha<DATEADD\(day,1,@To\)/);
   assert.match(statement, /\(@Status=9 OR h\.PUSEstado=@Status\)/);
   assert.match(statement, /\(@Species=0 OR h\.PUSEspe=@Species\)/);
 });

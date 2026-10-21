@@ -123,3 +123,10 @@ la tabla y el pie de totales.
 El Report `ProcesosUSDA` general no forma parte de esta entrega; el PDF
 implementado corresponde al reporte `DetalleUSDA` entregado en `PDFUSDA.xpz`.
 También queda pendiente la evidencia integrada de aceptación en navegador.
+
+## Homologación del listado operacional (2026-10-21)
+
+El listado incorporó banner compartido, indicadores por estado, filtros con
+intervalos abiertos, búsqueda remota en número, especie y creador, toolbar de
+columnas y exportaciones generales sobre todas las filas filtradas. El PDF
+`DetalleUSDA` por fila conserva su alcance oficial.

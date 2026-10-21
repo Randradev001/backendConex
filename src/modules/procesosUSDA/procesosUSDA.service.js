@@ -69,9 +69,9 @@ const integer = (
 
 const listFilters = (query = {}) => {
   const defaults = defaultRange();
-  const from = dateValue(query.from || defaults.from, "La fecha desde");
-  const to = dateValue(query.to || defaults.to, "La fecha hasta");
-  if (from > to) {
+  const from = Object.prototype.hasOwnProperty.call(query, "from") && trim(query.from) === "" ? null : dateValue(query.from || defaults.from, "La fecha desde");
+  const to = Object.prototype.hasOwnProperty.call(query, "to") && trim(query.to) === "" ? null : dateValue(query.to || defaults.to, "La fecha hasta");
+  if (from && to && from > to) {
     throw new ProcesosUSDAError(
       400,
       "VALIDATION_ERROR",
@@ -120,6 +120,8 @@ const listFilters = (query = {}) => {
       "El número de proceso",
       { min: 0, max: maxProcessNumber, defaultValue: 0 },
     ),
+    search: trim(query.search).slice(0, 100),
+    all: String(query.all || "").toLowerCase() === "true" || String(query.all) === "1",
     page: integer(query.page, "La página", {
       min: 1,
       max: 100000,
@@ -218,6 +220,7 @@ const listProcesos = async (
     .input("Status", sql.SmallInt, filters.status)
     .input("Species", sql.SmallInt, filters.species)
     .input("ProcessNumber", sql.Decimal(10, 0), filters.processNumber)
+    .input("Search", sql.NVarChar(100), filters.search)
     .input("Offset", sql.Int, (filters.page - 1) * filters.pageSize)
     .input("PageSize", sql.Int, filters.pageSize)
     .query(`
@@ -241,15 +244,19 @@ const listProcesos = async (
       AND (@Status=9 OR h.PUSEstado=@Status)
       AND (@Species=0 OR h.PUSEspe=@Species)
       AND h.PUSNum>=@ProcessNumber
-      AND h.PUSFecha>=@From AND h.PUSFecha<DATEADD(day,1,@To);
+      AND (@From IS NULL OR h.PUSFecha>=@From) AND (@To IS NULL OR h.PUSFecha<DATEADD(day,1,@To))
+      AND (@Search='' OR CONVERT(varchar(20),h.PUSNum) LIKE '%'+@Search+'%' OR ISNULL(e.EspeNom,'') LIKE '%'+@Search+'%' OR ISNULL(h.PUSLoginC,'') LIKE '%'+@Search+'%');
     SELECT processType,processNumber,processDate,totalBoxes,totalKilos,totalPallets,status,
       speciesCode,speciesName,createdBy,createdDate,tempCod
     FROM #filtered
     ORDER BY processNumber DESC
-    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+    ${filters.all ? ";" : "OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;"}
     SELECT COUNT(*) total,COALESCE(SUM(CONVERT(bigint,totalBoxes)),0) totalBoxes,
       COALESCE(SUM(CONVERT(decimal(19,2),totalKilos)),0) totalKilos,
-      COALESCE(SUM(CONVERT(bigint,totalPallets)),0) totalPallets
+      COALESCE(SUM(CONVERT(bigint,totalPallets)),0) totalPallets,
+      SUM(CASE WHEN status=0 THEN 1 ELSE 0 END) inProgress,
+      SUM(CASE WHEN status=1 THEN 1 ELSE 0 END) approved,
+      SUM(CASE WHEN status IN (2,3) THEN 1 ELSE 0 END) rejected
     FROM #filtered;
     SELECT RTRIM(@TempCod) tempCod;
   `);
@@ -277,6 +284,7 @@ const listProcesos = async (
       kilos: Number(summary.totalKilos || 0),
       pallets: Number(summary.totalPallets || 0),
     },
+    statusCounts: { inProgress: Number(summary.inProgress || 0), approved: Number(summary.approved || 0), rejected: Number(summary.rejected || 0) },
     tempCod,
     filters,
   };

@@ -30,6 +30,8 @@ test('permite ajustar fechas y conserva Todos como estado sin filtro', () => {
     status: null,
     repNum: 12,
     repNumF: null,
+    search: '',
+    all: false,
     page: 1,
     pageSize: 25
   });

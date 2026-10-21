@@ -61,15 +61,17 @@ const text = (value, label, { required = false, max = 255 } = {}) => {
 const listFilters = (query = {}, now = new Date()) => {
   const toDefault = localIsoDate(now);
   const fromDefault = localIsoDate(new Date(now.getTime() - 30 * 86400000));
-  const from = isoDate(query.from || fromDefault, 'Fecha desde');
-  const to = isoDate(query.to || toDefault, 'Fecha hasta');
-  if (from > to) throw new FrutaComercialError(400, 'VALIDATION_ERROR', 'La fecha desde no puede ser posterior a la fecha hasta.');
+  const from = Object.prototype.hasOwnProperty.call(query, 'from') && trim(query.from) === '' ? null : isoDate(query.from || fromDefault, 'Fecha desde');
+  const to = Object.prototype.hasOwnProperty.call(query, 'to') && trim(query.to) === '' ? null : isoDate(query.to || toDefault, 'Fecha hasta');
+  if (from && to && from > to) throw new FrutaComercialError(400, 'VALIDATION_ERROR', 'La fecha desde no puede ser posterior a la fecha hasta.');
   return {
     from,
     to,
     process: integer(query.process || 0, 'Proceso', { max: 9999999999 }),
     species: integer(query.species || 0, 'Especie', { max: 999 }),
     movement: integer(query.movement === undefined || query.movement === '' ? -1 : query.movement, 'Movimiento', { min: -1, max: 99 }),
+    search: trim(query.search).slice(0, 100),
+    all: String(query.all || '').toLowerCase() === 'true' || String(query.all) === '1',
     page: integer(query.page || 1, 'Página', { min: 1, max: 100000 }),
     pageSize: integer(query.pageSize || 25, 'Tamaño de página', { min: 1, max: 100 })
   };
@@ -132,20 +134,26 @@ const listFrutaComercial = async (empCod, query = {}) => {
     .input('Process', sql.Decimal(10, 0), filters.process || null)
     .input('Species', sql.SmallInt, filters.species || null)
     .input('Movement', sql.SmallInt, filters.movement === -1 ? null : filters.movement)
+    .input('Search', sql.NVarChar(100), filters.search)
     .input('Offset', sql.Int, (filters.page - 1) * filters.pageSize)
     .input('PageSize', sql.Int, filters.pageSize);
   const where = `WHERE f.EmpCod=@EmpCod AND f.TempCod=(SELECT TOP 1 TempCod FROM TEMP01 WHERE EmpCod=@EmpCod AND TempActiva=1 ORDER BY TempFecAbre DESC,TempCod DESC)
-    AND f.FCOFecha >= @FromDate AND f.FCOFecha < DATEADD(day,1,@ToDate)
+    AND (@FromDate IS NULL OR f.FCOFecha >= @FromDate) AND (@ToDate IS NULL OR f.FCOFecha < DATEADD(day,1,@ToDate))
     AND (@Process IS NULL OR f.FCOProceso=@Process) AND (@Species IS NULL OR f.Especod=@Species)
-    AND (@Movement IS NULL OR f.TMcod=@Movement)`;
+    AND (@Movement IS NULL OR f.TMcod=@Movement)
+    AND (@Search='' OR CONVERT(varchar(20),f.FCOProceso) LIKE '%'+@Search+'%' OR CONVERT(varchar(20),f.FCONumI) LIKE '%'+@Search+'%' OR ISNULL(e.EspeNom,'') LIKE '%'+@Search+'%' OR ISNULL(tm.TMNom,'') LIKE '%'+@Search+'%' OR ISNULL(st.TMSNom,'') LIKE '%'+@Search+'%' OR ISNULL(f.FCOOBS,'') LIKE '%'+@Search+'%')`;
   const result = await request.query(`
     ${baseSelect} ${where}
     ORDER BY f.EmpCod,f.TempCod,f.FCOFecha,f.FCOProceso,f.Especod
-    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+    ${filters.all ? ';' : 'OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;'}
     SELECT COUNT_BIG(1) total,
       COALESCE(SUM(CASE WHEN f.TMcod=1 THEN f.FCOKilos ELSE 0 END),0) totalEntries,
       COALESCE(SUM(CASE WHEN f.TMcod<>1 OR f.TMcod IS NULL THEN f.FCOKilos ELSE 0 END),0) totalExits
-    FROM FCOMERCIAL f ${where};
+    FROM FCOMERCIAL f
+    LEFT JOIN ESPECIES e ON e.EmpCod=f.EmpCod AND e.Especod=f.Especod
+    LEFT JOIN TIPMOV tm ON tm.EmpCod=f.EmpCod AND tm.TMcod=f.TMcod
+    LEFT JOIN TIPMOV1 st ON st.EmpCod=f.EmpCod AND st.TMcod=f.TMcod AND st.TMSCod=f.TMSCod
+    ${where};
   `);
   const summary = result.recordsets[1]?.[0] || {};
   const totalEntries = Number(summary.totalEntries || 0);

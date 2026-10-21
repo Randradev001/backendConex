@@ -128,3 +128,10 @@ correlativo diferenciada durante la finalización, el rechazo de tipos SAG, el
 contrato del PDF y su tamaño carta vertical. También se ejecuta la suite
 existente de `DespachosSAG` para comprobar que sus filtros, ABM y finalización
 no cambien.
+
+## Homologación del listado operacional (2026-10-21)
+
+La pantalla adoptó el patrón compartido de Despachos SAG: banner operacional,
+cuatro indicadores, filtros automáticos con rangos abiertos, búsqueda remota,
+selector de columnas y exportaciones generales del conjunto filtrado completo.
+La planilla PDF oficial por despacho permanece como acción de cada fila.

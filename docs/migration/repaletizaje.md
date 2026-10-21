@@ -138,3 +138,10 @@ por número, selección del detalle, aislamiento por empresa, rechazo de usuario
 sin `100/20/2`, creación tardía de la cabecera, bloqueo por estado, transacción
 de finalización/anulación y exportaciones. La suite backend y la compilación
 Vite deben aprobarse antes de marcar el objeto como `READY`.
+
+## Homologación del listado operacional (2026-10-21)
+
+El listado usa el patrón operacional compartido: banner con temporada activa,
+indicadores por estado, filtros reactivos con fechas abiertas, búsqueda general
+en la tabla y exportaciones Excel/PDF del conjunto filtrado completo. Las
+acciones históricas PDF y Archivo por fila se conservan sin cambios.

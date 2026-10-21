@@ -45,6 +45,7 @@ test("usa el permiso histórico y los filtros del WorkPanel DespachosUS", () => 
     page: 1,
     pageSize: 25,
     type: 3,
+    all: false,
   });
   assert.equal(processTypeLabel(2), "Fumigación");
   assert.equal(processTypeLabel(3), "Muestreo");

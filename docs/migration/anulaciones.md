@@ -62,3 +62,10 @@ La migración `database/20261013_anulaciones_inspeccion_2016.sql` completa
   liberación de sus folios asociados.
 - Validar el contenido del `.det`, el orden textual del PDF y la autorización
   `100/20/4`.
+
+## Homologación del listado operacional (2026-10-21)
+
+La bandeja usa el banner y componentes compartidos, indicadores de anulaciones
+y folios, fechas abiertas, búsqueda general y exportaciones Excel/PDF sobre el
+conjunto filtrado completo. El PDF `AnuFolios14` y el archivo `.det` por fila
+continúan como documentos oficiales separados.

@@ -78,3 +78,10 @@ Verificaciones realizadas:
 Queda pendiente aplicar el script SQL en el ambiente objetivo y ejecutar una
 prueba integrada con una sesión autorizada y datos productivos antes de
 marcar los objetos como `READY`.
+
+## Homologación del listado operacional (2026-10-21)
+
+La pantalla usa ahora el banner compartido, cuatro indicadores, filtros
+reactivos con fechas abiertas, búsqueda general y exportaciones Excel/PDF del
+conjunto filtrado completo. No se agregó un PDF oficial por fila porque el XPZ
+no define ese reporte.

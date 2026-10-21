@@ -20,6 +20,12 @@ Detalle y verificación: [packing-list.md](packing-list.md).
 
 Ultima actualizacion documental: 2026-10-21.
 
+Los listados de Repaletizaje, Anulaciones, Procesos USDA, Despachos US y Fruta
+Comercial fueron homologados el 2026-10-21 al patrón operacional compartido:
+banner, indicadores, filtros automáticos con intervalos abiertos, búsqueda en
+backend, selector de columnas y exportaciones generales del conjunto filtrado
+completo. Los PDF y archivos oficiales por fila conservan su flujo histórico.
+
 Este es el documento de entrada para continuar el proyecto. Describe el estado
 observado en el codigo y en `CONEX_MIGRACION`. Antes de trabajar, ejecutar
 `git status --short`: esta fotografia puede incluir cambios aun no confirmados

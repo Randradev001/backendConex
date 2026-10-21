@@ -33,6 +33,7 @@ const typeFilter = (query = {}) => {
 const usListFilters = (query = {}) => ({
   ...baseListFilters(query),
   type: typeFilter(query),
+  all: String(query.all || "").toLowerCase() === "true" || String(query.all) === "1",
 });
 
 const getFormData = async (empCod, { poolProvider = getPool } = {}) => {
@@ -62,6 +63,7 @@ const listDespachos = async (
     .input("DorTipPlani", sql.SmallInt, filters.type)
     .input("Planilla", sql.Decimal(10, 0), filters.planilla)
     .input("Guide", sql.Decimal(10, 0), filters.guide)
+    .input("Search", sql.NVarChar(120), filters.search)
     .input("Offset", sql.Int, (filters.page - 1) * filters.pageSize)
     .input("PageSize", sql.Int, filters.pageSize)
     .query(`
@@ -90,19 +92,23 @@ const listDespachos = async (
     WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod
       AND h.DorTipPlani IN (2,3)
       AND (@DorTipPlani=9 OR h.DorTipPlani=@DorTipPlani)
-      AND h.DorFecha>=@From AND h.DorFecha<DATEADD(day,1,@To)
+      AND (@From IS NULL OR h.DorFecha>=@From) AND (@To IS NULL OR h.DorFecha<DATEADD(day,1,@To))
       AND (@Planilla=0 OR h.DORNumf=@Planilla)
       AND (@Guide=0 OR h.DorNguia=@Guide)
-      AND (@Status=9 OR h.DorEstado=@Status);
+      AND (@Status=9 OR h.DorEstado=@Status)
+      AND (@Search='' OR CONVERT(varchar(20),h.DORNum) LIKE '%'+@Search+'%' OR CONVERT(varchar(20),h.DORNumf) LIKE '%'+@Search+'%' OR CONVERT(varchar(20),h.DorNguia) LIKE '%'+@Search+'%' OR ISNULL(h.DorNPuertoE,'') LIKE '%'+@Search+'%' OR ISNULL(h.DorNpuertoD,'') LIKE '%'+@Search+'%' OR ISNULL(h.DestNom,'') LIKE '%'+@Search+'%');
     SELECT id,internalNumber,planillaNumber,guideNumber,processType,shipmentDate,embarkPort,destinationPort,
       destinationName,totalBoxes,totalKilos,totalFolios,status,authorizedDispatcher,seals,
       transportType,createdBy,createdDate,annulledBy,annulledDate
     FROM #filtered
     ORDER BY internalNumber DESC
-    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+    ${filters.all ? ";" : "OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;"}
     SELECT COUNT(*) total,COALESCE(SUM(CONVERT(bigint,totalBoxes)),0) totalBoxes,
       COALESCE(SUM(CONVERT(decimal(19,2),totalKilos)),0) totalKilos,
-      COALESCE(SUM(CONVERT(bigint,totalFolios)),0) totalFolios
+      COALESCE(SUM(CONVERT(bigint,totalFolios)),0) totalFolios,
+      SUM(CASE WHEN status=0 THEN 1 ELSE 0 END) inProgress,
+      SUM(CASE WHEN status=1 THEN 1 ELSE 0 END) finalized,
+      SUM(CASE WHEN status=5 THEN 1 ELSE 0 END) annulled
     FROM #filtered;
     SELECT RTRIM(@TempCod) tempCod;
   `);
@@ -127,6 +133,7 @@ const listDespachos = async (
       kilos: Number(summary.totalKilos || 0),
       folios: Number(summary.totalFolios || 0),
     },
+    statusCounts: { inProgress: Number(summary.inProgress || 0), finalized: Number(summary.finalized || 0), annulled: Number(summary.annulled || 0) },
     tempCod,
     filters,
   };

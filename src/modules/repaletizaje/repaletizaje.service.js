@@ -207,9 +207,9 @@ const defaultRange = (now = new Date()) => {
 
 const listFilters = (query = {}, now = new Date()) => {
   const defaults = defaultRange(now);
-  const from = isoDate(query.from || defaults.from, 'Fecha desde');
-  const to = isoDate(query.to || defaults.to, 'Fecha hasta');
-  if (from > to) {
+  const from = Object.prototype.hasOwnProperty.call(query, 'from') && trim(query.from) === '' ? null : isoDate(query.from || defaults.from, 'Fecha desde');
+  const to = Object.prototype.hasOwnProperty.call(query, 'to') && trim(query.to) === '' ? null : isoDate(query.to || defaults.to, 'Fecha hasta');
+  if (from && to && from > to) {
     throw new RepaletizajeError(400, 'VALIDATION_ERROR', 'La fecha desde no puede ser posterior a la fecha hasta.');
   }
   const statusValue = trim(query.status);
@@ -223,6 +223,8 @@ const listFilters = (query = {}, now = new Date()) => {
     status,
     repNum: integer(query.repNum, 'N° interno', { optional: true, min: 1 }),
     repNumF: integer(query.repNumF, 'N° repaletizaje', { optional: true, min: 1 }),
+    search: trim(query.search).slice(0, 100),
+    all: String(query.all || '').toLowerCase() === 'true' || String(query.all) === '1',
     page: integer(query.page ?? 1, 'Página', { min: 1, max: 100000 }),
     pageSize: integer(query.pageSize ?? 25, 'Tamaño de página', { min: 1, max: 100 })
   };
@@ -1281,16 +1283,19 @@ const listRepaletizajes = async (empCod, query = {}) => {
     .input('Status', sql.SmallInt, filters.status)
     .input('RepNum', sql.Decimal(10, 0), filters.repNum)
     .input('RepNumF', sql.Decimal(10, 0), filters.repNumF)
+    .input('Search', sql.NVarChar(100), filters.search)
     .input('Offset', sql.Int, (filters.page - 1) * filters.pageSize)
     .input('PageSize', sql.Int, filters.pageSize)
     .query(`
       SELECT COUNT(*) total
       FROM REPALETIZAJE h
+      LEFT JOIN DESPAAUTO d ON d.EmpCod=h.EmpCod AND d.DACod=h.DACod
       WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod
-        AND h.REPFecha>=@From AND h.REPFecha<DATEADD(day,1,@To)
+        AND (@From IS NULL OR h.REPFecha>=@From) AND (@To IS NULL OR h.REPFecha<DATEADD(day,1,@To))
         AND (@Status IS NULL OR h.REPEstado=@Status)
         AND (@RepNum IS NULL OR h.REPNum=@RepNum)
-        AND (@RepNumF IS NULL OR h.REPNumF=@RepNumF);
+        AND (@RepNumF IS NULL OR h.REPNumF=@RepNumF)
+        AND (@Search='' OR CONVERT(varchar(20),h.REPNum) LIKE '%'+@Search+'%' OR CONVERT(varchar(20),h.REPNumF) LIKE '%'+@Search+'%' OR ISNULL(h.REPLogCrea,'') LIKE '%'+@Search+'%' OR ISNULL(d.DANombre,'') LIKE '%'+@Search+'%');
 
       SELECT h.EmpCod empCod,RTRIM(h.TempCod) tempCod,h.REPNum repNum,h.REPNumF repNumF,
         CONVERT(char(10),h.REPFecha,23) date,CONVERT(char(10),h.REPFecCrea,23) createdDate,
@@ -1299,18 +1304,36 @@ const listRepaletizajes = async (empCod, query = {}) => {
       FROM REPALETIZAJE h
       LEFT JOIN DESPAAUTO d ON d.EmpCod=h.EmpCod AND d.DACod=h.DACod
       WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod
-        AND h.REPFecha>=@From AND h.REPFecha<DATEADD(day,1,@To)
+        AND (@From IS NULL OR h.REPFecha>=@From) AND (@To IS NULL OR h.REPFecha<DATEADD(day,1,@To))
         AND (@Status IS NULL OR h.REPEstado=@Status)
         AND (@RepNum IS NULL OR h.REPNum=@RepNum)
         AND (@RepNumF IS NULL OR h.REPNumF=@RepNumF)
+        AND (@Search='' OR CONVERT(varchar(20),h.REPNum) LIKE '%'+@Search+'%' OR CONVERT(varchar(20),h.REPNumF) LIKE '%'+@Search+'%' OR ISNULL(h.REPLogCrea,'') LIKE '%'+@Search+'%' OR ISNULL(d.DANombre,'') LIKE '%'+@Search+'%')
       ORDER BY h.REPFecha DESC,h.REPNum DESC
-      OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+      ${filters.all ? ';' : 'OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;'}
+
+      SELECT
+        SUM(CASE WHEN h.REPEstado=0 THEN 1 ELSE 0 END) inProgress,
+        SUM(CASE WHEN h.REPEstado=1 THEN 1 ELSE 0 END) finalized,
+        SUM(CASE WHEN h.REPEstado=5 THEN 1 ELSE 0 END) annulled
+      FROM REPALETIZAJE h
+      LEFT JOIN DESPAAUTO d ON d.EmpCod=h.EmpCod AND d.DACod=h.DACod
+      WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod
+        AND (@From IS NULL OR h.REPFecha>=@From) AND (@To IS NULL OR h.REPFecha<DATEADD(day,1,@To))
+        AND (@Status IS NULL OR h.REPEstado=@Status) AND (@RepNum IS NULL OR h.REPNum=@RepNum)
+        AND (@RepNumF IS NULL OR h.REPNumF=@RepNumF)
+        AND (@Search='' OR CONVERT(varchar(20),h.REPNum) LIKE '%'+@Search+'%' OR CONVERT(varchar(20),h.REPNumF) LIKE '%'+@Search+'%' OR ISNULL(h.REPLogCrea,'') LIKE '%'+@Search+'%' OR ISNULL(d.DANombre,'') LIKE '%'+@Search+'%');
     `);
   return {
     tempCod,
     filters,
     rows: (result.recordsets[1] || []).map(mapHeader),
     total: Number(result.recordsets[0]?.[0]?.total || 0),
+    statusCounts: {
+      inProgress: Number(result.recordsets[2]?.[0]?.inProgress || 0),
+      finalized: Number(result.recordsets[2]?.[0]?.finalized || 0),
+      annulled: Number(result.recordsets[2]?.[0]?.annulled || 0)
+    },
     page: filters.page,
     pageSize: filters.pageSize
   };
