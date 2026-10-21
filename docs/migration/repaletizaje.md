@@ -10,6 +10,8 @@ dependientes. El programa está registrado como `SistCod=100`, `ModCod=20`,
 La primera entrega incluye el listado y la pantalla de operación. La cabecera
 se crea únicamente al presionar `Guardar`; seleccionar folios en el formulario
 solo mantiene un borrador en memoria y no deja registros huérfanos.
+Desde el listado, `Agregar` abre Nuevo Repaletizaje dentro de un `Dialog`; la
+ruta directa `/procesos-sag/repaletizajes/nuevo` se conserva por compatibilidad.
 
 ## Estructura y reglas GX8
 

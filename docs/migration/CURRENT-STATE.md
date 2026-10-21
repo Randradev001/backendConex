@@ -400,6 +400,8 @@ estado y números de repaletizaje. Dos tabs separan el listado de cabeceras del
 listado de folios de la cabecera seleccionada; el segundo permanece vacío hasta
 seleccionar una cabecera. `EmpCod` proviene exclusivamente de la sesión y la
 temporada se resuelve en Node.
+Desde el listado, `Agregar` abre Nuevo Repaletizaje dentro de un `Dialog`; la
+ruta directa `/procesos-sag/repaletizajes/nuevo` se conserva por compatibilidad.
 El selector de folios de la alta inicial excluye asociaciones persistidas en
 `REPALETIZAJE1` de cabeceras activas; los niveles de un repaletizaje anulado
 (`REPEstado=5`) se conservan para la visualización histórica, pero sus folios
@@ -533,7 +535,9 @@ planilla y número de guía. La empresa y la temporada provienen del contexto
 autenticado; el orden es descendente por `DORNum`.
 
 La columna `Acciones` ofrece Visualizar, Modificar, Anular, PDF y Finalizar.
-El alta independiente está en `/procesos-sag/despachos-us/nuevo`; Visualizar y
+El alta de Nuevo Despacho US se abre en un `Dialog` full screen desde el
+listado; la ruta `/procesos-sag/despachos-us/nuevo` se conserva por
+compatibilidad. Visualizar y
 Modificar abren el formulario reutilizado de Despachos SAG dentro de un
 diálogo, limitado a los tipos USDA 2 y 3. Eliminar reproduce `AnulaDespaUS`
 como anulación lógica, libera `PROCUSDA1.PUS1Dispo` y conserva el historial.
@@ -566,7 +570,9 @@ El cambio de estado reproduce `EstadoUS.xpz`: actualiza `PUSEstado` y, al
 rechazar (`2`), elimina los detalles `PROCUSDA1/PROCUSDA2` y libera los folios
 en `FOLIOSPROC/FOLIOSPROC1` dentro de la misma transacción. También están
 implementados el alta combinada con detalle, Visualizar y Modificar mediante
-`Dialog`, y Anular. Por decisión funcional, Anular usa `PUSEstado=3`, conserva
+`Dialog`, y Anular. El alta de Nuevo proceso USDA también se abre mediante
+`Dialog`; la ruta directa se conserva por compatibilidad. Por decisión
+funcional, Anular usa `PUSEstado=3`, conserva
 la cabecera y libera los folios y detalles en una transacción; el estado 3 no
 forma parte del diálogo normal de Estado. El listado también ofrece PDF y
 genera el reporte `DetalleUSDA` definido en `PDFUSDA.xpz`: conserva el orden y

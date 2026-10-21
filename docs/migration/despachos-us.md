@@ -13,7 +13,8 @@ El WorkPanel GX8 `DespachosUS` se migró como un listado operativo en
   exclusivamente los códigos `2` y `3`;
 - banner operativo alineado visualmente con Despachos SAG, usando la imagen de
   planta, identificación de Packing, título USDA y temporada activa;
-- pantalla independiente de alta en `/procesos-sag/despachos-us/nuevo`;
+- alta de Nuevo Despacho US dentro de un `Dialog` full screen desde el listado;
+  la ruta `/procesos-sag/despachos-us/nuevo` se conserva por compatibilidad;
 - Visualizar y Modificar dentro de un diálogo de pantalla completa;
 - Eliminar como anulación lógica a estado Nula;
 - columna `Acciones` con Visualizar, Modificar, Anular, PDF y Finalizar;

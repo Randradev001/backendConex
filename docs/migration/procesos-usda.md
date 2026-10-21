@@ -7,8 +7,9 @@ La pantalla React `/procesos-sag/procesos-usda` y la API
 permiso histórico `100/20/10`. La empresa y el usuario se obtienen de la
 sesión autenticada; no se aceptan desde el navegador.
 
-La pantalla incluye el listado y la acción **Estado**, además del alta en una
-pantalla independiente que combina la cabecera con el detalle de folios.
+La pantalla incluye el listado y la acción **Estado**, además del alta en un
+`Dialog` que combina la cabecera con el detalle de folios. La ruta directa de
+alta se conserva por compatibilidad.
 Visualizar y Modificar abren el mismo editor en un `Dialog`; Anular utiliza un
 diálogo de confirmación independiente. El listado incluye la acción PDF, que
 abre el detalle USDA en una ventana del visor del navegador.
