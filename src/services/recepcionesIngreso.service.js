@@ -133,12 +133,14 @@ const list = async (empCod, input = {}) => {
   const pool = await getPool();
   const request = pool.request().input('EmpCod', sql.SmallInt, empCod).input('Offset', sql.Int, (page - 1) * limit).input('Limit', sql.Int, limit);
   const tempCod = text(input.tempCod) || null;
+  const search = text(input.search).slice(0, 120);
   const from = input.from ? dateOnly(input.from, 'fecha desde') : null;
   const to = input.to ? dateOnly(input.to, 'fecha hasta') : null;
   request.input('TempCod', sql.Char(9), tempCod).input('FromDate', sql.Date, from).input('ToDate', sql.Date, to)
     .input('Origin', sql.SmallInt, input.origin ? integer(input.origin, 'origen', 1) : null)
     .input('Producer', sql.Char(6), text(input.producer) || null)
-    .input('Guide', sql.Decimal(10, 0), input.guide ? integer(input.guide, 'guia', 1) : null);
+    .input('Guide', sql.Decimal(10, 0), input.guide ? integer(input.guide, 'guia', 1) : null)
+    .input('Search', sql.NVarChar(120), search);
   const result = await request.query(`
     SELECT h.TempCod,h.OriCod,h.MovTDoc,h.MovNGuia,RTRIM(h.MovProd) MovProd,h.MovFecha,RTRIM(h.MovObs) MovObs,
       h.MovTotE,h.MovTotKilB,h.MovTotKilN,RTRIM(o.Orinom) OriNom,RTRIM(p.ProdNom) ProdNom,
@@ -149,7 +151,8 @@ const list = async (empCod, input = {}) => {
     WHERE h.EmpCod=@EmpCod AND h.TMcod=1 AND h.TMSCod=1 AND COALESCE(h.Movauto,0)=0
       AND (@TempCod IS NULL OR h.TempCod=@TempCod) AND (@FromDate IS NULL OR h.MovFecha>=@FromDate)
       AND (@ToDate IS NULL OR h.MovFecha<DATEADD(day,1,@ToDate)) AND (@Origin IS NULL OR h.OriCod=@Origin)
-      AND (@Producer IS NULL OR h.MovProd=@Producer) AND (@Guide IS NULL OR h.MovNGuia=@Guide);
+      AND (@Producer IS NULL OR h.MovProd=@Producer) AND (@Guide IS NULL OR h.MovNGuia=@Guide)
+      AND (@Search='' OR CONCAT(RTRIM(h.TempCod),' ',CONVERT(varchar(20),h.MovNGuia),' ',COALESCE(RTRIM(h.MovProd),''),' ',COALESCE(RTRIM(p.ProdNom),''),' ',COALESCE(RTRIM(o.Orinom),''),' ',COALESCE(RTRIM(h.MovObs),'')) LIKE '%' + @Search + '%');
     SELECT COUNT_BIG(*) total FROM #R;
     SELECT * INTO #Page FROM #R ORDER BY MovFecha DESC,MovNGuia DESC OFFSET @Offset ROWS FETCH NEXT @Limit ROWS ONLY;
     SELECT * FROM #Page ORDER BY MovFecha DESC,MovNGuia DESC;
@@ -158,6 +161,33 @@ const list = async (empCod, input = {}) => {
     JOIN MOVFRUT1 d ON d.EmpCod=@EmpCod AND d.TempCod=p.TempCod AND d.OriCod=p.OriCod
       AND d.MovTDoc=p.MovTDoc AND d.MovNGuia=p.MovNGuia AND d.MovProd=p.MovProd
     ORDER BY p.MovFecha DESC,p.MovNGuia DESC,d.Mov1Nlote;
+
+    SELECT h.TempCod,h.OriCod,h.MovTDoc,h.MovNGuia,RTRIM(h.MovProd) MovProd,
+      CONVERT(char(10),h.MovFecha,23) MovFecha,RTRIM(o.Orinom) OriNom,RTRIM(p.ProdNom) ProdNom,
+      COUNT_BIG(*) totalLots,
+      SUM(CASE WHEN quality.CalRecId IS NULL THEN 0 ELSE 1 END) controlledLots,
+      MIN(CONVERT(decimal(10,2),quality.CalRecPorCalidad)) minQuality,
+      AVG(CONVERT(decimal(10,2),quality.CalRecPorCalidad)) averageQuality
+    FROM MOVFRUT h
+    JOIN MOVFRUT1 d ON d.EmpCod=h.EmpCod AND d.TempCod=h.TempCod AND d.OriCod=h.OriCod
+      AND d.MovTDoc=h.MovTDoc AND d.MovNGuia=h.MovNGuia AND d.MovProd=h.MovProd
+    LEFT JOIN ORIGEN o ON o.EmpCod=h.EmpCod AND o.OriCod=h.OriCod
+    LEFT JOIN PRODUCTORES p ON p.EmpCod=h.EmpCod AND p.ProdCod=h.MovProd
+    OUTER APPLY (
+      SELECT TOP (1) c.CalRecId,c.CalRecPorCalidad
+      FROM CALRECEP c
+      WHERE c.EmpCod=d.EmpCod AND c.TempCod=d.TempCod AND c.OriCod=d.OriCod
+        AND c.MovTDoc=d.MovTDoc AND c.MovNGuia=d.MovNGuia AND c.MovProd=d.MovProd
+        AND c.Mov1Nlote=d.Mov1Nlote AND c.CalRecEstado<>'A'
+      ORDER BY c.CalRecFecha DESC,c.CalRecHora DESC,c.CalRecId DESC
+    ) quality
+    WHERE h.EmpCod=@EmpCod AND h.TMcod=1 AND h.TMSCod=1 AND COALESCE(h.Movauto,0)=0
+      AND h.MovFecha>=CONVERT(date,GETDATE()) AND h.MovFecha<DATEADD(day,1,CONVERT(date,GETDATE()))
+      AND (@TempCod IS NULL OR h.TempCod=@TempCod) AND (@Origin IS NULL OR h.OriCod=@Origin)
+      AND (@Producer IS NULL OR h.MovProd=@Producer) AND (@Guide IS NULL OR h.MovNGuia=@Guide)
+      AND (@Search='' OR CONCAT(RTRIM(h.TempCod),' ',CONVERT(varchar(20),h.MovNGuia),' ',COALESCE(RTRIM(h.MovProd),''),' ',COALESCE(RTRIM(p.ProdNom),''),' ',COALESCE(RTRIM(o.Orinom),'')) LIKE '%' + @Search + '%')
+    GROUP BY h.TempCod,h.OriCod,h.MovTDoc,h.MovNGuia,h.MovProd,h.MovFecha,o.Orinom,p.ProdNom
+    ORDER BY h.MovFecha DESC,h.MovNGuia DESC;
   `);
   const lotsByReception = new Map();
   (result.recordsets[2] || []).forEach((lot) => {
@@ -169,7 +199,39 @@ const list = async (empCod, input = {}) => {
     ...row,
     lots: lotsByReception.get([text(row.TempCod), row.OriCod, row.MovTDoc, row.MovNGuia, text(row.MovProd)].join('|')) || []
   }));
-  return { page, limit, total: Number(result.recordsets[0][0].total), rows };
+  const todayRows = (result.recordsets[3] || []).map((row) => {
+    const totalLots = Number(row.totalLots || 0);
+    const controlledLots = Number(row.controlledLots || 0);
+    const minQuality = row.minQuality === null ? null : Number(row.minQuality);
+    const averageQuality = row.averageQuality === null ? null : Number(row.averageQuality);
+    const qualityCompleted = totalLots > 0 && controlledLots === totalLots;
+    return {
+      ...row,
+      totalLots,
+      controlledLots,
+      minQuality,
+      averageQuality,
+      qualityCompleted,
+      quality100: qualityCompleted && minQuality >= 100,
+      qualityBelow90: controlledLots > 0 && minQuality < 90
+    };
+  });
+  return {
+    page,
+    limit,
+    total: Number(result.recordsets[0][0].total),
+    rows,
+    dashboard: {
+      date: isoDate(new Date()),
+      summary: {
+        today: todayRows.length,
+        qualityCompleted: todayRows.filter((row) => row.qualityCompleted).length,
+        quality100: todayRows.filter((row) => row.quality100).length,
+        qualityBelow90: todayRows.filter((row) => row.qualityBelow90).length
+      },
+      rows: todayRows
+    }
+  };
 };
 
 const normalizeBoardFilters = (input = {}, now = new Date()) => {

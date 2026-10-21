@@ -63,6 +63,11 @@ test("normaliza fechas ingresadas como DD/MM/YYYY", () => {
   assert.equal(filters.status, null);
 });
 
+test("permite rangos de fecha abiertos al limpiar desde o hasta", () => {
+  assert.equal(listFilters({ from: "", to: "2026-10-06" }).from, null);
+  assert.equal(listFilters({ from: "2026-10-02", to: "" }).to, null);
+});
+
 test("resume los estados con el mismo conjunto filtrado del listado", async () => {
   const pool = {
     request() {
@@ -83,8 +88,10 @@ test("resume los estados con el mismo conjunto filtrado del listado", async () =
                   approved: 3,
                   rejected: 1,
                   annulled: 1,
+                  inspectedLots: 14,
                 },
               ],
+              [],
               [{ tempCod: "2017-2018" }],
             ],
           };
@@ -104,6 +111,8 @@ test("resume los estados con el mismo conjunto filtrado del listado", async () =
     annulled: 1,
   });
   assert.equal(result.total, 7);
+  assert.equal(result.totals.inspectedLots, 14);
+  assert.deepEqual(result.latestFive, []);
 });
 
 test("rechaza fechas invertidas y estados no pertenecientes al flujo de inspección", () => {

@@ -82,6 +82,7 @@ test("conserva los filtros GX y sus estados de Despachos SAG", () => {
     status: "9",
     planilla: "18",
     guide: "27",
+    search: "Valparaíso",
   });
   assert.deepEqual(filters, {
     from: "2026-10-02",
@@ -89,12 +90,18 @@ test("conserva los filtros GX y sus estados de Despachos SAG", () => {
     status: 9,
     planilla: 18,
     guide: 27,
+    search: "Valparaíso",
     page: 1,
     pageSize: 25,
   });
   assert.equal(statusLabel(0), "En Proceso");
   assert.equal(statusLabel(1), "Finalizado");
   assert.equal(statusLabel(5), "Nula");
+});
+
+test("permite rangos de fecha abiertos al limpiar desde o hasta", () => {
+  assert.equal(listFilters({ from: "", to: "2026-10-06" }).from, null);
+  assert.equal(listFilters({ from: "2026-10-02", to: "" }).to, null);
 });
 
 test("rechaza fechas invertidas y estados que no existen en el WorkPanel", () => {

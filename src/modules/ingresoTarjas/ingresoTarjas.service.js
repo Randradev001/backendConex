@@ -1017,11 +1017,15 @@ const listFilters = (query = {}) => {
   const before = new Date(today);
   before.setDate(before.getDate() - 30);
   const iso = (date) => date.toISOString().slice(0, 10);
-  const from = query.from
-    ? dateValue(query.from, "La fecha desde")
+  const hasFrom = Object.prototype.hasOwnProperty.call(query, "from");
+  const hasTo = Object.prototype.hasOwnProperty.call(query, "to");
+  const from = hasFrom
+    ? (trim(query.from) ? dateValue(query.from, "La fecha desde") : null)
     : iso(before);
-  const to = query.to ? dateValue(query.to, "La fecha hasta") : iso(today);
-  if (from > to)
+  const to = hasTo
+    ? (trim(query.to) ? dateValue(query.to, "La fecha hasta") : null)
+    : iso(today);
+  if (from && to && from > to)
     throw new IngresoTarjasError(
       400,
       "INVALID_DATE_RANGE",
@@ -1041,11 +1045,12 @@ const listFilters = (query = {}) => {
     );
   const rawFolio = trim(query.folio);
   const folio = rawFolio ? normalizeFolioFilter(rawFolio) : "";
+  const search = trim(query.search).slice(0, 120);
   const page = query.page ? integer(query.page, "La pagina", { min: 1 }) : 1;
   const pageSize = query.pageSize
     ? integer(query.pageSize, "El tamaño de pagina", { min: 1, max: 200 })
     : 25;
-  return { from, to, species, status, folio, page, pageSize };
+  return { from, to, species, status, folio, search, page, pageSize };
 };
 
 const listTarjas = async (
@@ -1063,6 +1068,7 @@ const listTarjas = async (
     .input("Species", sql.SmallInt, filters.species)
     .input("Status", sql.SmallInt, filters.status)
     .input("Folio", sql.VarChar(10), filters.folio)
+    .input("Search", sql.NVarChar(120), filters.search)
     .input("Offset", sql.Int, (filters.page - 1) * filters.pageSize)
     .input("PageSize", sql.Int, filters.pageSize);
   const result = await request.query(`
@@ -1076,18 +1082,27 @@ const listTarjas = async (
     LEFT JOIN EXPORT1 x ON x.EmpCod=h.EmpCod AND x.ExpCod=h.ExpCod
     OUTER APPLY (SELECT SUM(CONVERT(bigint,d.FP2Cajas)) totalBoxes,SUM(CONVERT(decimal(19,2),d.FP2Kilos)) totalKilos
       FROM FOLIOSPROC1 d WHERE d.EmpCod=h.EmpCod AND d.TempCod=h.TempCod AND d.FPFolio=h.FPFolio) tot
-    WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod AND h.FPFechaIng>=@From AND h.FPFechaIng<DATEADD(day,1,@To)
+    WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod
+      AND (@From IS NULL OR h.FPFechaIng>=@From) AND (@To IS NULL OR h.FPFechaIng<DATEADD(day,1,@To))
       AND (@Species=0 OR h.FPEspe=@Species) AND (@Status=-1 OR h.FPEstado=@Status)
       AND (@Folio='' OR RTRIM(h.FPFolio) LIKE '%' + @Folio + '%')
+      AND (@Search='' OR CONCAT(RTRIM(h.FPFolio),' ',COALESCE(CONVERT(varchar(20),h.FPOrdProc),''),' ',COALESCE(RTRIM(e.EspeNom),''),' ',COALESCE(RTRIM(x.ExpNom),''),' ',COALESCE(CONVERT(varchar(20),h.ExpCod),''),' ',COALESCE(CONVERT(varchar(20),h.FPIns),'')) LIKE '%' + @Search + '%')
     ORDER BY h.FPFechaIng DESC,h.FPFolio DESC OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
     SELECT COUNT_BIG(*) total,COALESCE(SUM(CONVERT(bigint,tot.totalBoxes)),0) totalBoxes,
-      COALESCE(SUM(CONVERT(decimal(19,2),tot.totalKilos)),0) totalKilos
+      COALESCE(SUM(CONVERT(decimal(19,2),tot.totalKilos)),0) totalKilos,
+      COALESCE(SUM(CASE WHEN h.FPEstado=1 THEN 1 ELSE 0 END),0) inTransit,
+      COALESCE(SUM(CASE WHEN h.FPEstado=10 THEN 1 ELSE 0 END),0) complete,
+      COALESCE(SUM(CASE WHEN h.FPDisponible=1 THEN 1 ELSE 0 END),0) available
     FROM FOLIOSPROC h
+    LEFT JOIN ESPECIES e ON e.EmpCod=h.EmpCod AND e.Especod=h.FPEspe
+    LEFT JOIN EXPORT1 x ON x.EmpCod=h.EmpCod AND x.ExpCod=h.ExpCod
     OUTER APPLY (SELECT SUM(CONVERT(bigint,d.FP2Cajas)) totalBoxes,SUM(CONVERT(decimal(19,2),d.FP2Kilos)) totalKilos
       FROM FOLIOSPROC1 d WHERE d.EmpCod=h.EmpCod AND d.TempCod=h.TempCod AND d.FPFolio=h.FPFolio) tot
-    WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod AND h.FPFechaIng>=@From AND h.FPFechaIng<DATEADD(day,1,@To)
+    WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod
+      AND (@From IS NULL OR h.FPFechaIng>=@From) AND (@To IS NULL OR h.FPFechaIng<DATEADD(day,1,@To))
       AND (@Species=0 OR h.FPEspe=@Species) AND (@Status=-1 OR h.FPEstado=@Status)
-      AND (@Folio='' OR RTRIM(h.FPFolio) LIKE '%' + @Folio + '%');
+      AND (@Folio='' OR RTRIM(h.FPFolio) LIKE '%' + @Folio + '%')
+      AND (@Search='' OR CONCAT(RTRIM(h.FPFolio),' ',COALESCE(CONVERT(varchar(20),h.FPOrdProc),''),' ',COALESCE(RTRIM(e.EspeNom),''),' ',COALESCE(RTRIM(x.ExpNom),''),' ',COALESCE(CONVERT(varchar(20),h.ExpCod),''),' ',COALESCE(CONVERT(varchar(20),h.FPIns),'')) LIKE '%' + @Search + '%');
     SELECT RTRIM(@TempCod) tempCod;
   `);
   const totals = result.recordsets[1]?.[0] || {};
@@ -1097,6 +1112,11 @@ const listTarjas = async (
     totals: {
       boxes: Number(totals.totalBoxes || 0),
       kilos: Number(totals.totalKilos || 0),
+    },
+    statusCounts: {
+      inTransit: Number(totals.inTransit || 0),
+      complete: Number(totals.complete || 0),
+      available: Number(totals.available || 0),
     },
     tempCod: trim(result.recordsets[2]?.[0]?.tempCod),
     filters,

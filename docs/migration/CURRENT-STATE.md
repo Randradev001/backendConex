@@ -1,12 +1,21 @@
 # Estado vigente de la migracion CONEX
 
-## Packing List (2026-10-15)
+## Packing List (2026-10-20)
 
 Los WorkPanels GX8 `PackingList`, `GenPack` y `DetPackList` tienen una primera
 implementación integrada en `/procesos/packing-list`. Lee `PACKLIST`, genera
 desde `DESORIGEN` o `DESCLI_FP` con correlativo transaccional y muestra folios
-desde las tablas de detalle del origen. La edición básica está disponible; los
-campos avanzados, impresión y precarga directa de guía APERP siguen pendientes.
+desde las tablas de detalle del origen. `GenPack` solicita solo tipo y documento
+de origen; al generar abre la edición para completar cliente, fecha de zarpe y
+datos operativos. Las acciones encabezan la grilla y el detalle abre a pantalla
+completa con tarjetas para toda la cabecera GX8, nombres de catálogos y líneas.
+El listado adoptó el banner operacional y cards responsivas con detalle; debajo
+mantiene en una línea búsqueda, rango del último mes y tipo. Las fechas se
+muestran `DD/MM/YYYY` y el rango se valida y filtra en backend.
+`Generar guía` muestra la guía derivada para confirmación; al aceptar, el puente
+autenticado carga nuevamente el packing en APERP, guarda un borrador único en
+`ge.Guia`/`ge.GuiaLinea` y abre su edición. La edición avanzada del packing y
+su impresión siguen pendientes.
 Detalle y verificación: [packing-list.md](packing-list.md).
 
 Ultima actualizacion documental: 2026-10-21.
@@ -138,7 +147,14 @@ Estado operativo:
   solo las tablas operacionales faltantes y omite las existentes.
 - `ORDPROC` y `ORDPROC1` conservan su estructura GX8 completa. El primer ADM de
   Ordenes de Proceso usa el CRUD generico con grilla, filtros y autorizacion
-  `110/2/2`; sus eliminaciones validan dependencias en `ORDPROC1`.
+  `110/2/2`; sus eliminaciones validan dependencias en `ORDPROC1`. El listado
+  quedó homologado al patrón operacional: banner y acciones superiores,
+  temporada activa automática, últimos 30 días, tarjetas con detalle, filtros
+  reactivos con rangos abiertos y búsqueda integrada. El endpoint aplica fecha,
+  especie, variedad, estado y texto sobre el mismo conjunto mostrado y exportado.
+  Validado el 2026-10-21: sin truncamiento de 500 filas, temporada obligatoria,
+  paginación reiniciada al filtrar y fechas abiertas verificadas contra SQL.
+  Las exportaciones conservan HTML .xls e impresión del navegador.
 - La operacion `OrdenProcesos/OrdenProcINS` se implemento en
   `/ordenes-proceso/operacion` como alta de ADM con permiso `110/2/2`: consulta lotes disponibles,
   permite seleccionar el lote completo o cantidades parciales y genera la

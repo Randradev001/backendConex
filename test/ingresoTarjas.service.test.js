@@ -53,6 +53,17 @@ test('permite filtrar el estado Anulado sin confundirlo con Todos', () => {
   assert.equal(listFilters({}).status, -1);
 });
 
+test('permite rangos de fecha abiertos al limpiar desde o hasta', () => {
+  assert.deepEqual(
+    { from: listFilters({ from: '', to: '2026-09-30' }).from, to: listFilters({ from: '', to: '2026-09-30' }).to },
+    { from: null, to: '2026-09-30' }
+  );
+  assert.deepEqual(
+    { from: listFilters({ from: '2026-09-01', to: '' }).from, to: listFilters({ from: '2026-09-01', to: '' }).to },
+    { from: '2026-09-01', to: null }
+  );
+});
+
 test('consulta el folio con coincidencia parcial', async () => {
   let statement = '';
   const request = {

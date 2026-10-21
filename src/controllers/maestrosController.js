@@ -921,14 +921,45 @@ const listCatalog = (catalogName) => async (req, res) => {
   try {
     const pool = await getPool();
     if (catalogName === 'ordenesProcesoAdm') {
-      const request = pool.request().input('EmpCod', sql.SmallInt, getContextEmpCod(req)).input('TempCod', sql.Char(9), getParam(req, 'TempCod') || null).input('Limit', sql.Int, getLimit(req));
-      const result = await request.query(`SELECT TOP (@Limit) o.*, RTRIM(p.ProdNom) ProdNom, RTRIM(x.ExpNom) ExpNom,
+      const season = getTextParam(req, 'TempCod');
+      if (!season) throw httpError(400, 'Debe indicar la temporada para consultar órdenes');
+      const request = pool
+        .request()
+        .input('EmpCod', sql.SmallInt, getContextEmpCod(req))
+        .input('TempCod', sql.Char(9), season)
+        .input('Especod', sql.SmallInt, getIntParam(req, 'Especod', false))
+        .input('VarCod', sql.Int, getIntParam(req, 'VarCod', false))
+        .input('OrdpEstado', sql.SmallInt, getIntParam(req, 'OrdpEstado', false));
+      const fromRaw = getParam(req, 'From');
+      const toRaw = getParam(req, 'To');
+      const from = fromRaw ? parseDateValue(fromRaw) : null;
+      const to = toRaw ? parseDateValue(toRaw) : null;
+      if (fromRaw && (!from || Number.isNaN(from.getTime()))) throw httpError(400, 'Parametro invalido: From debe ser fecha valida');
+      if (toRaw && (!to || Number.isNaN(to.getTime()))) throw httpError(400, 'Parametro invalido: To debe ser fecha valida');
+      if (from && to && from > to) throw httpError(400, 'La fecha Desde no puede ser posterior a Hasta');
+      request.input('From', sql.Date, from).input('To', sql.Date, to);
+
+      const q = getTextParam(req, 'q');
+      request.input('q', sql.NVarChar(120), q ? `%${q}%` : null);
+      const result = await request.query(`SELECT o.*, RTRIM(p.ProdNom) ProdNom, RTRIM(x.ExpNom) ExpNom,
+        RTRIM(e.EspeNom) EspeNom, RTRIM(v.VarNom) VarNom,
         STUFF((SELECT ', ' + CAST(d.Ordp1Nlote AS varchar(20)) + ' (' + CAST(d.Ordp1Env AS varchar(20)) + ' env, ' + CAST(d.Ordp1Kilos AS varchar(30)) + ' kg)' FROM ORDPROC1 d WHERE d.EmpCod=o.EmpCod AND d.TempCod=o.TempCod AND d.Ordpnum=o.Ordpnum ORDER BY d.Ordp1Nlote FOR XML PATH(''),TYPE).value('.','nvarchar(max)'),1,2,'') lotesUsados,
         STUFF((SELECT ', ' + CAST(d.Ordp1Nlote AS varchar(20)) + ' - ' + COALESCE(CAST(q.CalRecPorCalidad AS varchar(20)),'-') + '%' FROM ORDPROC1 d OUTER APPLY (SELECT TOP 1 c.CalRecPorCalidad FROM CALRECEP c WHERE c.EmpCod=d.EmpCod AND c.TempCod=d.TempCod AND c.Mov1Nlote=d.Ordp1Nlote AND c.CalRecEstado='F' ORDER BY c.CalRecFecha DESC,c.CalRecHora DESC,c.CalRecId DESC) q WHERE d.EmpCod=o.EmpCod AND d.TempCod=o.TempCod AND d.Ordpnum=o.Ordpnum ORDER BY d.Ordp1Nlote FOR XML PATH(''),TYPE).value('.','nvarchar(max)'),1,2,'') calidadLotes
         FROM ORDPROC o
         LEFT JOIN PRODUCTORES p ON p.EmpCod=o.EmpCod AND p.ProdCod=o.ProdCod
         LEFT JOIN EXPORT1 x ON x.EmpCod=o.EmpCod AND x.ExpCod=o.ExpCod
-        WHERE o.EmpCod=@EmpCod AND (@TempCod IS NULL OR o.TempCod=@TempCod) ORDER BY o.OrdpFecha DESC,o.Ordpnum DESC`);
+        LEFT JOIN ESPECIES e ON e.EmpCod=o.EmpCod AND e.Especod=o.Especod
+        LEFT JOIN ESPECIES1 v ON v.EmpCod=o.EmpCod AND v.Especod=o.Especod AND v.VarCod=o.VarCod
+        WHERE o.EmpCod=@EmpCod
+          AND (@TempCod IS NULL OR o.TempCod=@TempCod)
+          AND (@From IS NULL OR o.OrdpFecha>=@From)
+          AND (@To IS NULL OR o.OrdpFecha<DATEADD(day,1,@To))
+          AND (@Especod IS NULL OR o.Especod=@Especod)
+          AND (@VarCod IS NULL OR o.VarCod=@VarCod)
+          AND (@OrdpEstado IS NULL OR o.OrdpEstado=@OrdpEstado)
+          AND (@q IS NULL OR CAST(o.Ordpnum AS nvarchar(120)) LIKE @q OR CAST(o.ProdCod AS nvarchar(120)) LIKE @q
+            OR p.ProdNom LIKE @q OR x.ExpNom LIKE @q OR e.EspeNom LIKE @q OR v.VarNom LIKE @q)
+        ORDER BY o.OrdpFecha DESC,o.Ordpnum DESC`);
       return res.json({ success: true, catalog: catalogName, count: result.recordset.length, data: result.recordset });
     }
     const request = pool.request();

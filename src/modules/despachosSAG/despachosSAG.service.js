@@ -66,9 +66,15 @@ const integer = (
 
 const listFilters = (query = {}) => {
   const defaults = defaultRange();
-  const from = dateValue(query.from || defaults.from, "La fecha desde");
-  const to = dateValue(query.to || defaults.to, "La fecha hasta");
-  if (from > to) {
+  const hasFrom = Object.prototype.hasOwnProperty.call(query, "from");
+  const hasTo = Object.prototype.hasOwnProperty.call(query, "to");
+  const from = hasFrom
+    ? (trim(query.from) ? dateValue(query.from, "La fecha desde") : null)
+    : dateValue(defaults.from, "La fecha desde");
+  const to = hasTo
+    ? (trim(query.to) ? dateValue(query.to, "La fecha hasta") : null)
+    : dateValue(defaults.to, "La fecha hasta");
+  if (from && to && from > to) {
     throw new DespachosSAGError(
       400,
       "VALIDATION_ERROR",
@@ -101,6 +107,7 @@ const listFilters = (query = {}) => {
       max: 9999999999,
       defaultValue: 0,
     }),
+    search: trim(query.search).slice(0, 120),
     page: integer(query.page, "La página", { min: 1, max: 100000, defaultValue: 1 }),
     pageSize: integer(query.pageSize, "El tamaño de página", {
       min: 1,
@@ -160,6 +167,7 @@ const listDespachos = async (
     .input("Status", sql.SmallInt, filters.status)
     .input("Planilla", sql.Decimal(10, 0), filters.planilla)
     .input("Guide", sql.Decimal(10, 0), filters.guide)
+    .input("Search", sql.NVarChar(120), filters.search)
     .input("Offset", sql.Int, (filters.page - 1) * filters.pageSize)
     .input("PageSize", sql.Int, filters.pageSize)
     .query(`
@@ -186,10 +194,11 @@ const listDespachos = async (
     LEFT JOIN DESTINOS ds ON ds.DestCod=h.DestCod
     LEFT JOIN DESPAAUTO da ON da.EmpCod=h.EmpCod AND da.DACod=h.DACod
     WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod AND h.DorTipPlani=1
-      AND h.DorFecha>=@From AND h.DorFecha<DATEADD(day,1,@To)
+      AND (@From IS NULL OR h.DorFecha>=@From) AND (@To IS NULL OR h.DorFecha<DATEADD(day,1,@To))
       AND (@Planilla=0 OR h.DORNumf=@Planilla)
       AND (@Guide=0 OR h.DorNguia=@Guide)
-      AND (@Status=9 OR h.DorEstado=@Status);
+      AND (@Status=9 OR h.DorEstado=@Status)
+      AND (@Search='' OR CONCAT(CONVERT(varchar(20),h.DORNum),' ',COALESCE(CONVERT(varchar(20),h.DORNumf),''),' ',COALESCE(CONVERT(varchar(20),h.DorNguia),''),' ',COALESCE(RTRIM(h.DorNPuertoE),''),' ',COALESCE(RTRIM(h.DorNpuertoD),''),' ',COALESCE(RTRIM(h.DestNom),''),' ',COALESCE(RTRIM(h.DANombre),''),' ',COALESCE(RTRIM(h.DorNSellos),''),' ',COALESCE(RTRIM(h.DorTipoTrans),''),' ',COALESCE(RTRIM(h.DorLogcre),'')) LIKE '%' + @Search + '%');
     SELECT id,internalNumber,planillaNumber,guideNumber,shipmentDate,embarkPort,destinationPort,
       destinationName,totalBoxes,totalKilos,totalFolios,status,authorizedDispatcher,seals,
       transportType,createdBy,createdDate,annulledBy,annulledDate
@@ -198,7 +207,10 @@ const listDespachos = async (
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
     SELECT COUNT(*) total,COALESCE(SUM(CONVERT(bigint,totalBoxes)),0) totalBoxes,
       COALESCE(SUM(CONVERT(decimal(19,2),totalKilos)),0) totalKilos,
-      COALESCE(SUM(CONVERT(bigint,totalFolios)),0) totalFolios
+      COALESCE(SUM(CONVERT(bigint,totalFolios)),0) totalFolios,
+      COALESCE(SUM(CASE WHEN status=0 THEN 1 ELSE 0 END),0) inProgress,
+      COALESCE(SUM(CASE WHEN status=1 THEN 1 ELSE 0 END),0) finalized,
+      COALESCE(SUM(CASE WHEN status=5 THEN 1 ELSE 0 END),0) annulled
     FROM #filtered;
     SELECT RTRIM(@TempCod) tempCod;
   `);
@@ -221,6 +233,11 @@ const listDespachos = async (
       boxes: Number(summary.totalBoxes || 0),
       kilos: Number(summary.totalKilos || 0),
       folios: Number(summary.totalFolios || 0),
+    },
+    statusCounts: {
+      inProgress: Number(summary.inProgress || 0),
+      finalized: Number(summary.finalized || 0),
+      annulled: Number(summary.annulled || 0),
     },
     tempCod,
     filters,

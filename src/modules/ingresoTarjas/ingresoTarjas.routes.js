@@ -96,7 +96,7 @@ router.get('/export/excel', run(async (req, res) => {
     ['Despacho OT', 'dispatchOt', 14], ['Despacho USDA', 'dispatchUsda', 17]
   ].map(([header, key, width]) => ({ header, key, width }));
   rows.forEach((row) => sheet.addRow(row));
-  sheet.insertRows(1, [[`Folios Procesados · Temporada ${first.tempCod}`], [`Desde ${first.filters.from} hasta ${first.filters.to}`], []]);
+  sheet.insertRows(1, [[`Folios Procesados · Temporada ${first.tempCod}`], [`Desde ${first.filters.from || 'sin límite'} hasta ${first.filters.to || 'sin límite'}`], []]);
   sheet.mergeCells(1, 1, 1, sheet.columnCount);
   sheet.mergeCells(2, 1, 2, sheet.columnCount);
   sheet.getRow(1).font = { bold: true, size: 15, color: { argb: 'FF1B5E20' } };

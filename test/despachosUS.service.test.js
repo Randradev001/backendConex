@@ -41,6 +41,7 @@ test("usa el permiso histórico y los filtros del WorkPanel DespachosUS", () => 
     status: 9,
     planilla: 18,
     guide: 27,
+    search: "",
     page: 1,
     pageSize: 25,
     type: 3,

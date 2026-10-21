@@ -61,6 +61,7 @@ const normalizeFilters = (input = {}, { paginate = true } = {}) => {
     guideFrom: parseInteger(input.guideFrom, 'guideFrom'),
     quarter: parseInteger(input.quarter, 'quarter'),
     species: parseInteger(input.species, 'species'),
+    search: cleanText(input.search).slice(0, 120),
     page: paginate ? parseInteger(input.page ?? 1, 'page', { min: 1, optional: false }) : 1,
     limit: paginate
       ? Math.min(parseInteger(input.limit ?? DEFAULT_LIMIT, 'limit', { min: 1, optional: false }), MAX_LIMIT)
@@ -78,6 +79,7 @@ const bindCommonInputs = (request, empCod, filters) => {
   request.input('GuideFrom', sql.Decimal(10, 0), filters.guideFrom);
   request.input('Quarter', sql.Int, filters.quarter);
   request.input('Species', sql.SmallInt, filters.species);
+  request.input('Search', sql.NVarChar(120), filters.search);
   request.input('Offset', sql.Int, (filters.page - 1) * filters.limit);
   request.input('Limit', sql.Int, filters.limit);
   return request;
@@ -155,6 +157,7 @@ const summarySql = ({ paginated = true } = {}) => `
       AND (@Origin IS NULL OR h.OriCod=@Origin)
       AND (@Producer IS NULL OR h.MovProd=@Producer)
       AND (@GuideFrom IS NULL OR h.MovNGuia>=@GuideFrom)
+      AND (@Search='' OR CONCAT(RTRIM(h.TempCod),' ',CONVERT(varchar(20),h.OriCod),' ',COALESCE(RTRIM(o.Orinom),''),' ',CONVERT(varchar(20),h.MovNGuia),' ',COALESCE(RTRIM(h.MovProd),''),' ',COALESCE(RTRIM(p.ProdNom),''),' ',COALESCE(lotStrings.lotsText,'')) LIKE '%' + @Search + '%')
     ;
   SELECT COUNT_BIG(*) AS total,
     COALESCE(SUM(MovTotE),0) AS totalEnvases,
@@ -216,7 +219,8 @@ const detailSql = ({ paginated = true } = {}) => `
       AND (@Origin IS NULL OR h.OriCod=@Origin)
       AND (@Producer IS NULL OR h.MovProd=@Producer)
       AND (@Quarter IS NULL OR d.Mov1Cuar=@Quarter)
-      AND (@Species IS NULL OR d.Mov1Espe=@Species);
+      AND (@Species IS NULL OR d.Mov1Espe=@Species)
+      AND (@Search='' OR CONCAT(RTRIM(h.TempCod),' ',CONVERT(varchar(20),h.OriCod),' ',COALESCE(RTRIM(o.Orinom),''),' ',CONVERT(varchar(20),h.MovNGuia),' ',COALESCE(RTRIM(h.MovProd),''),' ',COALESCE(RTRIM(p.ProdNom),''),' ',CONVERT(varchar(20),d.Mov1Nlote),' ',COALESCE(RTRIM(q.CuarNom),''),' ',COALESCE(RTRIM(e.EspeNom),''),' ',COALESCE(RTRIM(v.VarNom),'')) LIKE '%' + @Search + '%');
   SELECT COUNT_BIG(*) AS total,
     COALESCE(SUM(Mov1NumE),0) AS totalEnvases,
     COALESCE(SUM(Mov1KilB),0) AS totalKilosBrutos,

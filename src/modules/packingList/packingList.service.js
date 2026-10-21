@@ -20,6 +20,7 @@ const date = (value, label) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text) || Number.isNaN(Date.parse(`${text}T00:00:00`))) fail(`${label} debe ser una fecha válida.`);
   return text;
 };
+const optionalDate = (value, label) => value ? date(value, label) : null;
 const text = (value, length) => String(value || '').trim().slice(0, length);
 const base = (request, empCod, tempCod) => request.input('EmpCod', sql.SmallInt, empCod).input('TempCod', sql.Char(9), tempCod);
 const activeSeason = async (request, empCod) => {
@@ -44,8 +45,12 @@ const list = async (empCod, filters = {}) => {
   const tempCod = await activeSeason(pool.request(), empCod);
   const packTipo = filters.type && filters.type !== 'all' ? type(filters.type) : 0;
   const search = text(filters.search, 40);
+  const from = optionalDate(filters.from, 'La fecha desde');
+  const to = optionalDate(filters.to, 'La fecha hasta');
+  if (from && to && from > to) fail('La fecha desde no puede ser posterior a la fecha hasta.');
   const result = await base(pool.request(), empCod, tempCod)
     .input('PackTipo', sql.SmallInt, packTipo).input('Search', sql.VarChar(40), search)
+    .input('From', sql.Date, from).input('To', sql.Date, to)
     .query(`SELECT p.PackNumI id,p.PackTipo type,p.PackNumG sourceNumber,
       CONVERT(char(10),p.PackFecha,23) packingDate,CONVERT(char(10),p.PackFecZar,23) departureDate,
       RTRIM(c.CliNom) clientName,p.CliCod clientId,p.PackTotCajas boxes,p.PackTotPal pallets,
@@ -53,6 +58,8 @@ const list = async (empCod, filters = {}) => {
       RTRIM(p.PackPatente) patent,RTRIM(p.PackNave) vessel
       FROM PACKLIST p LEFT JOIN CLIENTES c ON c.EmpCod=p.EmpCod AND c.CliCod=p.CliCod
       WHERE p.EmpCod=@EmpCod AND p.TempCod=@TempCod AND (@PackTipo=0 OR p.PackTipo=@PackTipo)
+        AND (@From IS NULL OR p.PackFecha>=@From)
+        AND (@To IS NULL OR p.PackFecha<DATEADD(day,1,@To))
         AND (@Search='' OR CONVERT(varchar(20),p.PackNumI) LIKE '%'+@Search+'%'
           OR CONVERT(varchar(20),p.PackNumG) LIKE '%'+@Search+'%'
           OR c.CliNom LIKE '%'+@Search+'%')
@@ -88,9 +95,21 @@ const getDetail = async (empCod, packNumI) => {
   const tempCod = await activeSeason(pool.request(), empCod);
   const id = number(packNumI, 'El packing');
   const header = await key(pool.request(), empCod, tempCod, id).query(`
-    SELECT p.*,RTRIM(c.CliNom) clientName,RTRIM(po.PuNombre) originPortName,RTRIM(pd.PuNombre) destinationPortName
+    SELECT p.*,RTRIM(c.CliNom) clientName,RTRIM(po.PuNombre) originPortName,RTRIM(pd.PuNombre) destinationPortName,
+      RTRIM(e.ExpNom) exporterName,RTRIM(co.ConsNom) consigneeName,RTRIM(d.DestNom) destinationName,
+      RTRIM(a.AgeNom) agentName,RTRIM(da.DANombre) dispatcherName,
+      RTRIM(x.TransportistaNombre) guideCarrier,RTRIM(x.TransportistaRut) guideCarrierRut,
+      RTRIM(x.PatenteCarro) guideTrailerPlate,CONVERT(char(10),x.FechaLlegada,23) guideArrivalDate,
+      RTRIM(x.OrigenDireccion) guideOriginAddress,RTRIM(x.OrigenComuna) guideOriginCommune,
+      RTRIM(x.DestinoDireccion) guideDestinationAddress,RTRIM(x.DestinoComuna) guideDestinationCommune
     FROM PACKLIST p LEFT JOIN CLIENTES c ON c.EmpCod=p.EmpCod AND c.CliCod=p.CliCod
     LEFT JOIN PUERTOS po ON po.PuCod=p.PackPuOr LEFT JOIN PUERTOS pd ON pd.PuCod=p.PackPuDe
+    LEFT JOIN EXPORT1 e ON e.EmpCod=p.EmpCod AND e.ExpCod=p.ExpCod
+    LEFT JOIN CONSIG co ON co.EmpCod=p.EmpCod AND co.ConsCod=p.ConsCod
+    LEFT JOIN DESTINOS d ON d.DestCod=p.DestCod
+    LEFT JOIN AGENTES a ON a.EmpCod=p.EmpCod AND a.AgeCod=p.AgeCod
+    LEFT JOIN DESPAAUTO da ON da.EmpCod=p.EmpCod AND da.DACod=p.DACod
+    LEFT JOIN integracion.PackingGuiaDatos x ON x.EmpCod=p.EmpCod AND x.TempCod=p.TempCod AND x.PackNumI=p.PackNumI
     WHERE p.EmpCod=@EmpCod AND p.TempCod=@TempCod AND p.PackNumI=@PackNumI`);
   const row = header.recordset[0];
   if (!row) fail('No se encontró el packing list en la temporada activa.', 404, 'NOT_FOUND');
@@ -112,8 +131,6 @@ const getDetail = async (empCod, packNumI) => {
 const create = async (empCod, login, input = {}) => {
   const packTipo = type(input.type);
   const sourceNumber = number(input.sourceNumber, 'El documento de origen');
-  const clientId = number(input.clientId, 'El cliente');
-  const departureDate = date(input.departureDate, 'La fecha de zarpe');
   const pool = await getPool();
   const transaction = new sql.Transaction(pool);
   await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
@@ -141,14 +158,17 @@ const create = async (empCod, login, input = {}) => {
       .input('PackTipo', sql.SmallInt, packTipo).input('SourceNumber', sql.Decimal(10, 0), sourceNumber)
       .query('SELECT TOP 1 PackNumI FROM PACKLIST WITH (UPDLOCK,HOLDLOCK) WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND PackTipo=@PackTipo AND PackNumG=@SourceNumber');
     if (duplicate.recordset.length) fail('Ya existe un packing list para este documento de origen.', 409, 'DUPLICATE_SOURCE');
-    const client = await new sql.Request(transaction).input('EmpCod', sql.SmallInt, empCod).input('CliCod', sql.Int, clientId)
-      .query('SELECT TOP 1 CliCod FROM CLIENTES WHERE EmpCod=@EmpCod AND CliCod=@CliCod');
-    if (!client.recordset.length) fail('El cliente seleccionado no pertenece a la empresa.');
+    const clientId = source.sourceClient ? Number(source.sourceClient) : null;
+    if (clientId) {
+      const client = await new sql.Request(transaction).input('EmpCod', sql.SmallInt, empCod).input('CliCod', sql.Int, clientId)
+        .query('SELECT TOP 1 CliCod FROM CLIENTES WHERE EmpCod=@EmpCod AND CliCod=@CliCod');
+      if (!client.recordset.length) fail('El cliente del documento de origen no pertenece a la empresa.');
+    }
     const packNumI = await nextCorrelative({ transaction, empCod, code: 'PACKLIST', digits: 10 });
     await base(new sql.Request(transaction), empCod, tempCod)
       .input('PackNumI', sql.Decimal(10, 0), packNumI).input('PackTipo', sql.SmallInt, packTipo)
       .input('PackNumG', sql.Decimal(10, 0), sourceNumber).input('PackFecha', sql.DateTime, source.packingDate || new Date())
-      .input('PackFecZar', sql.DateTime, departureDate).input('CliCod', sql.Int, clientId)
+      .input('PackFecZar', sql.DateTime, null).input('CliCod', sql.Int, clientId)
       .input('PackTotCajas', sql.SmallInt, source.boxes || 0).input('PackTotPal', sql.SmallInt, source.pallets || 0)
       .input('PackKilos', sql.Money, source.kilos || 0).input('PackGuia', sql.Decimal(10, 0), source.guide || 0)
       .input('PackPuOr', sql.SmallInt, source.originPort || 0).input('PackPuDe', sql.SmallInt, source.destinationPort || 0)
@@ -177,18 +197,44 @@ const update = async (empCod, packNumI, input = {}) => {
   const id = number(packNumI, 'El packing');
   const clientId = number(input.clientId, 'El cliente');
   const departureDate = date(input.departureDate, 'La fecha de zarpe');
+  const departureTime = text(input.departureTime, 8);
+  if (departureTime && !/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(departureTime)) fail('La hora de salida no es válida.');
+  const arrivalDate = optionalDate(input.arrivalDate, 'La fecha estimada de llegada');
   const result = await key(pool.request(), empCod, tempCod, id)
     .input('CliCod', sql.Int, clientId).input('PackFecZar', sql.DateTime, departureDate)
     .input('PackChofer', sql.Char(30), text(input.driver, 30))
     .input('PackRutChofer', sql.Char(12), text(input.driverRut, 12))
     .input('PackPatente', sql.Char(30), text(input.patent, 30))
+    .input('PackHora', sql.Char(8), departureTime)
+    .input('PackEmptrans', sql.Char(15), text(input.transportCompany, 15))
+    .input('PackTipCamion', sql.Char(15), text(input.truckType, 15))
     .input('PackObs1', sql.Char(50), text(input.observation, 50))
     .query(`UPDATE p SET CliCod=@CliCod,PackFecZar=@PackFecZar,PackChofer=@PackChofer,
-      PackRutChofer=@PackRutChofer,PackPatente=@PackPatente,PackObs1=@PackObs1
+      PackRutChofer=@PackRutChofer,PackPatente=@PackPatente,PackHora=@PackHora,
+      PackEmptrans=@PackEmptrans,PackTipCamion=@PackTipCamion,PackObs1=@PackObs1
       FROM PACKLIST p WHERE p.EmpCod=@EmpCod AND p.TempCod=@TempCod AND p.PackNumI=@PackNumI
       AND ISNULL(p.PackEstado,0)=0
       AND EXISTS(SELECT 1 FROM CLIENTES c WHERE c.EmpCod=p.EmpCod AND c.CliCod=@CliCod)`);
   if (!result.rowsAffected[0]) fail('No fue posible editar el packing. Verifique cliente, estado y guía asociada.', 409, 'NOT_EDITABLE');
+  await key(pool.request(), empCod, tempCod, id)
+    .input('TransportistaNombre', sql.NVarChar(150), text(input.transportCompany, 150))
+    .input('TransportistaRut', sql.NVarChar(20), text(input.carrierRut, 20))
+    .input('PatenteCarro', sql.NVarChar(20), text(input.trailerPlate, 20))
+    .input('FechaLlegada', sql.Date, arrivalDate)
+    .input('OrigenDireccion', sql.NVarChar(200), text(input.originAddress, 200))
+    .input('OrigenComuna', sql.NVarChar(100), text(input.originCommune, 100))
+    .input('DestinoDireccion', sql.NVarChar(200), text(input.destinationAddress, 200))
+    .input('DestinoComuna', sql.NVarChar(100), text(input.destinationCommune, 100))
+    .query(`MERGE integracion.PackingGuiaDatos AS target
+      USING (SELECT @EmpCod EmpCod,@TempCod TempCod,@PackNumI PackNumI) AS source
+      ON target.EmpCod=source.EmpCod AND target.TempCod=source.TempCod AND target.PackNumI=source.PackNumI
+      WHEN MATCHED THEN UPDATE SET TransportistaNombre=@TransportistaNombre,TransportistaRut=@TransportistaRut,
+        PatenteCarro=@PatenteCarro,FechaLlegada=@FechaLlegada,OrigenDireccion=@OrigenDireccion,
+        OrigenComuna=@OrigenComuna,DestinoDireccion=@DestinoDireccion,DestinoComuna=@DestinoComuna,ActualizadoEn=SYSUTCDATETIME()
+      WHEN NOT MATCHED THEN INSERT (EmpCod,TempCod,PackNumI,TransportistaNombre,TransportistaRut,PatenteCarro,
+        FechaLlegada,OrigenDireccion,OrigenComuna,DestinoDireccion,DestinoComuna)
+        VALUES (@EmpCod,@TempCod,@PackNumI,@TransportistaNombre,@TransportistaRut,@PatenteCarro,
+        @FechaLlegada,@OrigenDireccion,@OrigenComuna,@DestinoDireccion,@DestinoComuna);`);
   return { id };
 };
 

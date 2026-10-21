@@ -65,9 +65,15 @@ const defaultRange = (now = new Date()) => {
 
 const listFilters = (query = {}, now = new Date()) => {
   const defaults = defaultRange(now);
-  const from = isoDate(query.from || defaults.from, "Fecha desde");
-  const to = isoDate(query.to || defaults.to, "Fecha hasta");
-  if (from > to)
+  const hasFrom = Object.prototype.hasOwnProperty.call(query, "from");
+  const hasTo = Object.prototype.hasOwnProperty.call(query, "to");
+  const from = hasFrom
+    ? (trim(query.from) ? isoDate(query.from, "Fecha desde") : null)
+    : isoDate(defaults.from, "Fecha desde");
+  const to = hasTo
+    ? (trim(query.to) ? isoDate(query.to, "Fecha hasta") : null)
+    : isoDate(defaults.to, "Fecha hasta");
+  if (from && to && from > to)
     throw new InspeccionesError(
       400,
       "VALIDATION_ERROR",
@@ -103,6 +109,7 @@ const listFilters = (query = {}, now = new Date()) => {
       min: 1,
       max: 9999,
     }),
+    search: trim(query.search).slice(0, 120),
     status,
     page: integer(query.page ?? 1, "Página", { min: 1, max: 100000 }),
     pageSize: integer(query.pageSize ?? 25, "Registros por página", {
@@ -256,6 +263,7 @@ const listInspecciones = async (
     .input("RequestNumber", sql.Int, filters.requestNumber)
     .input("Species", sql.SmallInt, filters.species)
     .input("Destination", sql.SmallInt, filters.destination)
+    .input("Search", sql.NVarChar(120), filters.search)
     .input("Status", sql.SmallInt, filters.status)
     .input("Offset", sql.Int, (filters.page - 1) * filters.pageSize)
     .input("PageSize", sql.Int, filters.pageSize);
@@ -265,25 +273,46 @@ const listInspecciones = async (
         s.solespe speciesCode,RTRIM(e.EspeNom) speciesName,
         s.SolDest destinationCode,RTRIM(d.DestNom) destinationName,
         COALESCE(s.soltotcajas,0) totalBoxes,COALESCE(s.soltotpal,0) totalPallets,s.SolEstado status,
+        COALESCE(lots.inspectedLots,0) inspectedLots,
         RTRIM(s.SolSolicita) applicant,RTRIM(s.sollogin) createdBy,RTRIM(s.solDestinos) approvedDestinations
       INTO #filtered
     FROM SOLICITUDES1 s
     LEFT JOIN ESPECIES e ON e.EmpCod=s.EmpCod AND e.Especod=s.solespe
     LEFT JOIN DESTINOS d ON d.DestCod=s.SolDest
+    OUTER APPLY (
+      SELECT COUNT_BIG(*) inspectedLots
+      FROM SOLICITUDES2 lot
+      WHERE lot.EmpCod=s.EmpCod AND lot.TempCod=s.TempCod AND lot.SolNum=s.SolNum
+    ) lots
     WHERE s.EmpCod=@EmpCod AND s.TempCod=@TempCod AND s.SolTipo='INS'
-      AND s.Solfecha>=@From AND s.Solfecha<DATEADD(day,1,@To)
+      AND (@From IS NULL OR s.Solfecha>=@From) AND (@To IS NULL OR s.Solfecha<DATEADD(day,1,@To))
       AND (@RequestNumber IS NULL OR s.SolnumI=@RequestNumber)
       AND (@Species IS NULL OR s.solespe=@Species)
       AND (@Destination IS NULL OR s.SolDest=@Destination)
-      AND (@Status IS NULL OR s.SolEstado=@Status);
-    SELECT id,requestNumber,requestDate,speciesCode,speciesName,destinationCode,destinationName,totalBoxes,totalPallets,status,applicant,createdBy,approvedDestinations
+      AND (@Status IS NULL OR s.SolEstado=@Status)
+      AND (@Search='' OR CONCAT(CONVERT(varchar(20),s.SolnumI),' ',COALESCE(RTRIM(e.EspeNom),''),' ',COALESCE(RTRIM(d.DestNom),''),' ',COALESCE(RTRIM(s.SolSolicita),''),' ',COALESCE(RTRIM(s.sollogin),''),' ',COALESCE(RTRIM(s.solDestinos),'')) LIKE '%' + @Search + '%');
+    SELECT id,requestNumber,requestDate,speciesCode,speciesName,destinationCode,destinationName,totalBoxes,totalPallets,inspectedLots,status,applicant,createdBy,approvedDestinations
     FROM #filtered ORDER BY requestDate DESC,requestNumber DESC OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
     SELECT COUNT(*) total,COALESCE(SUM(CONVERT(bigint,totalBoxes)),0) totalBoxes,COALESCE(SUM(CONVERT(bigint,totalPallets)),0) totalPallets,
       COALESCE(SUM(CASE WHEN status=0 THEN 1 ELSE 0 END),0) inProgress,
       COALESCE(SUM(CASE WHEN status=1 THEN 1 ELSE 0 END),0) approved,
       COALESCE(SUM(CASE WHEN status=2 THEN 1 ELSE 0 END),0) rejected,
-      COALESCE(SUM(CASE WHEN status=5 THEN 1 ELSE 0 END),0) annulled
+      COALESCE(SUM(CASE WHEN status=5 THEN 1 ELSE 0 END),0) annulled,
+      COALESCE(SUM(CONVERT(bigint,inspectedLots)),0) inspectedLots
     FROM #filtered;
+    SELECT TOP (5) s.SolNum id,s.SolnumI requestNumber,CONVERT(char(10),s.Solfecha,23) requestDate,
+      s.solespe speciesCode,RTRIM(e.EspeNom) speciesName,s.SolDest destinationCode,RTRIM(d.DestNom) destinationName,
+      COALESCE(s.soltotcajas,0) totalBoxes,COALESCE(s.soltotpal,0) totalPallets,COALESCE(lots.inspectedLots,0) inspectedLots,
+      s.SolEstado status,RTRIM(s.SolSolicita) applicant,RTRIM(s.sollogin) createdBy,RTRIM(s.solDestinos) approvedDestinations
+    FROM SOLICITUDES1 s
+    LEFT JOIN ESPECIES e ON e.EmpCod=s.EmpCod AND e.Especod=s.solespe
+    LEFT JOIN DESTINOS d ON d.DestCod=s.SolDest
+    OUTER APPLY (
+      SELECT COUNT_BIG(*) inspectedLots FROM SOLICITUDES2 lot
+      WHERE lot.EmpCod=s.EmpCod AND lot.TempCod=s.TempCod AND lot.SolNum=s.SolNum
+    ) lots
+    WHERE s.EmpCod=@EmpCod AND s.TempCod=@TempCod AND s.SolTipo='INS' AND s.SolEstado=1
+    ORDER BY s.Solfecha DESC,s.SolnumI DESC;
     SELECT RTRIM(@TempCod) tempCod;
   `);
   const summary = result.recordsets[1]?.[0] || {};
@@ -296,6 +325,7 @@ const listInspecciones = async (
     totals: {
       boxes: Number(summary.totalBoxes || 0),
       pallets: Number(summary.totalPallets || 0),
+      inspectedLots: Number(summary.inspectedLots || 0),
     },
     statusCounts: {
       inProgress: Number(summary.inProgress || 0),
@@ -303,7 +333,11 @@ const listInspecciones = async (
       rejected: Number(summary.rejected || 0),
       annulled: Number(summary.annulled || 0),
     },
-    tempCod: result.recordsets[2]?.[0]?.tempCod || null,
+    latestFive: (result.recordsets.length > 3 ? result.recordsets[2] : []).map((row) => ({
+      ...row,
+      statusLabel: statusLabel(row.status),
+    })),
+    tempCod: result.recordsets[result.recordsets.length > 3 ? 3 : 2]?.[0]?.tempCod || null,
     filters,
   };
 };

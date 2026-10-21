@@ -1,6 +1,6 @@
 # Operacion de ordenes de proceso
 
-Fecha de revision: 2026-09-30.
+Fecha de revision: 2026-10-21.
 
 Estado: alta y modificacion implementadas.
 
@@ -16,6 +16,17 @@ programa `110/2/2` y la accion de alta o modificacion correspondiente.
 
 ## Presentacion operacional
 
+- El ADM `/maestros-gx/ordenes-proceso-adm` usa el patrón de listado
+  operacional de CONEX: banner verde, temporada activa automática, rango inicial
+  de los últimos 30 días, indicadores clicables, filtros en una línea y búsqueda
+  con debounce integrada en la grilla. Excel, PDF y `Nueva orden` se ubican en
+  el banner; se retiraron los botones manuales Buscar y Limpiar y el distintivo
+  técnico de nivel GX.
+- Los filtros de fecha permiten extremos abiertos y el backend aplica realmente
+  fecha, especie, variedad, estado y búsqueda general sobre `ORDPROC`. La grilla
+  presenta nombres de especie, variedad, productor y exportadora, además de los
+  estados con sus etiquetas de negocio. Tarjetas, tabla y exportaciones se
+  calculan desde el mismo conjunto filtrado.
 - Cada lote destaca en verde la **Cantidad restante**, mostrando en tamaño
   principal envases y kilos disponibles antes de seleccionar.
 - La cantidad ya utilizada permanece separada para no confundir saldo con
@@ -57,10 +68,32 @@ seleccion si envases o kilos superan el saldo disponible, aunque la pantalla
 haya mostrado un valor anterior. El protagonismo visual del saldo no reemplaza
 esta validacion transaccional.
 
-## Verificacion 2026-09-30
+## Verificacion 2026-10-21
 
 - La consulta real del ADM en `CONEX_MIGRACION` devolvio para la orden 176
   `ProdNom=GUILLERMO DONOSO` y `ExpNom=RIO DUERO`, en lugar de los codigos 7 y
   6 mostrados anteriormente.
 - El frontend compilo 6.033 modulos y el lint dirigido de
   `gxMaestroCrud.jsx` termino sin errores.
+- La homologación del listado compiló el frontend completo y el conjunto de
+  pruebas Node terminó correctamente. Se verificó además la sintaxis del
+  controlador y el lint dirigido sin errores (persisten advertencias Prettier
+  históricas en los archivos genéricos).
+
+### Cierre de validación del listado (2026-10-21)
+
+- Se eliminó el truncamiento de 500 filas del ADM; la temporada es obligatoria
+  y el listado carga el conjunto filtrado completo para grilla, tarjetas y
+  exportaciones. La paginación visual vuelve a la primera página al filtrar.
+- Un rango invertido deja tabla y tarjetas vacías y bloquea exportación.
+  Los reportes identifican explícitamente los límites de fecha abiertos.
+- Verificación de solo lectura en la base configurada: 29 órdenes en temporada
+  activa; hasta 31/08/2026: 27; desde 01/08/2026: 6; agosto: 4; estado 0: 5;
+  búsqueda 175: 1. Se contrastaron los resultados con el conjunto completo.
+- Safari: búsqueda automática 175, limpieza de ambas fechas, tarjeta Ingresadas
+  y selector de columnas comprobados en la ruta real. No se alteraron órdenes.
+- 174 pruebas Node aprobadas, incluyendo tres pruebas de regresión del listado;
+  ESLint dirigido sin errores y build completo aprobado.
+- Se conserva el exportador compartido: Excel es HTML con extensión .xls y PDF
+  usa la impresión del navegador. Incluye todas las filas filtradas cargadas,
+  pero no equivale a XLSX nativo ni reemplaza el comprobante PDF oficial.

@@ -31,12 +31,46 @@ const normalize=(p={})=>{
   return result;
 };
 const bindKey=(r,emp,k)=>r.input('EmpCod',sql.SmallInt,emp).input('TempCod',sql.Char(9),k.tempCod).input('OriCod',sql.SmallInt,k.origin).input('MovTDoc',sql.SmallInt,k.docType).input('MovNGuia',sql.Decimal(10,0),k.guide).input('MovProd',sql.Char(6),k.producer).input('Mov1Nlote',sql.Decimal(10,0),k.lot);
-const list=async(emp,q={})=>{const pool=await getPool();const limit=Math.min(Math.max(Number(q.limit)||100,1),500);const r=await pool.request().input('EmpCod',sql.SmallInt,emp).input('Limit',sql.Int,limit).query(`
+const list=async(emp,q={})=>{
+ const pool=await getPool();const limit=Math.min(Math.max(Number(q.limit)||100,1),500);
+ const from=q.from?date(q.from):null;const to=q.to?date(q.to):null;
+ const r=await pool.request().input('EmpCod',sql.SmallInt,emp).input('Limit',sql.Int,limit)
+  .input('FromDate',sql.Date,from).input('ToDate',sql.Date,to).query(`
  SELECT TOP (@Limit) c.CalRecId id,c.CalRecFecha inspectionDate,CONVERT(varchar(8),c.CalRecHora,108) inspectionTime,c.CalRecEstado state,c.TempCod,c.OriCod,c.MovTDoc,c.MovNGuia,RTRIM(c.MovProd) producer,c.Mov1Nlote lot,
  RTRIM(p.ProdNom) producerName,RTRIM(e.EspeNom) speciesName,RTRIM(v.VarNom) varietyName,c.CalRecTamMuestra sampleSize,c.CalRecPorCalidad qualityPercentage,c.CalRecLoginC inspector
  FROM CALRECEP c JOIN MOVFRUT1 d ON d.EmpCod=c.EmpCod AND d.TempCod=c.TempCod AND d.OriCod=c.OriCod AND d.MovTDoc=c.MovTDoc AND d.MovNGuia=c.MovNGuia AND d.MovProd=c.MovProd AND d.Mov1Nlote=c.Mov1Nlote
  LEFT JOIN PRODUCTORES p ON p.EmpCod=c.EmpCod AND p.ProdCod=c.MovProd LEFT JOIN ESPECIES e ON e.EmpCod=c.EmpCod AND e.Especod=c.Especod LEFT JOIN ESPECIES1 v ON v.EmpCod=c.EmpCod AND v.Especod=c.Especod AND v.VarCod=d.Mov1Var
- WHERE c.EmpCod=@EmpCod ORDER BY c.CalRecFecha DESC,c.CalRecHora DESC,c.CalRecId DESC;`);return {data:r.recordset};};
+ WHERE c.EmpCod=@EmpCod AND (@FromDate IS NULL OR c.CalRecFecha>=@FromDate) AND (@ToDate IS NULL OR c.CalRecFecha<DATEADD(day,1,@ToDate))
+ ORDER BY c.CalRecFecha DESC,c.CalRecHora DESC,c.CalRecId DESC;
+
+ SELECT CONVERT(char(10),h.MovFecha,23) receptionDate,h.TempCod,h.OriCod,h.MovTDoc,h.MovNGuia,RTRIM(h.MovProd) producer,
+  d.Mov1Nlote lot,d.Mov1Espe speciesCode,RTRIM(p.ProdNom) producerName,RTRIM(e.EspeNom) speciesName,RTRIM(v.VarNom) varietyName,
+  quality.CalRecId qualityControlId,quality.CalRecPorCalidad qualityPercentage
+ FROM MOVFRUT h JOIN MOVFRUT1 d ON d.EmpCod=h.EmpCod AND d.TempCod=h.TempCod AND d.OriCod=h.OriCod
+  AND d.MovTDoc=h.MovTDoc AND d.MovNGuia=h.MovNGuia AND d.MovProd=h.MovProd
+ LEFT JOIN PRODUCTORES p ON p.EmpCod=h.EmpCod AND p.ProdCod=h.MovProd
+ LEFT JOIN ESPECIES e ON e.EmpCod=d.EmpCod AND e.Especod=d.Mov1Espe
+ LEFT JOIN ESPECIES1 v ON v.EmpCod=d.EmpCod AND v.Especod=d.Mov1Espe AND v.VarCod=d.Mov1Var
+ OUTER APPLY (
+  SELECT TOP (1) c.CalRecId,c.CalRecPorCalidad FROM CALRECEP c
+  WHERE c.EmpCod=d.EmpCod AND c.TempCod=d.TempCod AND c.OriCod=d.OriCod AND c.MovTDoc=d.MovTDoc
+   AND c.MovNGuia=d.MovNGuia AND c.MovProd=d.MovProd AND c.Mov1Nlote=d.Mov1Nlote AND c.CalRecEstado<>'A'
+  ORDER BY c.CalRecFecha DESC,c.CalRecHora DESC,c.CalRecId DESC
+ ) quality
+ WHERE h.EmpCod=@EmpCod AND h.TMcod=1 AND h.TMSCod=1 AND COALESCE(h.Movauto,0)=0
+  AND (@FromDate IS NULL OR h.MovFecha>=@FromDate) AND (@ToDate IS NULL OR h.MovFecha<DATEADD(day,1,@ToDate))
+ ORDER BY h.MovFecha DESC,h.MovNGuia DESC,d.Mov1Nlote;
+ `);
+ const overviewRows=(r.recordsets[1]||[]).map((row)=>({...row,qualityPercentage:row.qualityPercentage===null?null:Number(row.qualityPercentage)}));
+ const pendingLots=overviewRows.filter((row)=>!row.qualityControlId);
+ const receptions=new Map();
+ overviewRows.forEach((row)=>{const receptionKey=[txt(row.TempCod),row.OriCod,row.MovTDoc,row.MovNGuia,txt(row.producer)].join('|');if(!receptions.has(receptionKey))receptions.set(receptionKey,{id:receptionKey,receptionDate:row.receptionDate,TempCod:row.TempCod,OriCod:row.OriCod,MovTDoc:row.MovTDoc,MovNGuia:row.MovNGuia,producer:row.producer,producerName:row.producerName,totalLots:0,controlledLots:0});const item=receptions.get(receptionKey);item.totalLots+=1;if(row.qualityControlId)item.controlledLots+=1;});
+ const receptionsWithoutQuality=[...receptions.values()].filter((row)=>row.controlledLots===0);
+ const speciesMap=new Map();
+ overviewRows.filter((row)=>row.qualityControlId&&row.qualityPercentage!==null).forEach((row)=>{const speciesKey=String(row.speciesCode);if(!speciesMap.has(speciesKey))speciesMap.set(speciesKey,{speciesCode:row.speciesCode,speciesName:row.speciesName,total:0,sum:0,rows:[]});const item=speciesMap.get(speciesKey);item.total+=1;item.sum+=row.qualityPercentage;item.rows.push(row);});
+ const species=[...speciesMap.values()].map((item)=>({speciesCode:item.speciesCode,speciesName:item.speciesName,averageQuality:Number((item.sum/item.total).toFixed(2)),controls:item.total,rows:item.rows})).sort((a,b)=>a.speciesName.localeCompare(b.speciesName,'es'));
+ return{data:r.recordsets[0]||[],overview:{summary:{totalLots:overviewRows.length,pendingLots:pendingLots.length,missingPercentage:overviewRows.length?Number((pendingLots.length/overviewRows.length*100).toFixed(2)):0,receptionsWithoutQuality:receptionsWithoutQuality.length},pendingLots,receptionsWithoutQuality,species}};
+};
 const getOne=async(emp,id,source)=>{const pool=source||await getPool();const req=source instanceof sql.Transaction?new sql.Request(source):pool.request();const r=await req.input('EmpCod',sql.SmallInt,emp).input('Id',sql.BigInt,id).query(`
  SELECT c.*,CONVERT(varchar(8),c.CalRecHora,108) CalRecHoraTexto,RTRIM(p.ProdNom) ProdNom,RTRIM(e.EspeNom) EspeNom,RTRIM(v.VarNom) VarNom,d.Mov1NumE,d.Mov1Cuar,RTRIM(q.CuarNom) CuarNom
  FROM CALRECEP c JOIN MOVFRUT1 d ON d.EmpCod=c.EmpCod AND d.TempCod=c.TempCod AND d.OriCod=c.OriCod AND d.MovTDoc=c.MovTDoc AND d.MovNGuia=c.MovNGuia AND d.MovProd=c.MovProd AND d.Mov1Nlote=c.Mov1Nlote
