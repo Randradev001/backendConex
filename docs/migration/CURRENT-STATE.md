@@ -513,13 +513,72 @@ asociación de folio falla después de crear la cabecera, permanece en el despac
 creado para permitir corregir el detalle.
 El selector del detalle de folios conserva las condiciones de los WorkPanels
 GX8 `BajaFolDespa` y `BajaFolDesUS`: para origen exige `Sol2CajasDes > 0`,
-`Sol2Dispo=0` y `SolEstado=1`; para USDA exige `PUS1CajDes > 0`,
-`PUS1Dispo=1` y `PUSEstado=1`, además de empresa, temporada, tipo y especie.
+`Sol2Dispo=0` y `SolEstado=1`; para USDA exige empresa, temporada, tipo,
+especie exacta, `PUS1CajDes > 0`, `PUS1Dispo=1` y `PUSEstado=1`, sin destino
+ni número de despacho en la condición del listado.
 La asociación vuelve a validar esas mismas condiciones dentro de una
 transacción antes de copiar los detalles;
 los tipos 2 y 3 requieren que `PROCUSDA/PROCUSDA1/PROCUSDA2` estén instaladas
 en la base operativa. Multipuerto sigue fuera de alcance.
 Evidencia y reglas en `docs/migration/despachos-sag.md`.
+
+## Despachos US
+
+El WorkPanel GX8 `DespachosUS` está implementado en
+`/procesos-sag/despachos-us` y `/backendDocker/despachos-us`, protegido por el
+permiso histórico `100/20/11`. Incluye listado paginado y alta/consulta/
+modificación/anulación para `DESORIGEN` con `DorTipPlani=2` (Fumigación) o `3`
+(Muestreo), con filtros GX de fecha, estado, tipo de proceso, número de
+planilla y número de guía. La empresa y la temporada provienen del contexto
+autenticado; el orden es descendente por `DORNum`.
+
+La columna `Acciones` ofrece Visualizar, Modificar, Anular, PDF y Finalizar.
+El alta independiente está en `/procesos-sag/despachos-us/nuevo`; Visualizar y
+Modificar abren el formulario reutilizado de Despachos SAG dentro de un
+diálogo, limitado a los tipos USDA 2 y 3. Eliminar reproduce `AnulaDespaUS`
+como anulación lógica, libera `PROCUSDA1.PUS1Dispo` y conserva el historial.
+Al entrar en Nuevo Despacho US, el foco inicial queda en el selector Tipo de
+proceso.
+En el diálogo Agregar Folio de USDA, Especie inicia en `Seleccione`; mientras
+no se elija una especie no se consultan folios ni se habilita `Agregar
+seleccionados`. El campo es escribible, filtra por código o nombre y al
+ingresar un código exacto completa la especie del catálogo.
+PDF genera desde Node una salida carta vertical de dos hojas: la primera se
+basa en `PlaniDUS` y conserva el orden de los bloques 1 a 9 del XPZ, incluido
+el grupo de consignatario del punto 5 y la distribución de los puntos 6 a 9;
+la segunda reproduce `DPlaniUSDA` como Packing List, con detalle por folio,
+Productor, Packing-IDP, totales y firmas. El backend resuelve los campos de
+Packing e IDG desde `PRODUCTORES`. El backend reutiliza las transacciones comunes de `DESORIGEN`,
+`DESORIGEN1/2` y `PROCUSDA*` bajo el permiso 100/20/11; no se requiere
+migración estructural adicional de la base. Evidencia y límites:
+[despachos-us.md](despachos-us.md).
+
+## Procesos USDA
+
+El WorkPanel GX8 `ProcesosUSDA` está implementado en
+`/procesos-sag/procesos-usda` y `/backendDocker/procesos-usda`, protegida por
+el permiso histórico `100/20/10`. Incluye el listado paginado de `PROCUSDA`,
+los filtros de fecha, tipo de proceso, estado, especie y número de proceso, y
+la acción `Estado` en un diálogo pequeño. Los filtros se presentan en una
+sola línea y la empresa/temporada se resuelven desde la sesión y `TEMP01`.
+
+El cambio de estado reproduce `EstadoUS.xpz`: actualiza `PUSEstado` y, al
+rechazar (`2`), elimina los detalles `PROCUSDA1/PROCUSDA2` y libera los folios
+en `FOLIOSPROC/FOLIOSPROC1` dentro de la misma transacción. También están
+implementados el alta combinada con detalle, Visualizar y Modificar mediante
+`Dialog`, y Anular. Por decisión funcional, Anular usa `PUSEstado=3`, conserva
+la cabecera y libera los folios y detalles en una transacción; el estado 3 no
+forma parte del diálogo normal de Estado. El listado también ofrece PDF y
+genera el reporte `DetalleUSDA` definido en `PDFUSDA.xpz`: conserva el orden y
+los nombres del layout, consulta la cabecera `PROCUSDA`, sus folios y detalle
+enriquecido desde los maestros, y entrega una salida moderna en Carta
+vertical. El Report `ProcesosUSDA` general queda pendiente. Evidencia y límites en
+[procesos-usda.md](procesos-usda.md).
+
+El alta/consulta/modificación de `ProcUSDA_Cab` en este flujo acepta los tipos
+`2 Fumigación` y `3 Muestreo`, con fecha obligatoria y número de proceso de
+hasta 10 dígitos, igual que `DetProcUS` y `EstadoUS`. En el alta, Fecha Proceso
+se inicializa por defecto con la fecha local de hoy.
 
 ## Captura de cajas
 

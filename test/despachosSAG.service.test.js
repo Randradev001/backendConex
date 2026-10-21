@@ -50,7 +50,12 @@ test("lista todos los folios disponibles sin limitar el resultado a 500", async 
   };
 
   await listAvailableDespachoFolios(1, 0, 1, {}, { poolProvider: async () => pool });
-  await listAvailableDespachoFolios(1, 44, 2, {}, { poolProvider: async () => pool });
+  await listAvailableDespachoFolios(1, 44, 2, {
+    search: "123",
+    speciesCode: 7,
+    destinationCode: 44,
+    approvedDestinations: "OTROS",
+  }, { poolProvider: async () => pool });
 
   const listStatements = statements.filter((statement) => /ORDER BY (s\.Sol2Folio|p\.PUS1Folio)/.test(statement));
   assert.equal(listStatements.length, 2);
@@ -63,7 +68,10 @@ test("lista todos los folios disponibles sin limitar el resultado a 500", async 
   assert.doesNotMatch(originStatement, /NOT EXISTS/i);
   assert.match(usdaStatement, /p\.PUS1CajDes\s*>\s*0/);
   assert.match(usdaStatement, /p\.PUS1Dispo\s*=\s*1/);
+  assert.match(usdaStatement, /p\.PUS1Espe\s*=\s*@Species/);
   assert.match(usdaStatement, /h\.PUSEstado\s*=\s*1/);
+  assert.doesNotMatch(usdaStatement, /@Species\s+IS\s+NULL/i);
+  assert.doesNotMatch(usdaStatement, /@Search|DestinationCode|ApprovedDestinations/i);
   assert.doesNotMatch(usdaStatement, /NOT EXISTS/i);
 });
 

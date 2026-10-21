@@ -72,6 +72,12 @@ la diferencia es trabajo incompleto, cambio no documentado o una regresion.
   `DetPackList` reunidos en listado, generación desde origen y detalle de folios.
 - [Despachos SAG](migration/despachos-sag.md): listado por planilla, PDF y
   archivo `.des` por fila; el ABM queda para una segunda entrega.
+- [Despachos US](migration/despachos-us.md): listado USDA por tipo de proceso,
+  alta independiente, consulta/modificación en dialog, eliminación lógica,
+  detalle de folios, PDF y finalización con correlativo histórico.
+- [Procesos USDA](migration/procesos-usda.md): listado, alta con detalle,
+  consulta/modificación en diálogo, cambio de estado y anulación separada con
+  liberación de folios.
 - [Dashboard de inicio y atajos](migration/dashboard-inicio.md): portada
   operacional filtrada por el menu autorizado de cada usuario.
 - [operacion de ordenes de proceso](migration/ordenes-proceso-operacion.md):

@@ -962,9 +962,14 @@ const getDespachoDetail = async (
         COALESCE(NULLIF(RTRIM(d.Dor2Nespe),''),RTRIM(e.EspeNom)) speciesName,d.Dor2var varietyCode,
         COALESCE(NULLIF(RTRIM(d.Dor2Nvar),''),RTRIM(v.VarNom)) varietyName,RTRIM(d.Dor2Prod) producerCode,
         COALESCE(NULLIF(RTRIM(d.Dor2NProd),''),RTRIM(p.ProdNom)) producerName,
+        RTRIM(p.ProdCodExt) producerExternalCode,
         COALESCE(NULLIF(RTRIM(d.Dor2ComP),''),RTRIM(p.ProdComuna)) commune,
         COALESCE(NULLIF(RTRIM(d.Dor2ProvP),''),RTRIM(p.ProdProvincia)) province,
+        CONVERT(varchar(30),p.ProdPack) packingName,
+        CONVERT(varchar(30),p.ProdPackCom) packingCommune,
+        CONVERT(varchar(30),p.ProdPackProv) packingProvince,
         d.Dor2fecproc processDate,d.Dor2env containerCode,COALESCE(NULLIF(RTRIM(d.Dor2NeNV),''),RTRIM(n.EnvNom)) containerName,
+        COALESCE(NULLIF(RTRIM(d.Dor2NenvC),''),RTRIM(n.EnvnomC),RTRIM(n.EnvNom)) containerShortName,
         d.Dor2cat categoryCode,COALESCE(NULLIF(RTRIM(d.Dor2Ncat),''),RTRIM(c.CatNom)) categoryName,
         RTRIM(d.Dor2cal) caliber,d.Dor2Cajas boxes,d.Dor2Kilos kilos
       FROM DESORIGEN2 d
@@ -1160,7 +1165,9 @@ const listAvailableDespachoFolios = async (empCod, dorNumValue, dorTipPlaniValue
   const dorNum = integer(dorNumValue, "N° interno", { min: 0, max: 9999999999, defaultValue: 0 });
   const dorTipPlani = integer(dorTipPlaniValue, "El tipo de despacho", { min: 1, max: 3, defaultValue: 1 });
   const search = boundedText(query.search, "El folio", 10);
-  const speciesCode = optionalInteger(query.speciesCode, "La especie", { max: 999 });
+  // BajaFolDesUS usa la especie como condición exacta del SubFile; no existe
+  // una alternativa GX8 equivalente a "Todas" para los folios USDA.
+  const speciesCode = integer(query.speciesCode, "La especie", { min: 1, max: 999, defaultValue: null });
   const destinationCode = integer(query.destinationCode, "El destino", { min: 0, max: 999, defaultValue: 0 });
   const approvedDestinations = boundedText(query.approvedDestinations, "Los destinos aprobados", 100);
   const pool = await poolProvider();
@@ -1205,8 +1212,7 @@ const listAvailableDespachoFolios = async (empCod, dorNumValue, dorTipPlaniValue
       AND p.PUS1CajDes > 0
       AND p.PUS1Dispo=1
       AND h.PUSEstado=1
-      AND (@Species IS NULL OR p.PUS1Espe=@Species)
-      AND (@Search='' OR RTRIM(p.PUS1Folio) LIKE '%' + RTRIM(@Search) + '%')
+      AND p.PUS1Espe=@Species
     ORDER BY p.PUS1Folio;
   `);
   return { rows: result.recordset || [], tempCod, type: dorTipPlani };
