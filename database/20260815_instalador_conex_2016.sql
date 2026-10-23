@@ -788,7 +788,27 @@ CREATE TABLE dbo.DESPCAJS (EmpCod smallint NULL, CliCod int NULL, TdCod smallint
 CREATE TABLE dbo.FACTURA (EmpCod smallint NULL, CliCod int NULL);
 CREATE TABLE dbo.GUIASD (EmpCod smallint NULL, CliCod int NULL);
 CREATE TABLE dbo.GUIASD_Back (EmpCod smallint NULL, CliCod int NULL);
-CREATE TABLE dbo.LISTPRECIOS (EmpCod smallint NULL, CliCod int NULL, MonCod smallint NULL);
+CREATE TABLE dbo.LISTPRECIOS
+(
+  EmpCod smallint NOT NULL,
+  CliCod int NOT NULL,
+  Especod smallint NOT NULL,
+  Calibre char(10) NOT NULL,
+  EnvCod smallint NOT NULL,
+  LSPFecD datetime NOT NULL,
+  LSPFecH datetime NOT NULL,
+  MonCod smallint NOT NULL,
+  LSPPrecioU money NULL,
+  LSPIndTodos smallint NULL,
+  LSPAnulado smallint NOT NULL CONSTRAINT DF_LISTPRECIOS_Anulado DEFAULT (0),
+  LSPLoginC char(10) NULL,
+  LSPFecC datetime NULL,
+  LSPLoginM char(10) NULL,
+  LSPFecM datetime NULL,
+  LSPLoginA char(10) NULL,
+  LSPFecA datetime NULL,
+  CONSTRAINT PK_LISTPRECIOS PRIMARY KEY (EmpCod,CliCod,Especod,Calibre,EnvCod,LSPFecD,LSPFecH,MonCod)
+);
 CREATE TABLE dbo.PACKLIST (EmpCod smallint NULL, CliCod int NULL, ExpCod int NULL, ConsCod smallint NULL, AgeCod smallint NULL, DestCod smallint NULL, DACod smallint NULL);
 CREATE TABLE dbo.DESORIGEN (EmpCod smallint NULL, ExpCod int NULL, ConsCod smallint NULL, AgeCod smallint NULL, DestCod smallint NULL, DACod smallint NULL);
 CREATE TABLE dbo.CNTFOLIOS (EmpCod smallint NULL, ExpCod int NULL);

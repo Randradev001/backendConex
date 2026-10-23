@@ -180,6 +180,13 @@ Las fechas son `datetime`. Para una fecha final inclusiva la consulta debe usar
    filtradas.
 6. `npm run verify:recepcion-fruta` como verificacion reproducible.
 
+El 2026-10-23 la pantalla React fue homologada al patron operacional
+compartido: banner con exportaciones backend, indicadores calculados con el
+mismo conjunto filtrado, filtros automaticos con intervalos abiertos, busqueda
+con debounce, acciones como primera columna y dialogos paginados desde las
+tarjetas. Se conservaron las vistas historicas Resumen y Detalle y el selector
+de temporada requerido por esta consulta.
+
 La captura, modificacion y eliminacion de `Recepciones`/`MovFrut` debe
 evaluarse por separado.
 

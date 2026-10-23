@@ -39,6 +39,7 @@ router.use('/anulaciones', anulacionesRouter)
 router.use('/repaletizajes', repaletizajeRouter)
 router.use('/fruta-comercial', frutaComercialRouter)
 router.use('/packing-list', require('../modules/packingList/packingList.routes'))
+router.use('/lista-precios', require('../modules/listaPrecios/listaPrecios.routes'))
 router.use('/guias-electronicas', require('./guiasElectronicas.routes'))
 router.use('/print-agent/v1', printAgentRouter)
 

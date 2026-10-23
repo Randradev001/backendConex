@@ -1,5 +1,21 @@
 # Estado vigente de la migracion CONEX
 
+## Lista de Precios (2026-10-22)
+
+La primera etapa del WorkPanel GX8 `Lprecio` está disponible en
+`/facturacion/lista-precios` y `/backendDocker/lista-precios`, protegida por
+`100/9/10`. Consulta `LISTPRECIOS` exclusivamente para la empresa de sesión y
+presenta cliente, especie, calibre, envase, vigencia, moneda, precio e indicador
+Todos. El rango inicial es de 30 días y usa solapamiento de vigencias; admite
+intervalos abiertos. Indicadores, filtros, búsqueda, paginación y exportaciones
+generales trabajan sobre el mismo conjunto del backend. La pantalla no muestra
+temporada. Agregar, Visualizar y Modificar reutilizan un formulario en diálogo;
+la modificación bloquea la clave GX8. Anular reemplaza al borrado físico,
+conserva la fila y registra usuario y fecha. El backend valida catálogos,
+vigencia, precio positivo y duplicados, y protege Crea 1, Modifica 2 y Anula 3.
+La estructura incompleta de los instaladores iniciales se corrigió y la
+migración aditiva fue aplicada sobre `CONEX`. Evidencia: [lista-precios.md](lista-precios.md).
+
 ## Packing List (2026-10-20)
 
 Los WorkPanels GX8 `PackingList`, `GenPack` y `DetPackList` tienen una primera
@@ -25,6 +41,11 @@ Comercial fueron homologados el 2026-10-21 al patrón operacional compartido:
 banner, indicadores, filtros automáticos con intervalos abiertos, búsqueda en
 backend, selector de columnas y exportaciones generales del conjunto filtrado
 completo. Los PDF y archivos oficiales por fila conservan su flujo histórico.
+
+La consulta Recepción de fruta fue homologada el 2026-10-23 al mismo patrón,
+conservando sus vistas Resumen y Detalle, el selector de temporada histórica,
+la paginación de servidor y las exportaciones XLSX/PDF reales del backend. Sus
+cards, tabla y diálogos consultan el mismo conjunto filtrado.
 
 Este es el documento de entrada para continuar el proyecto. Describe el estado
 observado en el codigo y en `CONEX_MIGRACION`. Antes de trabajar, ejecutar
@@ -877,6 +898,23 @@ negocio:
 3. Productos generales (`PRODGEN`).
 4. Lineas de embalaje (`MAELINEAEMBALAJE`), cuya tabla no existe en la base
    configurada.
+
+La tabla independiente `MAEmbalaje` fue creada y verificada en la base local
+`CONEX` el 2026-10-22 únicamente como estructura SQL
+(`database/20261022_maembalaje_2016.sql`); no tiene pantalla, API ni programa
+de Seguridad. Su definición y límites pendientes de confirmar para un futuro
+CRUD están documentados en [maembalaje.md](maembalaje.md). La migración
+histórica `database/20261022_maestros_fam_gru_maeart_2016.sql` queda como
+evidencia de la estructura local inicial; las tablas locales `Fam`, `Gru` y
+`MaeArt` ya no deben mantenerse como tablas en `CONEX`: la migración
+`database/20261022_vistas_maestros_aperp_2016.sql` las reemplazó por vistas de
+solo lectura hacia `BDAPERP` y mapeó `GECODEMP` a `EmpCod` cuando el origen lo
+contiene. La verificación devolvió 0 filas en `Fam`, 0 en `Gru` y 2 en
+`MaeArt`; la segunda ejecución fue idempotente. La tabla `EmbvsMat` fue creada
+con `database/20261023_embvsmat_2016.sql`, usando la clave
+`(EmpCod, EmbCod, FamFam, GruGru, ArtNum)` y `EmbMatCant decimal(12,5)`. Solo
+se agregó FK hacia `MAEmbalaje`, porque `Fam`, `Gru` y `MaeArt` son vistas
+externas y no pueden ser referenciadas por una FK.
 
 `GenCor` permanece como servicio transaccional, no CRUD comun. La importacion
 Excel de valores de moneda tambien es un proceso especializado y no una
