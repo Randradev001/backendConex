@@ -118,6 +118,101 @@ const getOrder = async (empCod, tempCod, ordpnum) => {
   return { header: header.recordsets[0][0], details: header.recordsets[1] || [], company: header.recordsets[2]?.[0] || null };
 };
 
+const buildQuadrature = (order, speciesRows = []) => {
+  const processedContainers = Number(order.OrdpTotEnv || 0);
+  const processedKilos = Number(order.OrdpTotKilos || 0);
+  const readContainers = speciesRows.reduce((total, row) => total + Number(row.readContainers || 0), 0);
+  const readKilos = speciesRows.reduce((total, row) => total + Number(row.readKilos || 0), 0);
+  const commercialContainers = Number(order.OrdpEnvCom || 0);
+  const commercialKilos = Number(order.OrdpKilosCom || 0);
+  const projectedWasteKilos = processedKilos - readKilos - commercialKilos;
+  const state = Number(order.OrdpEstado);
+
+  return {
+    order: {
+      tempCod: String(order.TempCod || '').trim(),
+      ordpnum: Number(order.Ordpnum),
+      date: order.OrdpFecha,
+      state,
+      speciesCode: Number(order.Especod),
+      speciesName: String(order.EspeNom || '').trim(),
+      varietyCode: Number(order.VarCod),
+      varietyName: String(order.VarNom || '').trim(),
+      producerCode: String(order.ProdCod || '').trim(),
+      producerName: String(order.ProdNom || '').trim()
+    },
+    totals: {
+      processedContainers,
+      processedKilos,
+      readContainers,
+      readKilos,
+      commercialContainers,
+      commercialKilos,
+      containerDifference: processedContainers - readContainers - commercialContainers,
+      projectedWasteKilos,
+      storedWasteKilos: Number(order.OrdpDesecho || 0),
+      yieldPercentage: processedKilos > 0 ? (readKilos / processedKilos) * 100 : 0,
+      readingPercentage: processedContainers > 0 ? (readContainers / processedContainers) * 100 : 0
+    },
+    status:
+      readContainers < 0 || readKilos < 0
+        ? 'invalid-readings'
+        : state === 5
+          ? 'squared'
+          : readContainers === 0
+            ? 'without-readings'
+            : projectedWasteKilos < 0
+              ? 'over-reading'
+              : 'pending',
+    species: speciesRows.map((row) => ({
+      speciesCode: Number(row.speciesCode),
+      speciesName: String(row.speciesName || '').trim(),
+      varietyCode: Number(row.varietyCode),
+      varietyName: String(row.varietyName || '').trim(),
+      readContainers: Number(row.readContainers || 0),
+      readKilos: Number(row.readKilos || 0),
+      records: Number(row.records || 0),
+      kilosPercentage: readKilos > 0 ? (Number(row.readKilos || 0) / readKilos) * 100 : 0,
+      firstReading: row.firstReading,
+      lastReading: row.lastReading
+    }))
+  };
+};
+
+const getQuadrature = async (empCod, tempCod, ordpnumInput, { poolProvider = getPool } = {}) => {
+  const temp = String(tempCod || '').trim();
+  const ordpnum = int(ordpnumInput, 'orden', 1);
+  if (!temp) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La temporada es obligatoria.');
+  const pool = await poolProvider();
+  const result = await pool.request()
+    .input('EmpCod', sql.SmallInt, empCod)
+    .input('TempCod', sql.Char(9), temp)
+    .input('Ordpnum', sql.Decimal(10, 0), ordpnum)
+    .query(`
+      SELECT TOP (1) o.TempCod,o.Ordpnum,o.OrdpFecha,o.OrdpEstado,o.Especod,o.VarCod,o.ProdCod,
+        o.OrdpTotEnv,o.OrdpTotKilos,o.OrdpEnvExp,o.OrdpKilosExp,o.OrdpEnvCom,o.OrdpKilosCom,o.OrdpDesecho,
+        RTRIM(e.EspeNom) EspeNom,RTRIM(v.VarNom) VarNom,RTRIM(p.ProdNom) ProdNom
+      FROM ORDPROC o
+      LEFT JOIN ESPECIES e ON e.EmpCod=o.EmpCod AND e.Especod=o.Especod
+      LEFT JOIN ESPECIES1 v ON v.EmpCod=o.EmpCod AND v.Especod=o.Especod AND v.VarCod=o.VarCod
+      LEFT JOIN PRODUCTORES p ON p.EmpCod=o.EmpCod AND p.ProdCod=o.ProdCod
+      WHERE o.EmpCod=@EmpCod AND o.TempCod=@TempCod AND o.Ordpnum=@Ordpnum;
+
+      SELECT c.Especod speciesCode,RTRIM(e.EspeNom) speciesName,c.VarCod varietyCode,RTRIM(v.VarNom) varietyName,
+        SUM(COALESCE(c.CAPCantidad,0)) readContainers,SUM(COALESCE(c.CAPKilos,0)) readKilos,COUNT(*) records,
+        MIN(c.CAPFecLog) firstReading,MAX(c.CAPFecLog) lastReading
+      FROM CAP001 c
+      LEFT JOIN ESPECIES e ON e.EmpCod=c.EmpCod AND e.Especod=c.Especod
+      LEFT JOIN ESPECIES1 v ON v.EmpCod=c.EmpCod AND v.Especod=c.Especod AND v.VarCod=c.VarCod
+      WHERE c.EmpCod=@EmpCod AND c.TempCod=@TempCod AND c.CAPNproc=@Ordpnum
+      GROUP BY c.Especod,e.EspeNom,c.VarCod,v.VarNom
+      ORDER BY SUM(COALESCE(c.CAPKilos,0)) DESC,c.Especod,c.VarCod;
+    `);
+  const order = result.recordsets[0]?.[0];
+  if (!order) throw new OrdenesProcesoError(404, 'ORDER_NOT_FOUND', 'La orden de proceso no existe.');
+  return buildQuadrature(order, result.recordsets[1] || []);
+};
+
 const setProcessActive = async (
   empCod,
   login,
@@ -150,7 +245,9 @@ const setProcessActive = async (
     const currentState = Number(current.recordset[0].OrdpEstado);
     if (active && currentState === 1) throw new OrdenesProcesoError(409, 'ORDER_ALREADY_ACTIVE', 'La orden de proceso ya esta activa.');
     if (!active && currentState !== 1) throw new OrdenesProcesoError(409, 'ORDER_NOT_ACTIVE', 'La orden de proceso no esta activa.');
-    if (active && currentState !== 0) throw new OrdenesProcesoError(409, 'ORDER_NOT_STARTABLE', 'Solo una orden ingresada puede iniciar el proceso.');
+    if (active && ![0, 4].includes(currentState)) {
+      throw new OrdenesProcesoError(409, 'ORDER_NOT_STARTABLE', 'Solo una orden ingresada o terminada puede iniciar el proceso.');
+    }
 
     if (active) {
       const activeOrder = await requestFactory(transaction)
@@ -188,7 +285,11 @@ const setProcessActive = async (
       ordpnum,
       active,
       state: active ? 1 : 0,
-      message: active ? `Orden ${ordpnum} iniciada correctamente.` : `Orden ${ordpnum} desactivada correctamente.`
+      message: active
+        ? currentState === 4
+          ? `Orden ${ordpnum} reactivada para continuar la lectura.`
+          : `Orden ${ordpnum} iniciada correctamente.`
+        : `Orden ${ordpnum} desactivada correctamente.`
     };
   } catch (error) {
     await transaction.rollback();
@@ -232,4 +333,4 @@ const update = async (empCod, login, tempCod, ordpnumInput, body = {}) => {
   } catch (error) { await tx.rollback(); if (error instanceof OrdenesProcesoError) throw error; throw new OrdenesProcesoError(500,'ORDER_UPDATE_ERROR',error.message); }
 };
 
-module.exports = { OrdenesProcesoError, listLots, create, update, getOrder, setProcessActive };
+module.exports = { OrdenesProcesoError, listLots, create, update, getOrder, getQuadrature, buildQuadrature, setProcessActive };

@@ -211,7 +211,11 @@ Estado operativo:
   En estados distintos de 0/1, el mismo espacio de accion muestra las lecturas
   CAPCAJAS en pantalla completa. La lectura de `CAP001` acepta `100/8/1` o
   `110/2/2`; altas, cierre, generacion y reclasificacion conservan solo
-  `100/8/1`.
+  `100/8/1`. Las órdenes cerradas y cuadradas incorporan además una primera
+  vista de cuadratura: compara `ORDPROC` con las lecturas `CAP001`, muestra
+  kilos procesados, leídos, diferencia, rendimiento, envases y desglose por
+  especie/variedad. Es solo consulta; la grabación histórica de
+  `GrabaCuadratura` y el alta en `FCOMERCIAL` siguen pendientes.
 - `database/20260818_importar_usuarios_rut_real_login_2016.sql` importa desde
   `CONEX_MIGRACION` a `CONEX` solo usuarios activos con RUT/DV valido y empresa
   asignada; copia empresas, `SEGUSUEMP`, credenciales modernas si existen y

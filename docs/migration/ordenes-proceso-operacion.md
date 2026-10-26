@@ -60,6 +60,14 @@ programa `110/2/2` y la accion de alta o modificacion correspondiente.
   y 1 muestran iniciar o desactivar proceso; los demas estados muestran
   `Ver lecturas CAPCAJAS`. Esta accion abre a pantalla completa la consulta
   paginada de `CAP001`, con resumen, exportacion y ciclo por caja.
+- Como primera etapa de `CuadraProc`, las órdenes cerradas (estado 4) y
+  cuadradas (estado 5) presentan una acción de cuadratura de solo lectura. El
+  diálogo compara envases y kilos ingresados en `ORDPROC` con cajas y kilos
+  leídos en `CAP001`, calcula diferencia y rendimiento y desglosa los kilos por
+  especie y variedad. Todavía no ejecuta `GrabaCuadratura` ni crea el movimiento
+  automático en `FCOMERCIAL`.
+- Se recuperó la codificación del XPZ para el ADM: 5 corresponde a `Cuadrada`
+  y 8 a `Anulada`. Las tarjetas y etiquetas del listado usan esos estados.
 
 ## Regla de saldo
 
