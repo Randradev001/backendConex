@@ -3,8 +3,47 @@ const { sql, getPool } = require('../conectorMysql/conectorSqlServer');
 class OrdenesProcesoError extends Error { constructor(status, code, message) { super(message); this.status = status; this.code = code; } }
 const int = (v, name, min = 0) => { const n = Number(v); if (!Number.isInteger(n) || n < min) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', `${name} no es valido.`); return n; };
 const money = (v, name, min = 0) => { const n = Number(String(v).replace(',', '.')); if (!Number.isFinite(n) || n < min) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', `${name} no es valido.`); return n; };
+const optionalDate = (value, name) => {
+  const text = String(value || '').trim();
+  if (!text) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text) || Number.isNaN(Date.parse(`${text}T00:00:00`))) {
+    throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', `${name} no es valida.`);
+  }
+  return text;
+};
+const roundMoney = (value) => Math.round((Number(value) + Number.EPSILON) * 10000) / 10000;
+
+const normalizeCommercialRows = (rows) => {
+  if (!Array.isArray(rows)) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La fruta comercial debe enviarse como una lista.');
+  if (rows.length > 100) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La cuadratura admite hasta 100 lineas comerciales.');
+  const seen = new Set();
+  return rows.map((row, index) => {
+    const speciesCode = int(row?.speciesCode, `especie comercial ${index + 1}`, 1);
+    const varietyCode = int(row?.varietyCode, `variedad comercial ${index + 1}`, 1);
+    const containers = int(row?.containers, `envases comerciales ${index + 1}`, 0);
+    const kilos = money(row?.kilos, `kilos comerciales ${index + 1}`, 0);
+    if (containers > 32767) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', `Los envases comerciales ${index + 1} superan el maximo permitido.`);
+    if (kilos > 99999999.99 || Math.abs(kilos * 100 - Math.round(kilos * 100)) > 0.000001) {
+      throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', `Los kilos comerciales ${index + 1} deben tener hasta dos decimales.`);
+    }
+    if (containers === 0 && kilos === 0) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', `La linea comercial ${index + 1} no tiene cantidades.`);
+    const key = `${speciesCode}:${varietyCode}`;
+    if (seen.has(key)) throw new OrdenesProcesoError(400, 'DUPLICATE_COMMERCIAL_LINE', 'No repita una misma especie y variedad en la fruta comercial.');
+    seen.add(key);
+    return {
+      speciesCode,
+      varietyCode,
+      containers,
+      kilos: roundMoney(kilos),
+      observation: String(row?.observation || 'Ingreso por Proceso - Sistema').trim().slice(0, 50)
+    };
+  });
+};
 
 const listLots = async (empCod, input = {}) => {
+  const from = optionalDate(input.from, 'La fecha de recepcion desde');
+  const to = optionalDate(input.to, 'La fecha de recepcion hasta');
+  if (from && to && from > to) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La fecha de recepcion desde no puede ser posterior a hasta.');
   const pool = await getPool();
   const request = pool.request().input('EmpCod', sql.SmallInt, empCod)
     .input('TempCod', sql.Char(9), input.tempCod ? String(input.tempCod).trim() : null)
@@ -12,6 +51,8 @@ const listLots = async (empCod, input = {}) => {
     .input('VarCod', sql.Int, input.variety ? int(input.variety, 'variedad', 1) : null)
     .input('ProdCod', sql.Char(6), input.producer ? String(input.producer).trim() : null)
     .input('Lot', sql.Decimal(10, 0), input.lot ? int(input.lot, 'lote', 1) : null)
+    .input('FromDate', sql.Date, from)
+    .input('ToDate', sql.Date, to)
     .input('QualityMin', sql.Decimal(7, 2), input.qualityMin !== undefined ? money(input.qualityMin, 'calidad minima') : 0)
     .input('QualityMax', sql.Decimal(7, 2), input.qualityMax !== undefined ? money(input.qualityMax, 'calidad maxima') : 100);
   const result = await request.query(`
@@ -27,17 +68,23 @@ const listLots = async (empCod, input = {}) => {
     LEFT JOIN PRODUCTORES p ON p.EmpCod=d.EmpCod AND p.ProdCod=h.MovProd
     LEFT JOIN ESPECIES e ON e.EmpCod=d.EmpCod AND e.Especod=d.Mov1Espe
     LEFT JOIN ESPECIES1 v ON v.EmpCod=d.EmpCod AND v.Especod=d.Mov1Espe AND v.VarCod=d.Mov1Var
-    OUTER APPLY (SELECT TOP 1 c.CalRecPorCalidad qualityPercentage
+    OUTER APPLY (SELECT TOP 1 c.CalRecId,c.CalRecPorCalidad qualityPercentage
       FROM CALRECEP c
       WHERE c.EmpCod=d.EmpCod AND c.TempCod=d.TempCod AND c.Mov1Nlote=d.Mov1Nlote
         AND c.CalRecEstado='F'
       ORDER BY c.CalRecFecha DESC,c.CalRecId DESC) quality
+    OUTER APPLY (SELECT TOP 1 r.CalRevDecision reviewDecision
+      FROM CALRECEPREVISION r
+      WHERE r.EmpCod=d.EmpCod AND r.CalRecId=quality.CalRecId
+      ORDER BY r.CalRevId DESC) review
     OUTER APPLY (SELECT SUM(o.Ordp1Env) usedContainers,SUM(o.Ordp1Kilos) usedKilos FROM ORDPROC1 o WHERE o.EmpCod=d.EmpCod AND o.TempCod=d.TempCod AND o.Ordp1Nlote=d.Mov1Nlote) u
     WHERE h.EmpCod=@EmpCod AND h.TMcod=1 AND COALESCE(h.Movauto,0)=0
       AND h.TempCod=COALESCE(@TempCod,(SELECT TOP 1 t.TempCod FROM TEMP01 t WHERE t.EmpCod=@EmpCod AND t.TempActiva=1 ORDER BY t.TempFecAbre DESC,t.TempCod DESC))
       AND (@Especod IS NULL OR d.Mov1Espe=@Especod)
       AND (@VarCod IS NULL OR d.Mov1Var=@VarCod) AND (@ProdCod IS NULL OR h.MovProd=@ProdCod)
       AND (@Lot IS NULL OR d.Mov1Nlote=@Lot)
+      AND (@FromDate IS NULL OR h.MovFecha>=@FromDate)
+      AND (@ToDate IS NULL OR h.MovFecha<DATEADD(day,1,@ToDate))
       AND COALESCE(quality.qualityPercentage, 0) BETWEEN @QualityMin AND @QualityMax
       AND COALESCE(d.Mov1NumE,0)>COALESCE(u.usedContainers,0)
     ORDER BY h.MovFecha,h.MovProd,d.Mov1Nlote;
@@ -207,10 +254,353 @@ const getQuadrature = async (empCod, tempCod, ordpnumInput, { poolProvider = get
       WHERE c.EmpCod=@EmpCod AND c.TempCod=@TempCod AND c.CAPNproc=@Ordpnum
       GROUP BY c.Especod,e.EspeNom,c.VarCod,v.VarNom
       ORDER BY SUM(COALESCE(c.CAPKilos,0)) DESC,c.Especod,c.VarCod;
+
+      SELECT f.FCONumI lineNumber,f.Especod speciesCode,RTRIM(e.EspeNom) speciesName,
+        f.VarCod varietyCode,RTRIM(v.VarNom) varietyName,COALESCE(f.FCONEnv,0) containers,
+        COALESCE(f.FCOKilos,0) kilos,RTRIM(f.FCOOBS) observation
+      FROM FCOMERCIAL f
+      LEFT JOIN ESPECIES e ON e.EmpCod=f.EmpCod AND e.Especod=f.Especod
+      LEFT JOIN ESPECIES1 v ON v.EmpCod=f.EmpCod AND v.Especod=f.Especod AND v.VarCod=f.VarCod
+      WHERE f.EmpCod=@EmpCod AND f.TempCod=@TempCod AND f.FCOProceso=@Ordpnum
+        AND f.TMcod=1 AND f.TMSCod=50
+      ORDER BY f.FCONumI;
+
+      SELECT e.Especod speciesCode,RTRIM(e.EspeNom) speciesName,
+        v.VarCod varietyCode,RTRIM(v.VarNom) varietyName
+      FROM ESPECIES e
+      JOIN ESPECIES1 v ON v.EmpCod=e.EmpCod AND v.Especod=e.Especod
+      WHERE e.EmpCod=@EmpCod
+      ORDER BY e.EspeNom,v.VarNom;
+
+      IF OBJECT_ID(N'dbo.ORDPROC_CUADRATURA_AUDIT', N'U') IS NOT NULL
+        SELECT TOP (20) AuditId auditId,AuditAction action,PreviousState previousState,
+          NewState newState,ReadContainers readContainers,ReadKilos readKilos,
+          CommercialContainers commercialContainers,CommercialKilos commercialKilos,
+          WasteKilos wasteKilos,RTRIM(Reason) reason,RTRIM(AuditLogin) login,AuditDate date
+        FROM ORDPROC_CUADRATURA_AUDIT
+        WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum
+        ORDER BY AuditId DESC;
+      ELSE
+        SELECT CAST(NULL AS bigint) auditId,CAST(NULL AS varchar(12)) action,
+          CAST(NULL AS smallint) previousState,CAST(NULL AS smallint) newState,
+          CAST(NULL AS int) readContainers,CAST(NULL AS money) readKilos,
+          CAST(NULL AS int) commercialContainers,CAST(NULL AS money) commercialKilos,
+          CAST(NULL AS money) wasteKilos,CAST(NULL AS nvarchar(200)) reason,
+          CAST(NULL AS char(10)) login,CAST(NULL AS datetime) date WHERE 1=0;
     `);
   const order = result.recordsets[0]?.[0];
   if (!order) throw new OrdenesProcesoError(404, 'ORDER_NOT_FOUND', 'La orden de proceso no existe.');
-  return buildQuadrature(order, result.recordsets[1] || []);
+  const quadrature = buildQuadrature(order, result.recordsets[1] || []);
+  return {
+    ...quadrature,
+    commercial: (result.recordsets[2] || []).map((row) => ({
+      lineNumber: Number(row.lineNumber),
+      speciesCode: Number(row.speciesCode),
+      speciesName: String(row.speciesName || '').trim(),
+      varietyCode: Number(row.varietyCode),
+      varietyName: String(row.varietyName || '').trim(),
+      containers: Number(row.containers || 0),
+      kilos: Number(row.kilos || 0),
+      observation: String(row.observation || '').trim()
+    })),
+    history: (result.recordsets[4] || []).map((row) => ({
+      auditId: Number(row.auditId),
+      action: String(row.action || '').trim(),
+      previousState: Number(row.previousState),
+      newState: Number(row.newState),
+      readContainers: Number(row.readContainers || 0),
+      readKilos: Number(row.readKilos || 0),
+      commercialContainers: Number(row.commercialContainers || 0),
+      commercialKilos: Number(row.commercialKilos || 0),
+      wasteKilos: Number(row.wasteKilos || 0),
+      reason: String(row.reason || '').trim(),
+      login: String(row.login || '').trim(),
+      date: row.date
+    })),
+    catalogs: {
+      speciesVarieties: (result.recordsets[3] || []).map((row) => ({
+        speciesCode: Number(row.speciesCode),
+        speciesName: String(row.speciesName || '').trim(),
+        varietyCode: Number(row.varietyCode),
+        varietyName: String(row.varietyName || '').trim()
+      }))
+    }
+  };
+};
+
+const getProcessReport = async (empCod, tempCod, ordpnumInput, { poolProvider = getPool } = {}) => {
+  const temp = String(tempCod || '').trim();
+  const ordpnum = int(ordpnumInput, 'orden', 1);
+  if (!temp) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La temporada es obligatoria.');
+  const pool = await poolProvider();
+  const result = await pool.request()
+    .input('EmpCod', sql.SmallInt, empCod)
+    .input('TempCod', sql.Char(9), temp)
+    .input('Ordpnum', sql.Decimal(10, 0), ordpnum)
+    .query(`
+      SELECT TOP (1) o.*,RTRIM(p.ProdNom) ProdNom,RTRIM(p.ProdProvincia) ProdProvincia,
+        RTRIM(p.ProdComuna) ProdComuna,RTRIM(e.EspeNom) EspeNom,RTRIM(v.VarNom) VarNom
+      FROM ORDPROC o
+      LEFT JOIN PRODUCTORES p ON p.EmpCod=o.EmpCod AND p.ProdCod=o.ProdCod
+      LEFT JOIN ESPECIES e ON e.EmpCod=o.EmpCod AND e.Especod=o.Especod
+      LEFT JOIN ESPECIES1 v ON v.EmpCod=o.EmpCod AND v.Especod=o.Especod AND v.VarCod=o.VarCod
+      WHERE o.EmpCod=@EmpCod AND o.TempCod=@TempCod AND o.Ordpnum=@Ordpnum;
+
+      SELECT Ordp1Nlote,Ordp1Env,Ordp1Kilos
+      FROM ORDPROC1
+      WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum
+      ORDER BY Ordp1Nlote;
+
+      SELECT c.EnvCod,RTRIM(e.EnvNom) EnvNom,c.Catcod,RTRIM(k.CatNom) CatNom,RTRIM(c.Calibre) Calibre,
+        SUM(COALESCE(c.CAPCantidad,0)) Cajas,SUM(COALESCE(c.CAPKilos,0)) Kilos
+      FROM CAP001 c
+      LEFT JOIN ENVCAT e ON e.EmpCod=c.EmpCod AND e.EnvCod=c.EnvCod
+      LEFT JOIN ENVCAT1 k ON k.EmpCod=c.EmpCod AND k.EnvCod=c.EnvCod AND k.Catcod=c.Catcod
+      WHERE c.EmpCod=@EmpCod AND c.TempCod=@TempCod AND c.CAPNproc=@Ordpnum
+      GROUP BY c.EnvCod,e.EnvNom,c.Catcod,k.CatNom,c.Calibre
+      ORDER BY e.EnvNom,k.CatNom,c.Calibre;
+
+      SELECT TOP (1) EmpCod,RTRIM(EmpNom) EmpNom,RTRIM(EmpGiro) EmpGiro,
+        RTRIM(Empdir) EmpDir,EmpRut,RTRIM(EmpDV) EmpDV
+      FROM DEFEMP WHERE EmpCod=@EmpCod;
+    `);
+  const order = result.recordsets[0]?.[0];
+  if (!order) throw new OrdenesProcesoError(404, 'ORDER_NOT_FOUND', 'La orden de proceso no existe.');
+  if (![4, 5].includes(Number(order.OrdpEstado))) {
+    throw new OrdenesProcesoError(409, 'PROCESS_REPORT_NOT_AVAILABLE', 'El informe de proceso solo esta disponible para ordenes finalizadas o cuadradas.');
+  }
+  const processedKilos = Number(order.OrdpTotKilos || 0);
+  const exportKilos = Number(order.OrdpKilosExp || 0);
+  return {
+    order,
+    lots: result.recordsets[1] || [],
+    detail: result.recordsets[2] || [],
+    company: result.recordsets[3]?.[0] || null,
+    yieldPercentage: processedKilos > 0 ? (exportKilos / processedKilos) * 100 : 0
+  };
+};
+
+const finalizeQuadrature = async (
+  empCod,
+  login,
+  tempCod,
+  ordpnumInput,
+  body = {},
+  { poolProvider = getPool, transactionFactory, requestFactory = (target) => new sql.Request(target) } = {}
+) => {
+  const temp = String(tempCod || '').trim();
+  const ordpnum = int(ordpnumInput, 'orden', 1);
+  if (!temp) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La temporada es obligatoria.');
+  const commercial = normalizeCommercialRows(body.commercial || []);
+  const commercialContainers = commercial.reduce((total, row) => total + row.containers, 0);
+  const commercialKilos = roundMoney(commercial.reduce((total, row) => total + row.kilos, 0));
+  const pool = await poolProvider();
+  const transaction = transactionFactory ? transactionFactory(pool) : new sql.Transaction(pool);
+  await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+  try {
+    const baseRequest = () => requestFactory(transaction)
+      .input('EmpCod', sql.SmallInt, empCod)
+      .input('TempCod', sql.Char(9), temp)
+      .input('Ordpnum', sql.Decimal(10, 0), ordpnum);
+    const current = await baseRequest().query(`
+      SELECT TOP (1) OrdpEstado,OrdpFecha,OrdpTotEnv,OrdpTotKilos
+      FROM ORDPROC WITH (UPDLOCK,HOLDLOCK)
+      WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum;
+    `);
+    if (!current.recordset.length) throw new OrdenesProcesoError(404, 'ORDER_NOT_FOUND', 'La orden de proceso no existe.');
+    const order = current.recordset[0];
+    if (Number(order.OrdpEstado) === 5) throw new OrdenesProcesoError(409, 'QUADRATURE_ALREADY_COMPLETED', 'La orden ya se encuentra cuadrada.');
+    if (Number(order.OrdpEstado) !== 4) throw new OrdenesProcesoError(409, 'ORDER_NOT_FINISHED', 'Solo una orden terminada puede cuadrarse.');
+
+    const duplicate = await baseRequest().query(`
+      SELECT TOP (1) FCONumI
+      FROM FCOMERCIAL WITH (UPDLOCK,HOLDLOCK)
+      WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND FCOProceso=@Ordpnum
+        AND TMcod=1 AND TMSCod=50;
+    `);
+    if (duplicate.recordset.length) throw new OrdenesProcesoError(409, 'QUADRATURE_ALREADY_EXISTS', 'La orden ya tiene movimientos comerciales de cuadratura.');
+
+    const readingsResult = await baseRequest().query(`
+      SELECT COALESCE(SUM(COALESCE(CAPCantidad,0)),0) readContainers,
+        COALESCE(SUM(COALESCE(CAPKilos,0)),0) readKilos,
+        SUM(CASE WHEN COALESCE(CAPCantidad,0)<0 OR COALESCE(CAPKilos,0)<0 THEN 1 ELSE 0 END) invalidReadings,
+        COUNT(*) readingRecords
+      FROM CAP001 WITH (UPDLOCK,HOLDLOCK)
+      WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND CAPNproc=@Ordpnum;
+    `);
+    const readings = readingsResult.recordset[0] || {};
+    const readContainers = Number(readings.readContainers || 0);
+    const readKilos = roundMoney(readings.readKilos || 0);
+    if (Number(readings.invalidReadings || 0) > 0 || readContainers < 0 || readKilos < 0) {
+      throw new OrdenesProcesoError(409, 'INVALID_READINGS', 'Existen lecturas negativas. Corrija las cajas antes de cuadrar.');
+    }
+    if (Number(readings.readingRecords || 0) === 0 && body.confirmWithoutReadings !== true) {
+      throw new OrdenesProcesoError(409, 'READINGS_CONFIRMATION_REQUIRED', 'La orden no tiene cajas leidas. Confirme expresamente si desea cuadrarla sin lecturas.');
+    }
+
+    for (const row of commercial) {
+      const catalog = await requestFactory(transaction)
+        .input('EmpCod', sql.SmallInt, empCod)
+        .input('Species', sql.SmallInt, row.speciesCode)
+        .input('Variety', sql.Int, row.varietyCode)
+        .query(`
+          SELECT TOP (1) v.VarCod
+          FROM ESPECIES e
+          JOIN ESPECIES1 v ON v.EmpCod=e.EmpCod AND v.Especod=e.Especod
+          WHERE e.EmpCod=@EmpCod AND e.Especod=@Species AND v.VarCod=@Variety;
+        `);
+      if (!catalog.recordset.length) throw new OrdenesProcesoError(400, 'INVALID_COMMERCIAL_CLASSIFICATION', 'Una especie o variedad comercial no existe para la empresa.');
+    }
+
+    let wasteKilos = roundMoney(Number(order.OrdpTotKilos || 0) - readKilos - commercialKilos);
+    if (wasteKilos < -0.01) throw new OrdenesProcesoError(409, 'QUADRATURE_OVER_READING', 'Los kilos leidos y comerciales superan los kilos procesados.');
+    if (wasteKilos < 0) wasteKilos = 0;
+
+    await baseRequest()
+      .input('ReadContainers', sql.Int, readContainers)
+      .input('ReadKilos', sql.Money, readKilos)
+      .input('CommercialContainers', sql.Int, commercialContainers)
+      .input('CommercialKilos', sql.Money, commercialKilos)
+      .input('WasteKilos', sql.Money, wasteKilos)
+      .input('Login', sql.Char(10), String(login || '').trim().slice(0, 10))
+      .query(`
+        UPDATE ORDPROC
+        SET OrdpEnvExp=@ReadContainers,OrdpKilosExp=@ReadKilos,
+          OrdpEnvCom=@CommercialContainers,OrdpKilosCom=@CommercialKilos,
+          OrdpDesecho=@WasteKilos,OrdpEstado=5,OrdpFecA=GETDATE(),OrdpLoginA=@Login
+        WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum;
+      `);
+
+    for (let index = 0; index < commercial.length; index += 1) {
+      const row = commercial[index];
+      await baseRequest()
+        .input('LineNumber', sql.Decimal(10, 0), index + 1)
+        .input('ProcessDate', sql.DateTime, order.OrdpFecha)
+        .input('Login', sql.Char(10), String(login || '').trim().slice(0, 10))
+        .input('Containers', sql.SmallInt, row.containers)
+        .input('Kilos', sql.Money, row.kilos)
+        .input('Species', sql.SmallInt, row.speciesCode)
+        .input('Variety', sql.Int, row.varietyCode)
+        .input('Observation', sql.Char(50), row.observation)
+        .query(`
+          INSERT FCOMERCIAL
+            (EmpCod,TempCod,FCOProceso,FCONumI,FCOFecha,FCOLoginI,FCOFecC,TMcod,TMSCod,
+             FCONEnv,FCOKilos,Especod,VarCod,FCOOBS,FCOOrigen)
+          VALUES
+            (@EmpCod,@TempCod,@Ordpnum,@LineNumber,@ProcessDate,@Login,GETDATE(),1,50,
+             @Containers,@Kilos,@Species,@Variety,@Observation,0);
+        `);
+    }
+
+    await baseRequest()
+      .input('ReadContainers', sql.Int, readContainers)
+      .input('ReadKilos', sql.Money, readKilos)
+      .input('CommercialContainers', sql.Int, commercialContainers)
+      .input('CommercialKilos', sql.Money, commercialKilos)
+      .input('WasteKilos', sql.Money, wasteKilos)
+      .input('Login', sql.Char(10), String(login || '').trim().slice(0, 10))
+      .query(`
+        IF OBJECT_ID(N'dbo.ORDPROC_CUADRATURA_AUDIT', N'U') IS NOT NULL
+          INSERT ORDPROC_CUADRATURA_AUDIT
+            (EmpCod,TempCod,Ordpnum,AuditAction,PreviousState,NewState,ReadContainers,
+             ReadKilos,CommercialContainers,CommercialKilos,WasteKilos,Reason,AuditLogin)
+          VALUES
+            (@EmpCod,@TempCod,@Ordpnum,'CLOSE',4,5,@ReadContainers,@ReadKilos,
+             @CommercialContainers,@CommercialKilos,@WasteKilos,NULL,@Login);
+      `);
+
+    await transaction.commit();
+    return {
+      success: true,
+      message: `Orden ${ordpnum} cuadrada correctamente.`,
+      tempCod: temp,
+      ordpnum,
+      state: 5,
+      totals: { readContainers, readKilos, commercialContainers, commercialKilos, wasteKilos }
+    };
+  } catch (error) {
+    await transaction.rollback();
+    if (error instanceof OrdenesProcesoError) throw error;
+    throw new OrdenesProcesoError(500, 'QUADRATURE_SAVE_ERROR', error.message);
+  }
+};
+
+const reopenQuadrature = async (
+  empCod,
+  login,
+  tempCod,
+  ordpnumInput,
+  body = {},
+  { poolProvider = getPool, transactionFactory, requestFactory = (target) => new sql.Request(target) } = {}
+) => {
+  const temp = String(tempCod || '').trim();
+  const ordpnum = int(ordpnumInput, 'orden', 1);
+  const reason = String(body.reason || '').trim();
+  if (!temp) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La temporada es obligatoria.');
+  if (reason.length < 10 || reason.length > 200) {
+    throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'El motivo de reapertura debe tener entre 10 y 200 caracteres.');
+  }
+  const pool = await poolProvider();
+  const transaction = transactionFactory ? transactionFactory(pool) : new sql.Transaction(pool);
+  await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+  try {
+    const request = requestFactory(transaction)
+      .input('EmpCod', sql.SmallInt, empCod)
+      .input('TempCod', sql.Char(9), temp)
+      .input('Ordpnum', sql.Decimal(10, 0), ordpnum)
+      .input('Reason', sql.NVarChar(200), reason)
+      .input('Login', sql.Char(10), String(login || '').trim().slice(0, 10));
+    const current = await request.query(`
+      SELECT TOP (1) OrdpEstado,OrdpEnvExp,OrdpKilosExp,OrdpEnvCom,OrdpKilosCom,OrdpDesecho
+      FROM ORDPROC WITH (UPDLOCK,HOLDLOCK)
+      WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum;
+    `);
+    if (!current.recordset.length) throw new OrdenesProcesoError(404, 'ORDER_NOT_FOUND', 'La orden de proceso no existe.');
+    const order = current.recordset[0];
+    if (Number(order.OrdpEstado) !== 5) throw new OrdenesProcesoError(409, 'QUADRATURE_NOT_COMPLETED', 'Solo una orden cuadrada puede reabrirse.');
+
+    await requestFactory(transaction)
+      .input('EmpCod', sql.SmallInt, empCod)
+      .input('TempCod', sql.Char(9), temp)
+      .input('Ordpnum', sql.Decimal(10, 0), ordpnum)
+      .input('ReadContainers', sql.Int, Number(order.OrdpEnvExp || 0))
+      .input('ReadKilos', sql.Money, Number(order.OrdpKilosExp || 0))
+      .input('CommercialContainers', sql.Int, Number(order.OrdpEnvCom || 0))
+      .input('CommercialKilos', sql.Money, Number(order.OrdpKilosCom || 0))
+      .input('WasteKilos', sql.Money, Number(order.OrdpDesecho || 0))
+      .input('Reason', sql.NVarChar(200), reason)
+      .input('Login', sql.Char(10), String(login || '').trim().slice(0, 10))
+      .query(`
+      IF OBJECT_ID(N'dbo.ORDPROC_CUADRATURA_AUDIT', N'U') IS NOT NULL
+        INSERT ORDPROC_CUADRATURA_AUDIT
+          (EmpCod,TempCod,Ordpnum,AuditAction,PreviousState,NewState,ReadContainers,
+           ReadKilos,CommercialContainers,CommercialKilos,WasteKilos,Reason,AuditLogin)
+        VALUES
+          (@EmpCod,@TempCod,@Ordpnum,'REOPEN',5,4,@ReadContainers,@ReadKilos,
+           @CommercialContainers,@CommercialKilos,@WasteKilos,@Reason,@Login);
+    `);
+
+    await requestFactory(transaction)
+      .input('EmpCod', sql.SmallInt, empCod)
+      .input('TempCod', sql.Char(9), temp)
+      .input('Ordpnum', sql.Decimal(10, 0), ordpnum)
+      .input('Login', sql.Char(10), String(login || '').trim().slice(0, 10))
+      .query(`
+      DELETE FROM FCOMERCIAL
+      WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND FCOProceso=@Ordpnum
+        AND TMcod=1 AND TMSCod=50;
+      UPDATE ORDPROC
+      SET OrdpEstado=4,OrdpEnvExp=0,OrdpKilosExp=0,OrdpEnvCom=0,OrdpKilosCom=0,
+        OrdpDesecho=0,OrdpFecA=GETDATE(),OrdpLoginA=@Login
+      WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum;
+    `);
+    await transaction.commit();
+    return { success: true, message: `Cuadratura de la orden ${ordpnum} reabierta correctamente.`, tempCod: temp, ordpnum, state: 4 };
+  } catch (error) {
+    await transaction.rollback();
+    if (error instanceof OrdenesProcesoError) throw error;
+    throw new OrdenesProcesoError(500, 'QUADRATURE_REOPEN_ERROR', error.message);
+  }
 };
 
 const setProcessActive = async (
@@ -333,4 +723,17 @@ const update = async (empCod, login, tempCod, ordpnumInput, body = {}) => {
   } catch (error) { await tx.rollback(); if (error instanceof OrdenesProcesoError) throw error; throw new OrdenesProcesoError(500,'ORDER_UPDATE_ERROR',error.message); }
 };
 
-module.exports = { OrdenesProcesoError, listLots, create, update, getOrder, getQuadrature, buildQuadrature, setProcessActive };
+module.exports = {
+  OrdenesProcesoError,
+  listLots,
+  create,
+  update,
+  getOrder,
+  getProcessReport,
+  getQuadrature,
+  buildQuadrature,
+  normalizeCommercialRows,
+  finalizeQuadrature,
+  reopenQuadrature,
+  setProcessActive
+};

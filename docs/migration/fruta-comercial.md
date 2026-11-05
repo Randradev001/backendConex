@@ -85,3 +85,12 @@ La pantalla usa ahora el banner compartido, cuatro indicadores, filtros
 reactivos con fechas abiertas, búsqueda general y exportaciones Excel/PDF del
 conjunto filtrado completo. No se agregó un PDF oficial por fila porque el XPZ
 no define ese reporte.
+
+La revisión del 2026-10-26 completó el patrón operacional: la búsqueda general
+usa debounce, los cinco filtros se ordenan en una sola fila en escritorio, las
+acciones quedan compactas y centradas, y cada indicador abre un diálogo con
+las filas que componen su valor. Esos diálogos y las exportaciones consultan el
+conjunto filtrado completo mediante `all=true`, mientras la grilla principal
+conserva paginación de servidor. Se verificó la API contra SQL Server con 62
+movimientos de la temporada activa, además de las pruebas del servicio y el
+build del frontend.

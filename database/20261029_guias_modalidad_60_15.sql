@@ -1,0 +1,13 @@
+-- Ejecutar en CONEX. Empresa local homologada 1; modificar explícitamente para otra instalación.
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+DECLARE @EmpCod smallint=1;
+IF COL_LENGTH('integracion.GuiaAcceso','ModoEmision') IS NULL
+ ALTER TABLE integracion.GuiaAcceso ADD ModoEmision smallint NULL;
+IF NOT EXISTS(SELECT 1 FROM dbo.PARAMGEN WITH(UPDLOCK,HOLDLOCK) WHERE EmpCod=@EmpCod AND PARCod=60)
+ INSERT dbo.PARAMGEN(EmpCod,PARCod,PARDes,PARValor1,PARValor2,PARValor3)
+ VALUES(@EmpCod,60,'GUIAS ELECTRONICAS',0,0,0);
+IF NOT EXISTS(SELECT 1 FROM dbo.PARAMGE1 WITH(UPDLOCK,HOLDLOCK) WHERE EmpCod=@EmpCod AND PARCod=60 AND PAR1Cod=15)
+ INSERT dbo.PARAMGE1(EmpCod,PARCod,PAR1Cod,PAR1Des,PAR1Valor1,PAR1Valor2,PAR1Valor3,PAR1Texto)
+ VALUES(@EmpCod,60,15,'MODALIDAD GUIAS: 1 XML, 2 API',2,0,0,'');
+COMMIT;

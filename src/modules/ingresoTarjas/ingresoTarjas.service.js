@@ -1020,10 +1020,14 @@ const listFilters = (query = {}) => {
   const hasFrom = Object.prototype.hasOwnProperty.call(query, "from");
   const hasTo = Object.prototype.hasOwnProperty.call(query, "to");
   const from = hasFrom
-    ? (trim(query.from) ? dateValue(query.from, "La fecha desde") : null)
+    ? trim(query.from)
+      ? dateValue(query.from, "La fecha desde")
+      : null
     : iso(before);
   const to = hasTo
-    ? (trim(query.to) ? dateValue(query.to, "La fecha hasta") : null)
+    ? trim(query.to)
+      ? dateValue(query.to, "La fecha hasta")
+      : null
     : iso(today);
   if (from && to && from > to)
     throw new IngresoTarjasError(
@@ -1034,9 +1038,10 @@ const listFilters = (query = {}) => {
   const species = query.species
     ? integer(query.species, "La especie", { min: 0 })
     : 0;
-  const status = query.status !== undefined && query.status !== ""
-    ? integer(query.status, "El estado", { min: -1, max: 10 })
-    : -1;
+  const status =
+    query.status !== undefined && query.status !== ""
+      ? integer(query.status, "El estado", { min: -1, max: 10 })
+      : -1;
   if (![-1, 0, 1, 10].includes(status))
     throw new IngresoTarjasError(
       400,
@@ -1183,8 +1188,16 @@ const anularTarja = async (empCod, folioValue, dependencies = {}) => {
         "El folio indicado no existe en la temporada activa.",
       );
     const current = result.recordset[0];
-    if (current.FPEstado !== null && current.FPEstado !== undefined && Number(current.FPEstado) === ANULADO_STATUS)
-      throw new IngresoTarjasError(409, "FOLIO_ALREADY_CANCELLED", "La tarja ya se encuentra anulada.");
+    if (
+      current.FPEstado !== null &&
+      current.FPEstado !== undefined &&
+      Number(current.FPEstado) === ANULADO_STATUS
+    )
+      throw new IngresoTarjasError(
+        409,
+        "FOLIO_ALREADY_CANCELLED",
+        "La tarja ya se encuentra anulada.",
+      );
     if (![0, 5].includes(Number(current.FPOrigen)))
       throw new IngresoTarjasError(
         409,
@@ -1231,6 +1244,104 @@ const anularTarja = async (empCod, folioValue, dependencies = {}) => {
   }
 };
 
+const cambiarEstadoTarja = async (
+  empCod,
+  folioValue,
+  statusValue,
+  dependencies = {},
+) => {
+  const status = integer(statusValue, "El estado", { min: 1, max: 10 });
+  if (![1, 10].includes(status))
+    throw new IngresoTarjasError(
+      400,
+      "INVALID_STATE",
+      "El estado debe ser En tránsito o Tarja completa.",
+    );
+  const poolProvider = dependencies.poolProvider || getPool;
+  const transactionFactory =
+    dependencies.transactionFactory || ((pool) => new sql.Transaction(pool));
+  const requestFactory =
+    dependencies.requestFactory ||
+    ((transaction) => new sql.Request(transaction));
+  const folio = normalizeFolio(folioValue);
+  const pool = await poolProvider();
+  const transaction = transactionFactory(pool);
+  await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+  try {
+    const result = await requestFactory(transaction)
+      .input("EmpCod", sql.SmallInt, empCod)
+      .input("Folio", sql.Char(10), folio).query(`
+      SELECT TOP 1 h.TempCod,h.FPOrigen,h.FPIns,h.FPDesOri,h.FPDesOT,h.FPDesUsda,h.FPDisponible,h.FPEstado
+      FROM FOLIOSPROC h WITH (UPDLOCK,HOLDLOCK)
+      JOIN TEMP01 t ON t.EmpCod=h.EmpCod AND t.TempCod=h.TempCod AND t.TempActiva=1
+      WHERE h.EmpCod=@EmpCod AND h.FPFolio=@Folio;
+    `);
+    if (!result.recordset.length)
+      throw new IngresoTarjasError(
+        404,
+        "FOLIO_NOT_FOUND",
+        "El folio indicado no existe en la temporada activa.",
+      );
+    const current = result.recordset[0];
+    if (Number(current.FPEstado) === ANULADO_STATUS)
+      throw new IngresoTarjasError(
+        409,
+        "FOLIO_CANCELLED",
+        "Una tarja anulada no puede cambiar de estado.",
+      );
+    if (![0, 5].includes(Number(current.FPOrigen)))
+      throw new IngresoTarjasError(
+        409,
+        "FOLIO_AUTOMATIC",
+        "Esta tarja fue generada automáticamente y no se puede cambiar desde este listado.",
+      );
+    if (
+      [
+        current.FPIns,
+        current.FPDesOri,
+        current.FPDesOT,
+        current.FPDesUsda,
+      ].some((value) => Number(value) !== 0)
+    )
+      throw new IngresoTarjasError(
+        409,
+        "FOLIO_IN_USE",
+        "La tarja ya tiene inspección o despacho asociado y no puede cambiar de estado.",
+      );
+    if (Number(current.FPDisponible) === 0)
+      throw new IngresoTarjasError(
+        409,
+        "FOLIO_UNAVAILABLE",
+        "La tarja ya fue utilizada en otro proceso y no puede cambiar de estado.",
+      );
+    if (Number(current.FPEstado) === status)
+      throw new IngresoTarjasError(
+        409,
+        "STATE_UNCHANGED",
+        "La tarja ya se encuentra en el estado seleccionado.",
+      );
+    await requestFactory(transaction)
+      .input("EmpCod", sql.SmallInt, empCod)
+      .input("TempCod", sql.Char(9), current.TempCod)
+      .input("Folio", sql.Char(10), folio)
+      .input("Status", sql.SmallInt, status).query(`
+        UPDATE FOLIOSPROC SET FPEstado=@Status
+        WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND FPFolio=@Folio;
+        UPDATE FOLIOSPROC1 SET Fp2Estado=@Status
+        WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND FPFolio=@Folio;
+      `);
+    await transaction.commit();
+    return {
+      folio,
+      status,
+      statusLabel: status === 10 ? "Tarja completa" : "En tránsito",
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+};
+
 module.exports = {
   permission,
   IngresoTarjasError,
@@ -1241,6 +1352,7 @@ module.exports = {
   listFilters,
   listTarjas,
   getTarja,
+  cambiarEstadoTarja,
   anularTarja,
   importFoliosExcel,
   readImportRows,

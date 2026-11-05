@@ -9,6 +9,7 @@ module.exports={
  create:run(async(req,res)=>{const c=ctx(req);res.status(201).json(await service.create(c.empCod,c.login,req.body));}),
  update:run(async(req,res)=>{const c=ctx(req);res.json(await service.update(c.empCod,c.login,Number(req.params.id),req.body));}),
  remove:run(async(req,res)=>{const c=ctx(req);res.json(await service.remove(c.empCod,c.login,Number(req.params.id)));}),
+ review:run(async(req,res)=>{const c=ctx(req);res.status(201).json(await service.review(c.empCod,c.login,Number(req.params.id),req.body));}),
  listPhotos:run(async(req,res)=>res.json(await service.listPhotos(ctx(req).empCod,Number(req.params.id)))),
  addPhotos:run(async(req,res)=>{const c=ctx(req);res.status(201).json(await service.addPhotos(c.empCod,c.login,Number(req.params.id),req.files||[]));}),
  getPhoto:run(async(req,res)=>{const photo=await service.getPhoto(ctx(req).empCod,Number(req.params.id),Number(req.params.photoId));res.setHeader('Content-Type',photo.mime);res.setHeader('Content-Disposition',`inline; filename*=UTF-8''${encodeURIComponent(photo.name)}`);res.setHeader('Cache-Control','private, max-age=300');res.send(photo.content);}),

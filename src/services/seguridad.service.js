@@ -6,6 +6,7 @@ const {
   hashSessionToken
 } = require('./password.service');
 const { getAuthorizedMenu } = require('./seguridadMenu.service');
+const { isSecurityAdmin } = require('../security/securityAdminPolicy');
 
 class SecurityError extends Error {
   constructor(status, code, message, details) {
@@ -48,17 +49,20 @@ const parseRut = (value) => {
   return { rutNumber, rutDv };
 };
 
-const mapUser = (row) => ({
-  login: clean(row.UsuLogin),
-  nombre: clean(row.Usunom),
-  correo: clean(row.UsuCorreo),
-  cargo: clean(row.UsuCargo),
-  estado: row.UsuEstado,
-  perfil: clean(row.UsuPerfil),
-  tipo: row.UsuTipo,
-  nivelSeguridad: Number(row.UsuNseg || 0),
-  roles: row.roles || []
-});
+const mapUser = (row) => {
+  const user = {
+    login: clean(row.UsuLogin),
+    nombre: clean(row.Usunom),
+    correo: clean(row.UsuCorreo),
+    cargo: clean(row.UsuCargo),
+    estado: row.UsuEstado,
+    perfil: clean(row.UsuPerfil),
+    tipo: row.UsuTipo,
+    nivelSeguridad: Number(row.UsuNseg || 0),
+    roles: row.roles || []
+  };
+  return { ...user, securityAdmin: isSecurityAdmin(user) };
+};
 
 const getUsers = async (pool, login, empCod) => {
   const request = pool.request()

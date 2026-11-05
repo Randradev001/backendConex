@@ -14,9 +14,13 @@ const processPermission = (required) => (req, res, next) => {
 router.use(authContext, processPermission(permission));
 router.get('/lotes', controller.lots);
 router.get('/:tempCod/:ordpnum/pdf', controller.pdf);
+router.get('/:tempCod/:ordpnum/informe-proceso/pdf', controller.processReportPdf);
+router.get('/:tempCod/:ordpnum/cuadratura/pdf', controller.quadraturePdf);
 router.get('/:tempCod/:ordpnum/cuadratura', controller.quadrature);
+router.post('/:tempCod/:ordpnum/cuadratura', controller.finalizeQuadrature);
+router.patch('/:tempCod/:ordpnum/cuadratura/reabrir', controller.reopenQuadrature);
 router.get('/:tempCod/:ordpnum', controller.detail);
-router.post('/', processPermission({ ...permission, accion: 1 }), controller.create);
-router.put('/:tempCod/:ordpnum', processPermission({ ...permission, accion: 2 }), controller.update);
-router.patch('/:tempCod/:ordpnum/estado', processPermission({ ...permission, accion: 2 }), controller.setActive);
+router.post('/', controller.create);
+router.put('/:tempCod/:ordpnum', controller.update);
+router.patch('/:tempCod/:ordpnum/estado', controller.setActive);
 module.exports = router;

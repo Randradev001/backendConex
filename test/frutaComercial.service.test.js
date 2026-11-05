@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { listFilters, normalizePayload } = require('../src/modules/frutaComercial/frutaComercial.service');
+const { FrutaComercialError, assertEditable, isQuadratureMovement, listFilters, normalizePayload } = require('../src/modules/frutaComercial/frutaComercial.service');
 
 const validPayload = () => ({
   fcoNumI: '1234567890',
@@ -34,4 +34,13 @@ test('Fruta Comercial limita la observación a 50 caracteres y conserva los filt
   assert.equal(filters.process, 0);
   assert.equal(filters.species, 0);
   assert.equal(filters.movement, -1);
+});
+
+test('los movimientos automáticos de cuadratura no se pueden editar ni anular', () => {
+  const row = { fcoOrigen: 0, tmCod: 1, tmsCod: 50 };
+  assert.equal(isQuadratureMovement(row), true);
+  assert.throws(
+    () => assertEditable(row),
+    (error) => error instanceof FrutaComercialError && error.code === 'QUADRATURE_ROW_READ_ONLY'
+  );
 });

@@ -28,12 +28,12 @@ BEGIN
   INSERT INTO dbo.PROGRAM
     (SistCod,Modcod,ProgCod,ProgDes,ProgNomGX,ProgTipo,ProgFcrea)
   VALUES
-    (@SistCod,@Modcod,@ProgCod,'Mantenedor controles calidad',@ProgNomGX,1,CAST(GETDATE() AS date));
+    (@SistCod,@Modcod,@ProgCod,'Aplicaciones de calidad',@ProgNomGX,1,CAST(GETDATE() AS date));
 END
 ELSE
 BEGIN
   UPDATE dbo.PROGRAM
-  SET ProgDes='Mantenedor controles calidad'
+  SET ProgDes='Aplicaciones de calidad'
   WHERE SistCod=@SistCod AND Modcod=@Modcod AND RTRIM(ProgNomGX)=@ProgNomGX;
 END;
 
@@ -42,7 +42,7 @@ SET ProgNomGX=@ProgNomGX
 WHERE SistCod=@SistCod AND Modcod=@Modcod AND ProgCod=@ProgCod;
 
 DECLARE @Acciones TABLE (ProgOPCod smallint, ProgOPDes char(35));
-INSERT INTO @Acciones VALUES (1,'crea'),(2,'modifica'),(3,'anula');
+INSERT INTO @Acciones VALUES (1,'crea'),(2,'modifica y revisa'),(3,'anula');
 
 INSERT INTO dbo.PROGRAM1 (SistCod,Modcod,ProgCod,ProgOPCod,ProgOPDes)
 SELECT @SistCod,@Modcod,@ProgCod,A.ProgOPCod,A.ProgOPDes

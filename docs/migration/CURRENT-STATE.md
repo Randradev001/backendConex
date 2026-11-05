@@ -1,5 +1,21 @@
 # Estado vigente de la migracion CONEX
 
+## Dashboard operacional (2026-11-04)
+
+La opción `Dashboard` de Navigation abre la nueva ruta
+`/dashboard/operacional`, sin reemplazar la portada anterior ni los dashboards
+existentes. Consolida producción, variedades, despachos, recepción/calidad,
+umbrales de 90%, plagas, facturación y stock de envases para la empresa de
+sesión y temporada activa. Evidencia: [dashboard-operacional.md](dashboard-operacional.md).
+
+## Acceso directo a Ingreso de Facturas APERP (2026-11-04)
+
+La navegación principal de Conex incorpora `Ingreso Facturas`. El acceso usa
+un ticket temporal, de un solo uso y con destino explícito `FACTURACION`;
+APERP valida la homologación de empresa, el login activo y el permiso `15/10/5`
+antes de crear una sesión propia y abrir `/facturacion/ingreso-documentos`.
+La migración aditiva es `database/20261104_acceso_aperp_facturacion.sql`.
+
 ## Lista de Precios (2026-10-22)
 
 La primera etapa del WorkPanel GX8 `Lprecio` está disponible en
@@ -183,9 +199,11 @@ Estado operativo:
   paginación reiniciada al filtrar y fechas abiertas verificadas contra SQL.
   Las exportaciones conservan HTML .xls e impresión del navegador.
 - La operacion `OrdenProcesos/OrdenProcINS` se implemento en
-  `/ordenes-proceso/operacion` como alta de ADM con permiso `110/2/2`: consulta lotes disponibles,
+  `/ordenes-proceso/operacion` como alta de ADM con permiso de programa `110/2/2`: consulta lotes disponibles,
   permite seleccionar el lote completo o cantidades parciales y genera la
-  cabecera/detalle en una transaccion serializable, evitando sobreconsumo. La
+  cabecera/detalle en una transaccion serializable, evitando sobreconsumo. El
+  acceso a este programa habilita todas sus operaciones, sin exigir permisos
+  adicionales de `ASIGPROG1`. La
   generacion solicita variedad, exportadora, fecha y etiqueta, y persiste la
   salida de proceso en `MOVFRUT/MOVFRUT1` usando `OriCod=90`, `MovTDoc=90`,
   `MovNGuia=Ordpnum`, `TMcod=2` y `TMSCod=1`, alineado con `PCreaLOTE` y
@@ -211,11 +229,25 @@ Estado operativo:
   En estados distintos de 0/1, el mismo espacio de accion muestra las lecturas
   CAPCAJAS en pantalla completa. La lectura de `CAP001` acepta `100/8/1` o
   `110/2/2`; altas, cierre, generacion y reclasificacion conservan solo
-  `100/8/1`. Las órdenes cerradas y cuadradas incorporan además una primera
-  vista de cuadratura: compara `ORDPROC` con las lecturas `CAP001`, muestra
-  kilos procesados, leídos, diferencia, rendimiento, envases y desglose por
-  especie/variedad. Es solo consulta; la grabación histórica de
-  `GrabaCuadratura` y el alta en `FCOMERCIAL` siguen pendientes.
+  `100/8/1`. Las órdenes cerradas y cuadradas incorporan una vista operativa de
+  cuadratura: compara `ORDPROC` con las lecturas `CAP001`, permite distribuir
+  fruta comercial por especie/variedad y muestra en vivo kilos, envases,
+  rendimiento y desecho. La confirmación replica `GrabaCuadratura` en una
+  transacción serializable: vuelve a validar el estado y las lecturas, actualiza
+  `ORDPROC` a estado 5 e inserta las líneas automáticas `1/50` en `FCOMERCIAL`.
+  Una orden cuadrada queda solo en consulta y permite descargar PDF o Excel. La
+  reapertura controlada exige motivo, elimina solo los movimientos automáticos,
+  devuelve la orden al estado 4 y conserva los valores previos en
+  `ORDPROC_CUADRATURA_AUDIT`. Fruta Comercial reconoce esas filas como origen
+  Cuadratura y bloquea su modificación y anulación. La tabla de auditoría se
+  instala con `database/20261026_cuadratura_auditoria_2016.sql`, ya aplicado en
+  la base local `CONEX` el 2026-10-26.
+  Como acción separada, los estados 4 y 5 permiten descargar el PDF
+  `Informe de proceso`, homologado con `InfProceso01`: usa datos corporativos,
+  cabecera y lotes de `ORDPROC/ORDPROC1`, ubicación del productor, detalle de
+  `CAP001` agrupado por envase, categoría y calibre, y el resumen histórico de
+  kilos y rendimiento. Este documento no sustituye el PDF operativo de
+  cuadratura ni el comprobante de creación.
 - `database/20260818_importar_usuarios_rut_real_login_2016.sql` importa desde
   `CONEX_MIGRACION` a `CONEX` solo usuarios activos con RUT/DV valido y empresa
   asignada; copia empresas, `SEGUSUEMP`, credenciales modernas si existen y
@@ -514,6 +546,11 @@ filtros del XPZ (rango de fecha, proceso, especie y movimiento), los totales
 de entradas/salidas/saldo y el orden por fecha/proceso/especie. `Agregar`
 abre un `Dialog` y la primera generación incluye `Crear`, `Visualizar`,
 `Modificar` y `Anular`.
+
+El listado operacional usa búsqueda con debounce, filtros compactos con fechas
+abiertas, paginación de servidor y tarjetas navegables. Cada tarjeta abre las
+filas de su indicador usando el conjunto filtrado completo; Excel y PDF también
+solicitan `all=true`, por lo que no quedan limitados a la página visible.
 
 La pantalla usa el banner de procesos solicitado y la confirmación de anular
 usa el diseño de referencia con tarjetas de fecha, proceso y creador. El
@@ -1019,6 +1056,17 @@ Los programas 31 y 32 deben asignarse expresamente desde Seguridad a los
 usuarios o roles correspondientes. El rango por defecto del tablero calcula
 `Hoy` con la fecha local del servidor para no adelantarse un dia al cambiar la
 fecha UTC.
+El 2026-10-27 el mantenedor de calidad adopto la bandeja visual de Anticipos de
+APERP: agrupa aplicaciones bajo una cabecera diaria, presenta tres tarjetas por
+fila en escritorio, permite desplegar su resumen y filtra automaticamente por
+mes y estado de revision. Al seleccionar una tarjeta abre un dialogo que carga
+el detalle real y permite aprobar o rechazar con comentario obligatorio. Cada
+decision se agrega al historial `CALRECEPREVISION`, aislado por empresa y
+control, con usuario y fecha; la ultima decision alimenta tarjetas, indicadores
+y exportacion. Solo los controles finalizados pueden revisarse. La migracion
+aditiva e idempotente es
+`database/20261027_revision_aplicaciones_calidad.sql` y fue aplicada sobre la
+base local `CONEX`.
 Las tarjetas del tablero consultan `CALRECEP` por la clave completa del lote:
 un control vigente las marca como completadas en verde y la ausencia de control
 las mantiene pendientes en rojo. Al seleccionar una tarjeta completada se abre
@@ -1293,10 +1341,23 @@ Un objeto queda `READY` solo cuando:
 
 Actualización 15-10-2026: se creó y aplicó en CONEX local el sistema `120 Procesos SAG`, módulo `1 Operacional`, con Folios Procesados, Inspecciones y Despachos SAG. La migración copia permisos equivalentes del sistema histórico 100 y conserva ambos códigos en el middleware; el menú prioriza el sistema 120 para evitar duplicados visuales. Rutas: `/procesos-sag/folios-procesados`, `/procesos-sag/inspecciones` y `/procesos-sag/despachos-sag`.
 
+Actualización 27-10-2026: se preparó `database/20261027_ingreso_tarjas_menu.sql` para agregar `120/1/4 Ingreso de Tarjas` como acceso directo a `/procesos-sag/folios-procesados/nuevo`. El script copia permisos de Folios Procesados y la API acepta el nuevo programa junto con los códigos anteriores. El SQL quedó preparado e idempotente; no se ejecutó en producción desde este repositorio.
+
 Actualización 15-10-2026: se agregó en CONEX local el sistema `130 Guias electronicas`, módulo `1 Operacional`, programa `1 Guías de Despacho`. La migración `database/20261015_guias_electronicas_menu.sql` copia únicamente los permisos ya existentes para `wguiasd` (100/2/20 o 70/6/3), y el menú web prioriza la nueva agrupación. La ruta sigue abriendo la misma pantalla central de APERP; su administración electrónica permanece en el sistema de APERP y conserva permisos separados. En desarrollo, Conex usa `VITE_APERP_GUIDES_URL` para apuntar al frontend APERP cuando ambos corren en puertos distintos.
 
 Actualización 13-10-2026: `wguiasd` conduce al módulo operativo `/co/guias/electronicas`. Conex emite un acceso de un solo uso para la empresa y usuario autenticados; APERP lo canjea por una sesión breve limitada a Guías. El listado combina el histórico Conex con los borradores centrales, y el formulario puede precargarse desde Packing List o despacho comercial antes de guardar en APERP. La empresa requiere homologación explícita en `ge.ConexEmpresaMap`; el navegador no la selecciona. La emisión electrónica continúa deshabilitada hasta validar el sandbox Púlsar DTE 52. Ver [guias-origen-conex.md](guias-origen-conex.md).
 
 Se crearon y verificaron cuatro vistas `integracion.vGuia*Origen` y `integracion.vPackingCabeceraOrigen` en la base local CONEX. Exponen cabecera, detalle histórico, cliente y cabecera de packing para lectura futura desde APERP; no generan guías ni cambian estados de migración GX. La base APERP local pudo consultar la vista de cabeceras entre bases. El detalle físico de packing sigue sin identificar. Evidencia y límites: [guias-origen-conex.md](guias-origen-conex.md).
 
-En desarrollo, el `wguiasd` autorizado del menú Conex abre el listado prototipo APERP dentro del layout Conex, con contexto Conex y datos ficticios. Desde el listado se puede entrar al formulario de ejemplo y volver. Se verificó visualmente la navegación local. No existe todavía SSO ni acceso productivo a la guía; el enlace de producción sigue pendiente.
+La integración productiva de Guías requiere que `VITE_APERP_GUIDES_URL` apunte al frontend APERP realmente publicado, que APERP vea la base CONEX mediante `CONEX_DATABASE`, que el principal SQL tenga permisos mínimos sobre `integracion.GuiaAcceso` y las vistas de precarga, y que exista la homologación legal activa en `ge.ConexEmpresaMap`. El valor relativo `/nuevo/...` solo es válido cuando APERP está publicado por el mismo proxy y host de Conex. La configuración detallada y las pruebas de diagnóstico están en [guias-origen-conex.md](guias-origen-conex.md).
+
+## Guías: modalidad por empresa y separación de origen (2026-10-29)
+
+Implementado localmente el parámetro `PARAMGE1` 60/15 (1 XML, 2 API), leído por
+empresa de sesión y transmitido a APERP mediante el ticket de integración.
+Empresa CONEX 1 configurada con valor 2; no se cambian parámetros existentes.
+Aplicada migración `20261029_guias_modalidad_60_15.sql`; pruebas 2/2 correctas.
+APERP restringe guías al origen/empresa autorizados y ofrece modalidad XML por
+separado. Sin emisión real ni despliegue productivo. Detalle actualizado en
+[guias-origen-conex.md](guias-origen-conex.md). No se cambia a validado el estado
+de los objetos GeneXus: pendiente comparación con guía real Psoto.

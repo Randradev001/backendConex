@@ -29,5 +29,6 @@ router.delete('/:id/photos/:photoId',action(2),controller.removePhoto);
 router.get('/:id',controller.getOne);
 router.post('/',action(1),controller.create);
 router.put('/:id',action(2),controller.update);
+router.post('/:id/review',action(2),controller.review);
 router.delete('/:id',action(3),controller.remove);
 module.exports=router;

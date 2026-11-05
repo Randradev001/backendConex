@@ -771,6 +771,22 @@ CREATE TABLE dbo.CALRECEPFOTO (
 CREATE INDEX IX_CALRECEPFOTO_Control
   ON dbo.CALRECEPFOTO (EmpCod, CalRecId, CalFotoOrden, CalFotoId);
 
+CREATE TABLE dbo.CALRECEPREVISION (
+  EmpCod smallint NOT NULL,
+  CalRecId bigint NOT NULL,
+  CalRevId bigint IDENTITY(1,1) NOT NULL,
+  CalRevDecision char(1) NOT NULL,
+  CalRevComentario varchar(1000) NOT NULL,
+  CalRevLogin char(10) NOT NULL,
+  CalRevFecha datetime NOT NULL CONSTRAINT DF_CALRECEPREVISION_Fecha DEFAULT (GETDATE()),
+  CONSTRAINT PK_CALRECEPREVISION PRIMARY KEY (EmpCod, CalRecId, CalRevId),
+  CONSTRAINT FK_CALRECEPREVISION_Control FOREIGN KEY (EmpCod, CalRecId) REFERENCES dbo.CALRECEP (EmpCod, CalRecId),
+  CONSTRAINT CK_CALRECEPREVISION_Decision CHECK (CalRevDecision IN ('A','R')),
+  CONSTRAINT CK_CALRECEPREVISION_Comentario CHECK (LEN(LTRIM(RTRIM(CalRevComentario))) > 0)
+);
+CREATE INDEX IX_CALRECEPREVISION_Ultima ON dbo.CALRECEPREVISION (EmpCod, CalRecId, CalRevId DESC)
+  INCLUDE (CalRevDecision, CalRevComentario, CalRevLogin, CalRevFecha);
+
 /* Tablas vacias usadas por validaciones de dependencias GX8. */
 CREATE TABLE dbo.CAP001
 (
@@ -905,7 +921,7 @@ VALUES
   (100, 1, 32, 'Valores moneda', 'wvalmon', 1, CAST(GETDATE() AS date), 'mae-valmon', NULL),
   (100, 2, 1, 'Ingreso de recepciones', 'wrecepciones', 1, CAST(GETDATE() AS date), 'proc-recepciones', NULL),
   (100, 2, 31, 'Tablero de lotes', 'wtablerolotesrecep', 1, CAST(GETDATE() AS date), 'proc-tablero-lotes', NULL),
-  (100, 2, 32, 'Mantenedor controles calidad', 'wctrlcalidadrecep', 1, CAST(GETDATE() AS date), 'proc-calidad', NULL),
+  (100, 2, 32, 'Aplicaciones de calidad', 'wctrlcalidadrecep', 1, CAST(GETDATE() AS date), 'proc-calidad', NULL),
   (100, 15, 1, 'Recepcion de fruta', 'wcrecepfrut', 1, CAST(GETDATE() AS date), 'con-recep-fruta', NULL),
   (100, 15, 15, 'Dashboard calidad recepcion', 'wdashcalidadrecep', 1, CAST(GETDATE() AS date), 'con-dash-calidad', NULL);
 

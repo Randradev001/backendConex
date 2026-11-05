@@ -40,6 +40,13 @@ permiso `100/20/5` del listado.
   bajo la ruta de menu.
 - Ruta Node: `/backendDocker/ingreso-tarjas`.
 
+El acceso directo se registra adicionalmente como `120/1/4`, **Ingreso de
+Tarjas**, con el llamado `sagtarjas`, que resuelve la ruta React
+`/procesos-sag/folios-procesados/nuevo`. La
+migración idempotente `database/20261027_ingreso_tarjas_menu.sql` copia este
+permiso a quienes ya tienen Folios Procesados (`120/1/1`, `100/20/5` o el
+programa histórico `100/2/10`). La API acepta cualquiera de esos permisos.
+
 El programa historico `100/2/10`, `wfoliosprocesado`, no se modifica. El nuevo
 programa debe asignarse expresamente a usuarios o roles. Todas las rutas Node
 usan `EmpCod` y login desde la sesion; la pantalla no puede reemplazar la

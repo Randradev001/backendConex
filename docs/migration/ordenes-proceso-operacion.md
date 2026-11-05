@@ -12,7 +12,9 @@ La pantalla `/ordenes-proceso/operacion` migra el WorkPanel GX8
 `MOVFRUT/MOVFRUT1`, siempre dentro de una transaccion serializable.
 
 La empresa y el usuario provienen de la sesion. La operacion reutiliza el
-programa `110/2/2` y la accion de alta o modificacion correspondiente.
+programa `110/2/2`. Por decisión operacional, el acceso al programa habilita
+el conjunto completo de acciones de la pantalla; no se exige `ProgOPCod`
+adicional para crear, modificar, eliminar o cambiar el estado.
 
 ## Presentacion operacional
 
@@ -29,6 +31,9 @@ programa `110/2/2` y la accion de alta o modificacion correspondiente.
   calculan desde el mismo conjunto filtrado.
 - Cada lote destaca en verde la **Cantidad restante**, mostrando en tamaño
   principal envases y kilos disponibles antes de seleccionar.
+- La columna `Acciones` calcula su ancho según las operaciones visibles en el
+  conjunto cargado y usa botones compactos, evitando recortes cuando las
+  órdenes finalizadas muestran informe, lecturas y cuadratura.
 - La cantidad ya utilizada permanece separada para no confundir saldo con
   consumo historico.
 - Despues de confirmar un alta, React presenta un dialogo con el numero de
@@ -60,14 +65,34 @@ programa `110/2/2` y la accion de alta o modificacion correspondiente.
   y 1 muestran iniciar o desactivar proceso; los demas estados muestran
   `Ver lecturas CAPCAJAS`. Esta accion abre a pantalla completa la consulta
   paginada de `CAP001`, con resumen, exportacion y ciclo por caja.
-- Como primera etapa de `CuadraProc`, las órdenes cerradas (estado 4) y
-  cuadradas (estado 5) presentan una acción de cuadratura de solo lectura. El
-  diálogo compara envases y kilos ingresados en `ORDPROC` con cajas y kilos
-  leídos en `CAP001`, calcula diferencia y rendimiento y desglosa los kilos por
-  especie y variedad. Todavía no ejecuta `GrabaCuadratura` ni crea el movimiento
-  automático en `FCOMERCIAL`.
+- La primera etapa operativa de `CuadraProc` permite cuadrar órdenes cerradas
+  (estado 4) desde el mismo diálogo. Compara `ORDPROC` con las lecturas de
+  `CAP001`, permite ingresar fruta comercial por especie y variedad, recalcula
+  desecho y diferencias en vivo y exige confirmación antes del cierre. El
+  caso sin lecturas muestra una advertencia reforzada y requiere confirmación
+  explícita. El backend vuelve a leer y bloquear la orden y sus lecturas dentro de una
+  transacción serializable, actualiza los totales y el estado 5 en `ORDPROC` e
+  inserta las líneas automáticas `1/50` en `FCOMERCIAL`. Las órdenes ya
+  cuadradas se muestran solo en consulta. Desde esa consulta se pueden exportar
+  PDF y Excel. La reapertura exige un motivo de 10 a 200 caracteres, registra
+  los totales anteriores en `ORDPROC_CUADRATURA_AUDIT`, elimina exclusivamente
+  los movimientos comerciales automáticos `1/50` y devuelve la orden al estado
+  4. Esos movimientos también quedan protegidos contra edición o anulación en
+  el módulo Fruta Comercial.
+- `database/20261026_cuadratura_auditoria_2016.sql` crea de forma idempotente la
+  bitácora de cierres y reaperturas y su índice por orden. Debe ejecutarse antes
+  de desplegar esta versión en una base que todavía no la tenga.
+- El 2026-10-26 se verificaron cierre y reapertura reales sobre SQL Server local
+  usando la orden `2017-2018 / 169` dentro de transacciones forzadas a rollback;
+  ambas rutas completaron y la orden permaneció en estado 4 sin cambios.
 - Se recuperó la codificación del XPZ para el ADM: 5 corresponde a `Cuadrada`
   y 8 a `Anulada`. Las tarjetas y etiquetas del listado usan esos estados.
+- Las órdenes finalizadas y cuadradas ofrecen una acción independiente
+  `Informe de proceso`. El PDF reproduce `InfProceso01` del XPZ: identificación
+  de empresa, proceso, productor, ubicación, horarios y lotes; detalle de
+  `CAP001` agrupado por envase, categoría y calibre; y resumen de ingreso,
+  exportación, comercial, desecho y rendimiento. No reemplaza el comprobante
+  de alta ni el reporte operativo de cuadratura.
 
 ## Regla de saldo
 

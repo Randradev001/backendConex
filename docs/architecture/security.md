@@ -35,7 +35,8 @@ La autorizacion sigue la jerarquia original de CONEX:
 - `ASIGSIST` asigna empresas y sistemas al usuario.
 - `ASIG` asigna modulos.
 - `ASIGPROG` asigna programas.
-- `ASIGPROG1` es el segundo nivel y asigna acciones (`ProgOPCod`).
+- `ASIGPROG1` conserva el segundo nivel historico de acciones (`ProgOPCod`). La
+  autorizacion moderna de CONEX se concede por programa completo en `ASIGPROG`.
 - `UROLES` y `URolesPorUser` contienen los roles vigentes; `ADMINFULL` autoriza
   la administracion de Seguridad.
 - `NIVSEG` y `USUARIOS.UsuNseg` se conservan desde la base GX8 original.
@@ -52,7 +53,9 @@ Si el usuario tiene una sola empresa, el login la selecciona automaticamente. Si
 
 - `VeriUsu`: validacion de usuario y clave; migrado al servicio de autenticacion.
 - `CamClave`: cambio de clave; migrado a `PUT /backendDocker/seguridad/password` con hash moderno.
-- `VA2`: comprueba empresa, usuario, sistema, modulo, programa y accion; debe convertirse en middleware backend al proteger cada modulo.
+- `VA2`: se conserva como antecedente GX8. El middleware moderno comprueba
+  empresa, usuario, sistema, modulo y programa; una vez autorizado el programa,
+  sus operaciones quedan habilitadas sin exigir `ASIGPROG1`.
 - `TraeNSeg`: lee `UsuNseg`; se conserva en la sesion como dato compatible, no como concesion automatica de permisos.
 - `Encripta`: usa `Encrypt64` y no tiene referencias detectadas; no se usa para nuevas claves.
 - `VeriLicencia`: modifica parametros generales y debe estudiarse con el modulo de licenciamiento, no con el login.
@@ -81,7 +84,7 @@ El frontend puede cambiar la direccion del backend con `VITE_API_URL`. En produc
 
 ## Administracion del modulo
 
-Los CRUD de Seguridad se publican bajo `/backendDocker/seguridad/catalogos`. Para evitar que cualquier usuario autenticado pueda cambiar permisos, requieren el rol `ADMINFULL`, un usuario incluido en `SECURITY_ADMIN_LOGINS` o, por compatibilidad, un nivel igual o superior a `SECURITY_ADMIN_MIN_LEVEL`. Este control protege la administracion; no reemplaza `VA2`.
+Los CRUD de Seguridad se publican bajo `/backendDocker/seguridad/catalogos`. Para evitar que cualquier usuario autenticado pueda cambiar permisos, requieren el rol `ADMINFULL` o un usuario incluido en `SECURITY_ADMIN_LOGINS`. El nivel `UsuNseg` solo autoriza por compatibilidad cuando `SECURITY_ADMIN_MIN_LEVEL` se configura expresamente; no existe un umbral implicito. Este control protege la administracion y el backend informa el resultado al frontend mediante `user.securityAdmin`.
 
 Las asignaciones directas por usuario se administran desde un editor jerarquico
 en `/seguridad/asignaciones`. La lista inicial muestra todos los sistemas y los
@@ -115,8 +118,9 @@ La exportacion `APERPSeguridad.xpz` confirma un segundo nivel de administracion:
 - Los programas del rol se guardan en `ASIGPROG` con `GECODEMP=0` y el codigo
   de rol como usuario plantilla. `ASIG` se deriva automaticamente para conservar
   la jerarquia de modulos.
-- `ASIGPROG1` se conserva para compatibilidad GX8, pero los niveles crear,
-  modificar y eliminar no forman parte de los roles en esta etapa.
+- `ASIGPROG1` se conserva para compatibilidad GX8. Guardar una plantilla de rol
+  retiene las acciones historicas de los programas que siguen seleccionados,
+  aunque la autorizacion moderna no dependa de ellas.
 - El backend une dinamicamente los permisos directos del usuario con sus
   plantillas de rol; no copia ni elimina permisos historicos GX8.
 
@@ -155,11 +159,19 @@ permanecen fuera del menu hasta completar su migracion.
 El endpoint `GET /backendDocker/seguridad/menu` permite consultar el mismo arbol
 que se incluye en las respuestas de login y sesion.
 
+El frontend protege también la navegación directa: una ruta operacional debe
+corresponder a un programa presente en ese árbol. Las rutas hijas de edición o
+detalle declaran el programa padre que las autoriza. Las pantallas de Seguridad
+requieren adicionalmente `user.securityAdmin`.
+
 Despues de una mutacion de asignaciones o roles, la administracion React vuelve
 a consultar `GET /backendDocker/seguridad/session`. Esto evita conservar en el
 cliente un menu anterior cuando cambia el acceso del usuario autenticado.
 
-`POST /backendDocker/seguridad/verificar-acceso` implementa la consulta equivalente a `VA2` sobre los permisos cargados en la sesion. El middleware `requirePermission` queda disponible para proteger cada futura ruta de negocio con `SistCod`, `Modcod`, `ProgCod` y, cuando corresponda, `ProgOPCod`.
+`POST /backendDocker/seguridad/verificar-acceso` consulta los permisos cargados
+en la sesion. El middleware `requirePermission` protege cada ruta de negocio con
+`SistCod`, `Modcod` y `ProgCod`; un `ProgOPCod` recibido se trata como metadato
+compatible y no restringe al usuario que ya posee el programa.
 
 Las pantallas migradas mantienen esta correspondencia:
 

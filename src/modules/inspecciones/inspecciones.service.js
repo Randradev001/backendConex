@@ -1,8 +1,6 @@
 const { getPool, sql } = require("../../conectorMysql/conectorSqlServer");
 const { nextCorrelative } = require("../../services/gxCorrelatives.service");
-const {
-  renderSolicitudPdf,
-} = require("./inspecciones.pdf");
+const { renderSolicitudPdf } = require("./inspecciones.pdf");
 
 const permission = { sistema: 100, modulo: 20, programa: 1 };
 
@@ -68,10 +66,14 @@ const listFilters = (query = {}, now = new Date()) => {
   const hasFrom = Object.prototype.hasOwnProperty.call(query, "from");
   const hasTo = Object.prototype.hasOwnProperty.call(query, "to");
   const from = hasFrom
-    ? (trim(query.from) ? isoDate(query.from, "Fecha desde") : null)
+    ? trim(query.from)
+      ? isoDate(query.from, "Fecha desde")
+      : null
     : isoDate(defaults.from, "Fecha desde");
   const to = hasTo
-    ? (trim(query.to) ? isoDate(query.to, "Fecha hasta") : null)
+    ? trim(query.to)
+      ? isoDate(query.to, "Fecha hasta")
+      : null
     : isoDate(defaults.to, "Fecha hasta");
   if (from && to && from > to)
     throw new InspeccionesError(
@@ -333,11 +335,15 @@ const listInspecciones = async (
       rejected: Number(summary.rejected || 0),
       annulled: Number(summary.annulled || 0),
     },
-    latestFive: (result.recordsets.length > 3 ? result.recordsets[2] : []).map((row) => ({
-      ...row,
-      statusLabel: statusLabel(row.status),
-    })),
-    tempCod: result.recordsets[result.recordsets.length > 3 ? 3 : 2]?.[0]?.tempCod || null,
+    latestFive: (result.recordsets.length > 3 ? result.recordsets[2] : []).map(
+      (row) => ({
+        ...row,
+        statusLabel: statusLabel(row.status),
+      }),
+    ),
+    tempCod:
+      result.recordsets[result.recordsets.length > 3 ? 3 : 2]?.[0]?.tempCod ||
+      null,
     filters,
   };
 };
@@ -349,6 +355,19 @@ const listAvailableFolios = async (
 ) => {
   const species = integer(query.species, "Especie", { min: 1, max: 9999 });
   const folio = trim(query.folio);
+  const orderNumber = integer(query.orderNumber, "Orden de proceso", {
+    optional: true,
+    min: 1,
+    max: 9999999999,
+  });
+  const from = trim(query.from) ? isoDate(query.from, "Fecha desde") : null;
+  const to = trim(query.to) ? isoDate(query.to, "Fecha hasta") : null;
+  if (from && to && from > to)
+    throw new InspeccionesError(
+      400,
+      "VALIDATION_ERROR",
+      "La fecha desde no puede ser posterior a la fecha hasta.",
+    );
   if (folio && !/^\d{1,10}$/.test(folio))
     throw new InspeccionesError(
       400,
@@ -360,9 +379,13 @@ const listAvailableFolios = async (
     .request()
     .input("EmpCod", sql.SmallInt, empCod)
     .input("Species", sql.SmallInt, species)
-    .input("Folio", sql.VarChar(10), folio).query(`
+    .input("Folio", sql.VarChar(10), folio)
+    .input("OrderNumber", sql.Decimal(10, 0), orderNumber)
+    .input("From", sql.Date, from)
+    .input("To", sql.Date, to).query(`
     DECLARE @TempCod char(9)=(SELECT TOP 1 TempCod FROM TEMP01 WHERE EmpCod=@EmpCod AND TempActiva=1 ORDER BY TempFecAbre DESC,TempCod DESC);
-    SELECT TOP 500 RTRIM(h.FPFolio) folio,COALESCE(tot.totalBoxes,0) totalBoxes,COALESCE(tot.totalKilos,0) totalKilos,
+    SELECT TOP 500 RTRIM(h.FPFolio) folio,h.FPOrdProc orderNumber,CONVERT(char(10),h.FPFechaIng,23) entryDate,
+      COALESCE(tot.totalBoxes,0) totalBoxes,COALESCE(tot.totalKilos,0) totalKilos,
       COALESCE(prod.producerName,'') producerName,COALESCE(det.details,0) details
     FROM FOLIOSPROC h
     OUTER APPLY (
@@ -376,6 +399,10 @@ const listAvailableFolios = async (
     ) prod
     OUTER APPLY (SELECT COUNT(*) details FROM FOLIOSPROC1 d WHERE d.EmpCod=h.EmpCod AND d.TempCod=h.TempCod AND d.FPFolio=h.FPFolio) det
     WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod AND h.FPEspe=@Species AND h.FPEstado=10 AND h.FPDisponible=1
+      AND COALESCE(det.details,0)>0 AND COALESCE(tot.totalBoxes,0)>0
+      AND (@OrderNumber IS NULL OR h.FPOrdProc=@OrderNumber)
+      AND (@From IS NULL OR h.FPFechaIng>=@From)
+      AND (@To IS NULL OR h.FPFechaIng<DATEADD(day,1,@To))
       AND NOT EXISTS (
         SELECT 1
         FROM SOLICITUDES2 associated
@@ -384,7 +411,7 @@ const listAvailableFolios = async (
           AND associated.Sol2Folio=h.FPFolio
       )
       AND (@Folio='' OR RTRIM(h.FPFolio) LIKE '%' + @Folio + '%')
-    ORDER BY h.FPFolio;
+    ORDER BY h.FPFechaIng DESC,h.FPFolio DESC;
   `);
   return { rows: result.recordset || [] };
 };
@@ -491,11 +518,11 @@ const getSolicitudPdfData = async (
   solNumValue,
   { poolProvider = getPool } = {},
 ) => {
-  const detail = await getSolicitudDetalle(empCod, solNumValue, { poolProvider });
+  const detail = await getSolicitudDetalle(empCod, solNumValue, {
+    poolProvider,
+  });
   const pool = await poolProvider();
-  const config = await pool
-    .request()
-    .input("EmpCod", sql.SmallInt, empCod)
+  const config = await pool.request().input("EmpCod", sql.SmallInt, empCod)
     .query(`
     SELECT TOP 1 RTRIM(EmpNom) companyName,RTRIM(Empreg) companyRegion,RTRIM(EmpGiro) companyBusiness,
       RTRIM(Empdir) companyAddress,EmpRut companyRut,RTRIM(EmpDV) companyDv
@@ -520,8 +547,12 @@ const generateSolicitudPdf = async (
   { poolProvider = getPool, pdfRenderer = renderSolicitudPdf } = {},
 ) => {
   const data = await getSolicitudPdfData(empCod, solNumValue, { poolProvider });
-  const requestNumber = trim(data.header?.SolnumI || data.header?.requestNumber || data.header?.SolNum);
-  const printableNumber = /^\d+$/.test(requestNumber) ? requestNumber.padStart(10, "0") : requestNumber || "solicitud";
+  const requestNumber = trim(
+    data.header?.SolnumI || data.header?.requestNumber || data.header?.SolNum,
+  );
+  const printableNumber = /^\d+$/.test(requestNumber)
+    ? requestNumber.padStart(10, "0")
+    : requestNumber || "solicitud";
   return {
     filename: `Solicitud_${printableNumber}.pdf`,
     content: await pdfRenderer(data),
@@ -712,9 +743,9 @@ const createSolicitud = async (
             FROM FOLIOSPROC1 d WITH (UPDLOCK,HOLDLOCK) WHERE d.EmpCod=h.EmpCod AND d.TempCod=h.TempCod AND d.FPFolio=h.FPFolio
           ) tot
           OUTER APPLY (
-            SELECT SUM(CASE WHEN COALESCE(e.EnvPesoSag,e.EnvPeso,0) BETWEEN 0.1 AND 5 THEN d.FP2Cajas ELSE 0 END) boxesA,
-              SUM(CASE WHEN COALESCE(e.EnvPesoSag,e.EnvPeso,0) BETWEEN 5.1 AND 10 THEN d.FP2Cajas ELSE 0 END) boxesB,
-              SUM(CASE WHEN COALESCE(e.EnvPesoSag,e.EnvPeso,0)>=10.1 THEN d.FP2Cajas ELSE 0 END) boxesC
+            SELECT SUM(CASE WHEN COALESCE(e.EnvPeso,0) BETWEEN 0.1 AND 5 THEN d.FP2Cajas ELSE 0 END) boxesA,
+              SUM(CASE WHEN COALESCE(e.EnvPeso,0) BETWEEN 5.1 AND 10 THEN d.FP2Cajas ELSE 0 END) boxesB,
+              SUM(CASE WHEN COALESCE(e.EnvPeso,0)>=10.1 THEN d.FP2Cajas ELSE 0 END) boxesC
             FROM FOLIOSPROC1 d WITH (UPDLOCK,HOLDLOCK) JOIN ENVCAT e ON e.EmpCod=d.EmpCod AND e.EnvCod=d.EnvCod
             WHERE d.EmpCod=h.EmpCod AND d.TempCod=h.TempCod AND d.FPFolio=h.FPFolio
           ) ranges
@@ -916,7 +947,9 @@ const updateSolicitud = async (
         WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND SolNum=@SolNum;
       `);
     const header = headerResult.recordsets?.[0]?.[0];
-    const folioCount = Number(headerResult.recordsets?.[1]?.[0]?.folioCount || 0);
+    const folioCount = Number(
+      headerResult.recordsets?.[1]?.[0]?.folioCount || 0,
+    );
     if (!header)
       throw new InspeccionesError(
         404,

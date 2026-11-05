@@ -8,6 +8,16 @@ La implementación operativa conserva una sola pantalla en APERP y aplica el tem
 
 El script `database/20261013_guias_bridge_y_precarga.sql` agrega `integracion.GuiaAcceso` y vistas de precarga para Packing List y despacho comercial. APERP usa `ge.ConexEmpresaMap`, `ge.GuiaBridgeSesion` y `ge.GuiaOrigen`, creadas por su migración `20261013_guias_conex_bridge.sql`. La homologación de empresas se configura por instalación después de validar la entidad legal; las migraciones no inventan equivalencias.
 
+Desde el 2026-11-04 la misma infraestructura de tickets distingue su destino con
+`GuiaAcceso.Destino`. La opción directa `Ingreso Facturas` de la navegación de
+Conex emite un ticket `FACTURACION`, válido por dos minutos y de un solo uso.
+APERP homologa la empresa, exige el mismo login activo y el permiso `15/10/5`,
+crea su propia cookie HTTP-only y redirige a `/facturacion/ingreso-documentos`.
+El navegador nunca recibe ni transmite la contraseña del usuario.
+La ruta intermedia `/integraciones/aperp/ingreso-facturas` está declarada como
+acceso autenticado sin programa Conex propio: la autorización funcional se
+realiza en APERP contra `15/10/5` antes de crear su sesión.
+
 El formulario consulta hasta 100 orígenes por tipo y temporada. Al elegir un Packing List recupera cabecera, datos de exportación/transporte y líneas de `DESORIGEN2`; al elegir despacho comercial recupera `DESCLI_FP/DESCLI_FP1`. El guardado vuelve a consultar el documento desde servidor, persiste la guía en APERP con `SistemaOrigen=CONEX` y registra la clave completa de origen. Un índice único impide crear dos guías centrales para el mismo documento Conex. El listado Conex conserva las guías históricas y agrega los borradores centrales autorizados.
 
 Validación local: empresa Conex 1 homologada solamente en el ambiente de prueba con APERP 100. Se canjeó un ticket, se precargó el despacho comercial disponible 283 de temporada 2013-2014, se guardó y leyó el borrador con una línea y trazabilidad completa, y después se eliminó el registro de prueba. También se comprobó un Packing List disponible de 54 líneas. Los documentos que ya tienen guía relacionada se excluyen del selector y se rechazan en el guardado. Producción requiere su propia homologación revisada.
@@ -23,6 +33,33 @@ La base APERP sigue siendo dueña de **nuevas** guías y borradores. Este primer
 Verificación local: 1.522 registros para la empresa Conex 1, cero para la empresa 2, y respuesta 401 del endpoint sin sesión. Se compiló el frontend Conex y el APERP compartido.
 
 En desarrollo, el cliente Axios conserva el host usado para abrir Conex (`localhost` o `127.0.0.1`) al llamar al backend local. Esto evita que la cookie de sesión se envíe a un host distinto del de la pantalla. La URL de producción `VITE_API_URL` no cambia.
+
+### Configuración de producción APERP
+
+`VITE_APERP_GUIDES_URL` se incorpora durante el build del frontend Conex. En
+producción debe apuntar a la URL pública que realmente sirve el frontend APERP,
+por ejemplo `https://www.aperp.cl/nuevo/integrado/guias/conex-listado`. El valor
+relativo `/nuevo/integrado/guias/conex-listado` solo funciona si el proxy del
+host Conex publica APERP bajo ese mismo prefijo. Después de cambiarlo se debe
+recompilar el frontend; modificar el `.env` junto a un build ya generado no lo
+actualiza.
+
+El backend APERP debe definir `CONEX_DATABASE=CONEX` (o el nombre productivo
+real) y su usuario SQL necesita `SELECT` y `UPDATE` sobre
+`CONEX.integracion.GuiaAcceso`, además de lectura sobre las vistas de
+`CONEX.integracion` utilizadas para la precarga. Esta implementación usa una
+consulta de tres partes (`[base].esquema.objeto`), por lo que ambas bases deben
+ser visibles desde la misma conexión SQL; si están en servidores distintos se
+requiere un servicio de canje o una conexión separada, no basta cambiar el
+nombre de la base.
+
+En `BDAPERP` deben existir `ge.ConexEmpresaMap`, `ge.GuiaBridgeSesion` y
+`ge.GuiaOrigen`, y cada empresa productiva requiere una equivalencia activa,
+por ejemplo `INSERT ge.ConexEmpresaMap (ConexEmpCod,GECODEMP,Activo) VALUES
+(1,100,1)` únicamente después de validar que ambas claves representan la misma
+entidad legal. Si se usa un dominio APERP distinto, el servidor web debe
+permitir `https://www.conexco.cl` en `Content-Security-Policy: frame-ancestors`;
+la API APERP permanece bajo el mismo origen del iframe.
 
 Estado al 7 de octubre de 2026: vistas de **solo lectura** creadas y verificadas en la base local `CONEX`. No hay emisión, permisos externos ni escritura desde APERP hacia Conex.
 
@@ -78,3 +115,17 @@ node scripts/run-sql-file.js database/20261007_guias_origen_vistas.sql CONEX
 ```
 
 El script valida base y tablas, crea o actualiza vistas y muestra sus conteos. Se ejecutó en la copia local sin modificar filas de negocio. La revisión de consultas desde APERP fue de solo lectura. No marcar `GuiasD`, `GuiasE` ni `PImp_GuiaXML` como migrados por este avance.
+
+## Modalidad e aislamiento — 29-10-2026
+
+`60/15` en `PARAMGE1.PAR1Valor1` determina modalidad: 1 XML Psoto, 2 API.
+CONEX lee el parámetro de la empresa autenticada al emitir el ticket y guarda
+`ModoEmision` en `integracion.GuiaAcceso`; APERP lo copia a la sesión puente.
+El navegador no decide proveedor ni empresa. Sin parámetro válido se rechaza
+el acceso de emisión. El SQL `20261029_guias_modalidad_60_15.sql` agrega la
+columna y crea el parámetro para empresa 1 local con valor 2 sin sobrescribir
+valores existentes. Aplicado localmente; producción requiere revisar empresa.
+APERP filtra listado y operaciones por empresa homologada, sistema y empresa
+CONEX de origen. El frontend APERP deja de enviar el bearer CONEX fuera de sus
+rutas integradas. Las dos pruebas `test/guiasModalidad.test.js` pasan; no se
+realizó emisión real. La generación XML Psoto se implementa únicamente en APERP.

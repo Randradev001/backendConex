@@ -86,6 +86,8 @@ const activeSeason = async (request, empCod) => {
   return tempCod;
 };
 
+const isQuadratureMovement = (row) => Number(row.tmCod) === 1 && Number(row.tmsCod) === 50;
+
 const mapRow = (row) => ({
   ...row,
   id: `${row.fcoProceso}|${row.fcoNumI}`,
@@ -96,7 +98,8 @@ const mapRow = (row) => ({
   speciesCode: row.speciesCode === null ? null : Number(row.speciesCode),
   kilos: row.kilos === null ? null : Number(row.kilos),
   fcoOrigen: row.fcoOrigen === null ? null : Number(row.fcoOrigen),
-  canEdit: Number(row.fcoOrigen) === 0
+  source: isQuadratureMovement(row) ? 'quadrature' : Number(row.fcoOrigen) === 0 ? 'manual' : Number(row.fcoOrigen) === 1 ? 'dispatch' : 'historical',
+  canEdit: Number(row.fcoOrigen) === 0 && !isQuadratureMovement(row)
 });
 
 const baseSelect = `
@@ -243,6 +246,7 @@ const createFrutaComercial = async (empCod, login, payload) => {
 };
 
 const assertEditable = (row) => {
+  if (isQuadratureMovement(row)) throw new FrutaComercialError(409, 'QUADRATURE_ROW_READ_ONLY', 'Los movimientos generados por cuadratura solo pueden revertirse desde la orden de proceso.');
   if (row.fcoOrigen !== 0) throw new FrutaComercialError(409, 'LEGACY_ROW_READ_ONLY', 'Los registros históricos o provenientes de despachos no se pueden modificar ni anular.');
 };
 
@@ -263,7 +267,8 @@ const updateFrutaComercial = async (empCod, process, entryNumber, payload) => {
     .input('Species', sql.SmallInt, values.species)
     .input('Observation', sql.Char(50), values.observation || null)
     .query(`UPDATE FCOMERCIAL SET FCOFecha=@Date,TMcod=@Movement,TMSCod=@SubMovement,FCOKilos=@Kilos,Especod=@Species,FCOOBS=@Observation
-      WHERE EmpCod=@EmpCod AND FCOProceso=@Process AND FCONumI=@EntryNumber AND FCOOrigen=0;`);
+      WHERE EmpCod=@EmpCod AND FCOProceso=@Process AND FCONumI=@EntryNumber AND FCOOrigen=0
+        AND NOT (TMcod=1 AND TMSCod=50);`);
   return getFrutaComercial(empCod, current.fcoProceso, current.fcoNumI);
 };
 
@@ -275,7 +280,7 @@ const annulFrutaComercial = async (empCod, process, entryNumber) => {
     .input('EmpCod', sql.SmallInt, empCod)
     .input('Process', sql.Decimal(10, 0), current.fcoProceso)
     .input('EntryNumber', sql.Decimal(10, 0), current.fcoNumI)
-    .query('DELETE FROM FCOMERCIAL WHERE EmpCod=@EmpCod AND FCOProceso=@Process AND FCONumI=@EntryNumber AND FCOOrigen=0; SELECT @@ROWCOUNT affected;');
+    .query('DELETE FROM FCOMERCIAL WHERE EmpCod=@EmpCod AND FCOProceso=@Process AND FCONumI=@EntryNumber AND FCOOrigen=0 AND NOT (TMcod=1 AND TMSCod=50); SELECT @@ROWCOUNT affected;');
   if (!Number(result.recordset[0]?.affected || 0)) throw new FrutaComercialError(409, 'NOT_FOUND', 'El registro ya no está disponible para anulación.');
   return { ok: true, fcoProceso: current.fcoProceso, fcoNumI: current.fcoNumI };
 };
@@ -291,5 +296,7 @@ module.exports = {
   createFrutaComercial,
   updateFrutaComercial,
   annulFrutaComercial,
-  normalizePayload
+  normalizePayload,
+  isQuadratureMovement,
+  assertEditable
 };

@@ -38,6 +38,10 @@ const normalizeRows = (rows, fields, label) => {
 
 const moduleKey = ({ SistCod, Modcod }) => `${SistCod}|${Modcod}`;
 const programKey = ({ SistCod, Modcod, ProgCod }) => `${SistCod}|${Modcod}|${ProgCod}`;
+const retainedRoleActions = (actions, programs) => {
+  const selected = new Set(programs.map(programKey));
+  return actions.filter((action) => selected.has(programKey(action)));
+};
 
 const assertRoleExists = async (requestFactory, role) => {
   const result = await requestFactory().input('role', sql.VarChar(10), role)
@@ -169,7 +173,11 @@ const saveRolePermissions = async (roleValue, payload, context) => {
       throw new SecurityError(400, 'INVALID_PROGRAM', 'El rol contiene un programa que no existe.');
     }
 
-    // ASIGPROG1 queda fuera del rol mientras no se migren los niveles de accion.
+    // El editor trabaja a nivel de programa. Conserva las acciones historicas
+    // de los programas que permanecen en la plantilla para no perder datos GX8.
+    const existingActions = await transaction.request().input('role', sql.VarChar(10), role)
+      .query('SELECT SistCod, Modcod, ProgCod, ProgOPCod FROM ASIGPROG1 WHERE GECODEMP=0 AND RTRIM(UsuLogin)=@role');
+    const actionsToKeep = retainedRoleActions(existingActions.recordset, [...programMap.values()]);
     await transaction.request().input('role', sql.VarChar(10), role).query(`
       DELETE FROM ASIGPROG1 WHERE GECODEMP=0 AND RTRIM(UsuLogin)=@role;
       DELETE FROM ASIGPROG WHERE GECODEMP=0 AND RTRIM(UsuLogin)=@role;
@@ -185,6 +193,12 @@ const saveRolePermissions = async (roleValue, payload, context) => {
       await transaction.request().input('role', sql.VarChar(10), role).input('actor', sql.VarChar(10), context.login)
         .input('system', sql.Int, program.SistCod).input('module', sql.Int, program.Modcod).input('program', sql.Int, program.ProgCod)
         .query('INSERT INTO ASIGPROG (GECODEMP,UsuLogin,SistCod,Modcod,ProgCod,ProgUsuC) VALUES (0,@role,@system,@module,@program,@actor)');
+    }
+    for (const action of actionsToKeep) {
+      await transaction.request().input('role', sql.VarChar(10), role)
+        .input('system', sql.Int, action.SistCod).input('module', sql.Int, action.Modcod)
+        .input('program', sql.Int, action.ProgCod).input('action', sql.Int, action.ProgOPCod)
+        .query('INSERT INTO ASIGPROG1 (GECODEMP,UsuLogin,SistCod,Modcod,ProgCod,ProgOPCod) VALUES (0,@role,@system,@module,@program,@action)');
     }
 
     const users = await transaction.request().input('role', sql.VarChar(10), role)
@@ -244,5 +258,6 @@ module.exports = {
   getUserRoles,
   getRolePermissions,
   saveRolePermissions,
-  reapplyRolePermissions
+  reapplyRolePermissions,
+  retainedRoleActions
 };

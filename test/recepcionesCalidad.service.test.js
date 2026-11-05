@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalize, CalidadError } = require('../src/services/recepcionesCalidad.service');
+const { normalize, list, review, CalidadError } = require('../src/services/recepcionesCalidad.service');
 const {
   defaultRange,
   buildQualityClassification,
@@ -32,6 +32,15 @@ test('rechaza horas fuera del rango SQL time',()=>{
 
 test('rechaza controles sin muestra valida',()=>{
   assert.throws(()=>normalize({...payload,sampleSize:0}),CalidadError);
+});
+
+test('la revision exige una decision valida y comentario',async()=>{
+  await assert.rejects(()=>review(1,'tester',10,{decision:'X',comment:'ok'}),/Debe indicar si aprueba o rechaza/);
+  await assert.rejects(()=>review(1,'tester',10,{decision:'R',comment:'   '}),/Debe ingresar un comentario/);
+});
+
+test('el listado rechaza un rango de fechas invertido',async()=>{
+  await assert.rejects(()=>list(1,{from:'2026-10-20',to:'2026-10-01'}),/fecha desde no puede superar/);
 });
 
 test('relaciona las cantidades de color con el calibre',()=>{

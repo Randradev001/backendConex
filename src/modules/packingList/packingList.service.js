@@ -75,13 +75,13 @@ const sources = async (empCod, requestedType) => {
   const request = base(pool.request(), empCod, tempCod).input('PackTipo', sql.SmallInt, packTipo);
   const query = packTipo === 4 ? `
     SELECT TOP 100 h.DesOTNumI sourceNumber,CONVERT(char(10),h.DesOTFecha,23) sourceDate,
-      h.DesOTTotCaj boxes,h.DesOTTotKil kilos,h.CliCod clientId,RTRIM(c.CliNom) clientName,
+      h.DesOTTotCaj boxes,h.DesOTTotFol pallets,h.DesOTTotKil kilos,h.CliCod clientId,RTRIM(c.CliNom) clientName,
       (SELECT COUNT(*) FROM PACKLIST p WHERE p.EmpCod=h.EmpCod AND p.TempCod=h.TempCod AND p.PackTipo=4 AND p.PackNumG=h.DesOTNumI) existingCount
     FROM DESCLI_FP h LEFT JOIN CLIENTES c ON c.EmpCod=h.EmpCod AND c.CliCod=h.CliCod
     WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod AND h.DesOTTipo=3 AND h.DesOTNumI>0
     ORDER BY h.DesOTNumI DESC` : `
     SELECT TOP 100 h.DORNumf sourceNumber,CONVERT(char(10),h.DorFecha,23) sourceDate,
-      h.DorTotCajas boxes,h.DorTotKilos kilos,CAST(NULL AS int) clientId,CAST(NULL AS varchar(100)) clientName,
+      h.DorTotCajas boxes,h.DorTotFol pallets,h.DorTotKilos kilos,CAST(NULL AS int) clientId,CAST(NULL AS varchar(100)) clientName,
       (SELECT COUNT(*) FROM PACKLIST p WHERE p.EmpCod=h.EmpCod AND p.TempCod=h.TempCod AND p.PackTipo=h.DorTipPlani AND p.PackNumG=h.DORNumf) existingCount
     FROM DESORIGEN h WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod
       AND h.DorTipPlani=@PackTipo AND h.DORNumf>0 AND h.DorEstado=1
@@ -138,13 +138,13 @@ const create = async (empCod, login, input = {}) => {
     const tempCod = await activeSeason(new sql.Request(transaction), empCod);
     const sourceQuery = packTipo === 4
       ? `SELECT h.DesOTNumI sourceNumber,h.DesOTFecha packingDate,h.DesOTTotCaj boxes,h.DesOTTotKil kilos,
-           CAST(0 AS int) pallets,CAST(0 AS decimal(18,2)) guide,h.CliCod sourceClient,
+           h.DesOTTotFol pallets,CAST(0 AS decimal(18,2)) guide,h.CliCod sourceClient,
            CAST(NULL AS int) originPort,CAST(NULL AS int) destinationPort,CAST(NULL AS int) dispatcher,
            CAST(NULL AS int) exporter,CAST(NULL AS int) consignee,CAST(NULL AS int) destination,CAST(NULL AS int) agent,
            CAST(NULL AS varchar(30)) patent,CAST(NULL AS varchar(30)) vessel,CAST(NULL AS varchar(20)) container
          FROM DESCLI_FP h WITH (UPDLOCK,HOLDLOCK) WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod AND h.DesOTTipo=3 AND h.DesOTNumI=@SourceNumber`
       : `SELECT h.DORNumf sourceNumber,h.DorFecha packingDate,h.DorTotCajas boxes,h.DorTotKilos kilos,
-           CAST(0 AS int) pallets,h.DorNguia guide,CAST(NULL AS int) sourceClient,
+           h.DorTotFol pallets,h.DorNguia guide,CAST(NULL AS int) sourceClient,
            h.DorPuertoE originPort,h.DorPuertoD destinationPort,h.DACod dispatcher,
            h.ExpCod exporter,h.ConsCod consignee,h.DestCod destination,h.AgeCod agent,
            h.DorPatente patent,h.DorNave vessel,h.DorContenedor container

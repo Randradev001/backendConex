@@ -7,11 +7,28 @@ async function issueAperpAccess(empCod, login) {
   const token = crypto.randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
   const pool = await getPool();
+  const parameter = await pool.request().input('emp', sql.Int, empCod).query(
+    'SELECT PAR1Valor1 FROM dbo.PARAMGE1 WHERE EmpCod=@emp AND PARCod=60 AND PAR1Cod=15');
+  const emissionMode = Number(parameter.recordset[0]?.PAR1Valor1);
+  if (![1, 2].includes(emissionMode)) throw Object.assign(new Error('Configure parámetro 60/15: 1 XML, 2 API'), { status: 409 });
+  await pool.request().input('mode', sql.SmallInt, emissionMode).input('hash', sql.Char(64), tokenHash(token))
+    .input('emp', sql.Int, empCod).input('login', sql.VarChar(40), String(login).trim())
+    .input('expires', sql.DateTime2, expiresAt)
+    .query(`DELETE FROM integracion.GuiaAcceso WHERE ExpiraEn<DATEADD(minute,-10,SYSUTCDATETIME());
+      INSERT INTO integracion.GuiaAcceso (TokenHash,EmpCod,UsuLogin,ExpiraEn,ModoEmision) VALUES (@hash,@emp,@login,@expires,@mode)`);
+  return { ticket: token, expiresAt };
+}
+
+async function issueAperpInvoiceAccess(empCod, login) {
+  const token = crypto.randomBytes(32).toString('base64url');
+  const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
+  const pool = await getPool();
   await pool.request().input('hash', sql.Char(64), tokenHash(token))
     .input('emp', sql.Int, empCod).input('login', sql.VarChar(40), String(login).trim())
     .input('expires', sql.DateTime2, expiresAt)
     .query(`DELETE FROM integracion.GuiaAcceso WHERE ExpiraEn<DATEADD(minute,-10,SYSUTCDATETIME());
-      INSERT INTO integracion.GuiaAcceso (TokenHash,EmpCod,UsuLogin,ExpiraEn) VALUES (@hash,@emp,@login,@expires)`);
+      INSERT INTO integracion.GuiaAcceso (TokenHash,EmpCod,UsuLogin,ExpiraEn,ModoEmision,Destino)
+      VALUES (@hash,@emp,@login,@expires,NULL,'FACTURACION')`);
   return { ticket: token, expiresAt };
 }
 
@@ -43,4 +60,4 @@ async function listLegacyGuides(empCod) {
   return result.recordset;
 }
 
-module.exports = { listLegacyGuides, issueAperpAccess };
+module.exports = { listLegacyGuides, issueAperpAccess, issueAperpInvoiceAccess };
