@@ -242,7 +242,8 @@ const getQuadrature = async (empCod, tempCod, ordpnumInput, { poolProvider = get
       FROM ORDPROC o
       LEFT JOIN ESPECIES e ON e.EmpCod=o.EmpCod AND e.Especod=o.Especod
       LEFT JOIN ESPECIES1 v ON v.EmpCod=o.EmpCod AND v.Especod=o.Especod AND v.VarCod=o.VarCod
-      LEFT JOIN PRODUCTORES p ON p.EmpCod=o.EmpCod AND p.ProdCod=o.ProdCod
+      LEFT JOIN PRODUCTORES p ON p.EmpCod=o.EmpCod
+        AND p.ProdCod COLLATE DATABASE_DEFAULT=o.ProdCod COLLATE DATABASE_DEFAULT
       WHERE o.EmpCod=@EmpCod AND o.TempCod=@TempCod AND o.Ordpnum=@Ordpnum;
 
       SELECT c.Especod speciesCode,RTRIM(e.EspeNom) speciesName,c.VarCod varietyCode,RTRIM(v.VarNom) varietyName,
