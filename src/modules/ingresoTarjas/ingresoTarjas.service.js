@@ -1104,7 +1104,14 @@ const listTarjas = async (
       AND (@From IS NULL OR h.FPFechaIng>=@From) AND (@To IS NULL OR h.FPFechaIng<DATEADD(day,1,@To))
       AND (@Species=0 OR h.FPEspe=@Species) AND (@Status=-1 OR h.FPEstado=@Status)
       AND (@Folio='' OR RTRIM(h.FPFolio) COLLATE DATABASE_DEFAULT LIKE '%' + @Folio + '%')
-      AND (@Search='' OR CONCAT(RTRIM(h.FPFolio),' ',COALESCE(CONVERT(varchar(20),h.FPOrdProc),''),' ',COALESCE(RTRIM(e.EspeNom),''),' ',COALESCE(RTRIM(x.ExpNom),''),' ',COALESCE(CONVERT(varchar(20),h.ExpCod),''),' ',COALESCE(CONVERT(varchar(20),h.FPIns),'')) COLLATE DATABASE_DEFAULT LIKE '%' + @Search + '%')
+      AND (@Search='' OR CONCAT(
+        RTRIM(h.FPFolio) COLLATE DATABASE_DEFAULT,
+        ' ',COALESCE(CONVERT(varchar(20),h.FPOrdProc),''),
+        ' ',COALESCE(RTRIM(e.EspeNom) COLLATE DATABASE_DEFAULT,''),
+        ' ',COALESCE(RTRIM(x.ExpNom) COLLATE DATABASE_DEFAULT,''),
+        ' ',COALESCE(CONVERT(varchar(20),h.ExpCod),''),
+        ' ',COALESCE(CONVERT(varchar(20),h.FPIns),'')
+      ) LIKE '%' + @Search + '%')
     ORDER BY h.FPFechaIng DESC,h.FPFolio DESC OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
     SELECT COUNT_BIG(*) total,COALESCE(SUM(CONVERT(bigint,tot.totalBoxes)),0) totalBoxes,
       COALESCE(SUM(CONVERT(decimal(19,2),tot.totalKilos)),0) totalKilos,
@@ -1120,7 +1127,14 @@ const listTarjas = async (
       AND (@From IS NULL OR h.FPFechaIng>=@From) AND (@To IS NULL OR h.FPFechaIng<DATEADD(day,1,@To))
       AND (@Species=0 OR h.FPEspe=@Species) AND (@Status=-1 OR h.FPEstado=@Status)
       AND (@Folio='' OR RTRIM(h.FPFolio) COLLATE DATABASE_DEFAULT LIKE '%' + @Folio + '%')
-      AND (@Search='' OR CONCAT(RTRIM(h.FPFolio),' ',COALESCE(CONVERT(varchar(20),h.FPOrdProc),''),' ',COALESCE(RTRIM(e.EspeNom),''),' ',COALESCE(RTRIM(x.ExpNom),''),' ',COALESCE(CONVERT(varchar(20),h.ExpCod),''),' ',COALESCE(CONVERT(varchar(20),h.FPIns),'')) COLLATE DATABASE_DEFAULT LIKE '%' + @Search + '%');
+      AND (@Search='' OR CONCAT(
+        RTRIM(h.FPFolio) COLLATE DATABASE_DEFAULT,
+        ' ',COALESCE(CONVERT(varchar(20),h.FPOrdProc),''),
+        ' ',COALESCE(RTRIM(e.EspeNom) COLLATE DATABASE_DEFAULT,''),
+        ' ',COALESCE(RTRIM(x.ExpNom) COLLATE DATABASE_DEFAULT,''),
+        ' ',COALESCE(CONVERT(varchar(20),h.ExpCod),''),
+        ' ',COALESCE(CONVERT(varchar(20),h.FPIns),'')
+      ) LIKE '%' + @Search + '%');
     SELECT RTRIM(@TempCod) tempCod;
   `);
   const totals = result.recordsets[1]?.[0] || {};
