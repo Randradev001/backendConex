@@ -192,7 +192,7 @@ test("consulta el folio con coincidencia parcial", async () => {
     { poolProvider: async () => ({ request: () => request }) },
   );
   assert.equal(request.values.Folio, "73");
-  assert.match(statement, /RTRIM\(h\.FPFolio\) LIKE '%' \+ @Folio \+ '%'/);
+  assert.match(statement, /RTRIM\(h\.FPFolio\) COLLATE DATABASE_DEFAULT LIKE '%' \+ @Folio \+ '%'/);
 });
 
 test("guarda cabecera y detalle usando temporada activa y kilos calculados", async () => {

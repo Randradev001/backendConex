@@ -413,7 +413,8 @@ const getFormData = async (empCod, { poolProvider = getPool } = {}) => {
     LEFT JOIN EXPORT1 x ON x.EmpCod=o.EmpCod AND x.ExpCod=o.ExpCod
     LEFT JOIN ESPECIES e ON e.EmpCod=o.EmpCod AND e.Especod=o.Especod
     LEFT JOIN ESPECIES1 v ON v.EmpCod=o.EmpCod AND v.Especod=o.Especod AND v.VarCod=o.VarCod
-    LEFT JOIN PRODUCTORES p ON p.EmpCod=o.EmpCod AND p.ProdCod=o.ProdCod
+    LEFT JOIN PRODUCTORES p ON p.EmpCod=o.EmpCod
+      AND p.ProdCod COLLATE DATABASE_DEFAULT=o.ProdCod COLLATE DATABASE_DEFAULT
     WHERE o.EmpCod=@EmpCod
       AND o.TempCod=(SELECT TOP 1 TempCod FROM TEMP01 WHERE EmpCod=@EmpCod AND TempActiva=1 ORDER BY TempFecAbre DESC,TempCod DESC)
     ORDER BY o.Ordpnum DESC;
@@ -426,22 +427,34 @@ const getFormData = async (empCod, { poolProvider = getPool } = {}) => {
       RTRIM(COALESCE(NULLIF(o.ProdCod,''),source.MovProd,'')) producerCode,
       RTRIM(p.ProdNom) producerName,RTRIM(e.EspeNom) speciesName,RTRIM(v.VarNom) varietyName
     FROM ORDPROC1 d
-    JOIN ORDPROC o ON o.EmpCod=d.EmpCod AND o.TempCod=d.TempCod AND o.Ordpnum=d.Ordpnum
+    JOIN ORDPROC o ON o.EmpCod=d.EmpCod
+      AND o.TempCod COLLATE DATABASE_DEFAULT=d.TempCod COLLATE DATABASE_DEFAULT
+      AND o.Ordpnum=d.Ordpnum
     OUTER APPLY (
       SELECT TOP 1 h.MovFecha,m.Mov1Espe,m.Mov1Var,h.MovProd
       FROM MOVFRUT1 m
-      JOIN MOVFRUT h ON h.EmpCod=m.EmpCod AND h.TempCod=m.TempCod AND h.OriCod=m.OriCod
-        AND h.MovTDoc=m.MovTDoc AND h.MovNGuia=m.MovNGuia AND h.MovProd=m.MovProd
-      WHERE m.EmpCod=d.EmpCod AND m.TempCod=d.TempCod AND m.Mov1Nlote=d.Ordp1Nlote
+      JOIN MOVFRUT h ON h.EmpCod=m.EmpCod
+        AND h.TempCod COLLATE DATABASE_DEFAULT=m.TempCod COLLATE DATABASE_DEFAULT
+        AND h.OriCod=m.OriCod AND h.MovTDoc=m.MovTDoc AND h.MovNGuia=m.MovNGuia
+        AND h.MovProd COLLATE DATABASE_DEFAULT=m.MovProd COLLATE DATABASE_DEFAULT
+      WHERE m.EmpCod=d.EmpCod
+        AND m.TempCod COLLATE DATABASE_DEFAULT=d.TempCod COLLATE DATABASE_DEFAULT
+        AND m.Mov1Nlote=d.Ordp1Nlote
       ORDER BY CASE WHEN h.TMcod=1 THEN 0 ELSE 1 END,h.MovFecha DESC
     ) source
     OUTER APPLY (
       SELECT SUM(fd.FP2Cajas) usedBoxes
       FROM FOLIOSPROC1 fd
-      JOIN FOLIOSPROC fh ON fh.EmpCod=fd.EmpCod AND fh.TempCod=fd.TempCod AND fh.FPFolio=fd.FPFolio
-      WHERE fd.EmpCod=d.EmpCod AND fd.TempCod=d.TempCod AND fh.FPOrdProc=d.Ordpnum AND fd.FP2NProc=d.Ordp1Nlote
+      JOIN FOLIOSPROC fh ON fh.EmpCod=fd.EmpCod
+        AND fh.TempCod COLLATE DATABASE_DEFAULT=fd.TempCod COLLATE DATABASE_DEFAULT
+        AND fh.FPFolio COLLATE DATABASE_DEFAULT=fd.FPFolio COLLATE DATABASE_DEFAULT
+      WHERE fd.EmpCod=d.EmpCod
+        AND fd.TempCod COLLATE DATABASE_DEFAULT=d.TempCod COLLATE DATABASE_DEFAULT
+        AND fh.FPOrdProc=d.Ordpnum
+        AND fd.FP2NProc=d.Ordp1Nlote
     ) used
-    LEFT JOIN PRODUCTORES p ON p.EmpCod=d.EmpCod AND p.ProdCod=COALESCE(NULLIF(o.ProdCod,''),source.MovProd)
+    LEFT JOIN PRODUCTORES p ON p.EmpCod=d.EmpCod
+      AND p.ProdCod COLLATE DATABASE_DEFAULT=COALESCE(NULLIF(o.ProdCod COLLATE DATABASE_DEFAULT,''),source.MovProd COLLATE DATABASE_DEFAULT)
     LEFT JOIN ESPECIES e ON e.EmpCod=d.EmpCod AND e.Especod=COALESCE(NULLIF(o.Especod,0),source.Mov1Espe)
     LEFT JOIN ESPECIES1 v ON v.EmpCod=d.EmpCod AND v.Especod=COALESCE(NULLIF(o.Especod,0),source.Mov1Espe)
       AND v.VarCod=COALESCE(NULLIF(o.VarCod,0),source.Mov1Var)
@@ -1090,8 +1103,8 @@ const listTarjas = async (
     WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod
       AND (@From IS NULL OR h.FPFechaIng>=@From) AND (@To IS NULL OR h.FPFechaIng<DATEADD(day,1,@To))
       AND (@Species=0 OR h.FPEspe=@Species) AND (@Status=-1 OR h.FPEstado=@Status)
-      AND (@Folio='' OR RTRIM(h.FPFolio) LIKE '%' + @Folio + '%')
-      AND (@Search='' OR CONCAT(RTRIM(h.FPFolio),' ',COALESCE(CONVERT(varchar(20),h.FPOrdProc),''),' ',COALESCE(RTRIM(e.EspeNom),''),' ',COALESCE(RTRIM(x.ExpNom),''),' ',COALESCE(CONVERT(varchar(20),h.ExpCod),''),' ',COALESCE(CONVERT(varchar(20),h.FPIns),'')) LIKE '%' + @Search + '%')
+      AND (@Folio='' OR RTRIM(h.FPFolio) COLLATE DATABASE_DEFAULT LIKE '%' + @Folio + '%')
+      AND (@Search='' OR CONCAT(RTRIM(h.FPFolio),' ',COALESCE(CONVERT(varchar(20),h.FPOrdProc),''),' ',COALESCE(RTRIM(e.EspeNom),''),' ',COALESCE(RTRIM(x.ExpNom),''),' ',COALESCE(CONVERT(varchar(20),h.ExpCod),''),' ',COALESCE(CONVERT(varchar(20),h.FPIns),'')) COLLATE DATABASE_DEFAULT LIKE '%' + @Search + '%')
     ORDER BY h.FPFechaIng DESC,h.FPFolio DESC OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
     SELECT COUNT_BIG(*) total,COALESCE(SUM(CONVERT(bigint,tot.totalBoxes)),0) totalBoxes,
       COALESCE(SUM(CONVERT(decimal(19,2),tot.totalKilos)),0) totalKilos,
@@ -1106,8 +1119,8 @@ const listTarjas = async (
     WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod
       AND (@From IS NULL OR h.FPFechaIng>=@From) AND (@To IS NULL OR h.FPFechaIng<DATEADD(day,1,@To))
       AND (@Species=0 OR h.FPEspe=@Species) AND (@Status=-1 OR h.FPEstado=@Status)
-      AND (@Folio='' OR RTRIM(h.FPFolio) LIKE '%' + @Folio + '%')
-      AND (@Search='' OR CONCAT(RTRIM(h.FPFolio),' ',COALESCE(CONVERT(varchar(20),h.FPOrdProc),''),' ',COALESCE(RTRIM(e.EspeNom),''),' ',COALESCE(RTRIM(x.ExpNom),''),' ',COALESCE(CONVERT(varchar(20),h.ExpCod),''),' ',COALESCE(CONVERT(varchar(20),h.FPIns),'')) LIKE '%' + @Search + '%');
+      AND (@Folio='' OR RTRIM(h.FPFolio) COLLATE DATABASE_DEFAULT LIKE '%' + @Folio + '%')
+      AND (@Search='' OR CONCAT(RTRIM(h.FPFolio),' ',COALESCE(CONVERT(varchar(20),h.FPOrdProc),''),' ',COALESCE(RTRIM(e.EspeNom),''),' ',COALESCE(RTRIM(x.ExpNom),''),' ',COALESCE(CONVERT(varchar(20),h.ExpCod),''),' ',COALESCE(CONVERT(varchar(20),h.FPIns),'')) COLLATE DATABASE_DEFAULT LIKE '%' + @Search + '%');
     SELECT RTRIM(@TempCod) tempCod;
   `);
   const totals = result.recordsets[1]?.[0] || {};
