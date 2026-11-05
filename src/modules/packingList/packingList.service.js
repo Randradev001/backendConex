@@ -109,7 +109,9 @@ const getDetail = async (empCod, packNumI) => {
     LEFT JOIN DESTINOS d ON d.DestCod=p.DestCod
     LEFT JOIN AGENTES a ON a.EmpCod=p.EmpCod AND a.AgeCod=p.AgeCod
     LEFT JOIN DESPAAUTO da ON da.EmpCod=p.EmpCod AND da.DACod=p.DACod
-    LEFT JOIN integracion.PackingGuiaDatos x ON x.EmpCod=p.EmpCod AND x.TempCod=p.TempCod AND x.PackNumI=p.PackNumI
+    LEFT JOIN integracion.PackingGuiaDatos x ON x.EmpCod=p.EmpCod
+      AND x.TempCod COLLATE DATABASE_DEFAULT=p.TempCod COLLATE DATABASE_DEFAULT
+      AND x.PackNumI=p.PackNumI
     WHERE p.EmpCod=@EmpCod AND p.TempCod=@TempCod AND p.PackNumI=@PackNumI`);
   const row = header.recordset[0];
   if (!row) fail('No se encontró el packing list en la temporada activa.', 404, 'NOT_FOUND');
