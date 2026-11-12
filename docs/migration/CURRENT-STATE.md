@@ -1,5 +1,9 @@
 # Estado vigente de la migracion CONEX
 
+## Sucursal y punto de emisión en guías — 2026-11-12
+
+El formulario de guía central abierto desde CONEX exige Sucursal y Punto de emisión de la empresa APERP homologada. APERP valida la relación activa en servidor y deriva el número local Púlsar; la precarga inicial conserva su automatismo y el borrador debe completarse antes de actualizarse o emitirse.
+
 ## Dashboard operacional (2026-11-04)
 
 La opción `Dashboard` de Navigation abre la nueva ruta

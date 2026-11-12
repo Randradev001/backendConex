@@ -4,6 +4,10 @@
 
 ## Precarga y guardado central habilitados
 
+### Sucursal y punto de emisión — 12-11-2026
+
+El formulario central abierto desde CONEX muestra Sucursal y Punto de emisión como primeros campos. Ambos catálogos se consultan en APERP usando la empresa homologada de la sesión puente; el navegador no informa ni sustituye la empresa. Los puntos activos se filtran por sucursal desde `ge.PuntoEmisionSucursal` y aportan el `NumeroLocal` y `PuntoEmision` del JSON Púlsar. La precarga automática puede crear el borrador inicial antes de completar estos datos, pero toda actualización posterior y el preflight DTE 52 los exigen.
+
 La implementación operativa conserva una sola pantalla en APERP y aplica el tema verde cuando se abre desde Conex. El backend Conex crea un ticket aleatorio de un solo uso, con hash y vencimiento de dos minutos, después de comprobar la sesión y el permiso `70/6/3` o `100/2/20`. APERP consume el ticket en una transacción y entrega una sesión de 30 minutos limitada a las rutas de Guías. Esa sesión fija usuario, empresa Conex, empresa APERP homologada y origen `CONEX`; los parámetros del navegador no pueden sustituir esos valores.
 
 El script `database/20261013_guias_bridge_y_precarga.sql` agrega `integracion.GuiaAcceso` y vistas de precarga para Packing List y despacho comercial. APERP usa `ge.ConexEmpresaMap`, `ge.GuiaBridgeSesion` y `ge.GuiaOrigen`, creadas por su migración `20261013_guias_conex_bridge.sql`. La homologación de empresas se configura por instalación después de validar la entidad legal; las migraciones no inventan equivalencias.
