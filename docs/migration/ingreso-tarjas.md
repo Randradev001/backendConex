@@ -122,7 +122,8 @@ detalle propio para no reducir falsamente el saldo disponible.
 La cabecera muestra la Central o empresa autenticada en modo solo lectura,
 fecha, temporada, folio, estado (por descripción, sin exponer su código),
 exportadora, especie y el bloque Configuración del pallet con envase, base de
-pallet, destino y tipo de altura. Destino usa el catálogo global `DESTINOS`.
+pallet y tipo de altura. `DestCod` permanece en la persistencia para leer
+registros históricos, pero Destino se oculta y no se solicita en el formulario.
 Las columnas históricas de número de caja, etiqueta y servicio se conservan en
 la persistencia por compatibilidad, pero no se capturan en esta pantalla. La
 orden no se expone como campo: se obtiene del lote cuando existe asociación y
@@ -142,7 +143,7 @@ y el campo queda marcado con error. Tras guardar correctamente,
 el formulario se limpia para el siguiente ingreso.
 
 En modo nuevo, el recorrido de Tab es: Folio, Fecha, Estado, Envase, Base de
-pallet, Destino, Tipo de altura, Exportadora, Especie, Agregar detalle y, por
+pallet, Tipo de altura, Exportadora, Especie, Agregar detalle y, por
 cada fila, Lote, Productor, Variedad, Categoría, Calibre, Cantidad y Fecha de
 movimiento. Desde Fecha de movimiento el foco llega a Agregar detalle y luego
 a Guardar tarja; desde Guardar tarja vuelve a Folio. Al crear una fila, el foco

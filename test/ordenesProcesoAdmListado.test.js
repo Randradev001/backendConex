@@ -25,6 +25,8 @@ test('listado conserva más de 500 resultados y usa empresa de sesión', async (
   assert.equal(result.body.count, 501);
   assert.equal(inputs.EmpCod, 1);
   assert.doesNotMatch(query, /SELECT TOP \(@Limit\)/i);
+  assert.match(query, /OUTER APPLY \(SELECT COUNT_BIG\(\*\) TotalCajas/);
+  assert.match(query, /CapTotalCajas/);
 });
 test('fechas abiertas, filtros combinados y estado cero', async () => {
   for (const [From, To] of [['', '2026-10-21'], ['2026-09-21', ''], ['', '']]) {

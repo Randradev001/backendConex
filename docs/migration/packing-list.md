@@ -43,7 +43,9 @@ físico permanece en `PACKLIST` con clave `EmpCod + TempCod + PackNumI`.
 ## Pendientes operativos
 
 Después de generar se abre la edición del packing para completar cliente,
-zarpe, conductor, RUT, patente y observación.
+zarpe, conductor, RUT, patente y observación. Los RUT de conductor y
+transportista aplican máscara chilena mientras se digitan y al cargar datos
+existentes (`12.345.678-5`).
 Los campos avanzados de GX8 ya se presentan en modo lectura; su edición sigue
 limitada a cliente, zarpe, conductor, RUT, patente y observación. Faltan la
 impresión/Excel del packing y la homologación editable de puertos y catálogos.

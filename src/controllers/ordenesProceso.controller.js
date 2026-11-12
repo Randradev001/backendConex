@@ -17,6 +17,11 @@ const formatTime = (value) => {
   const match = raw.match(/(?:T|\s)(\d{2}:\d{2})/) || raw.match(/^(\d{2}:\d{2})/);
   return match?.[1] || raw.slice(0, 5) || '-';
 };
+const formatDateTime = (value, fallbackDate) => {
+  if (!value) return '-';
+  const date = formatDate(value);
+  return `${date === '-' ? formatDate(fallbackDate) : date} ${formatTime(value)}`;
+};
 
 const pdf = run(async (req, res) => {
   const data = await service.getOrder(context(req).empCod, req.params.tempCod, req.params.ordpnum);
@@ -136,11 +141,13 @@ const quadraturePdf = run(async (req, res) => {
     { label: 'Cajas', width: tableWidths[2], value: (row) => formatNumber(row.readContainers, 0) },
     { label: 'Kilos', width: tableWidths[3], value: (row) => formatNumber(row.readKilos) }
   ]);
-  drawTable('Fruta comercial registrada', data.commercial, [
-    { label: 'Especie', width: tableWidths[0], value: (row) => row.speciesName || row.speciesCode },
-    { label: 'Variedad', width: tableWidths[1], value: (row) => row.varietyName || row.varietyCode || '-' },
-    { label: 'Envases', width: tableWidths[2], value: (row) => formatNumber(row.containers, 0) },
-    { label: 'Kilos', width: tableWidths[3], value: (row) => formatNumber(row.kilos) }
+  const classificationWidths = [90, 120, 120, 75, width - 405];
+  drawTable('Clasificación de la diferencia', data.classifications || data.commercial, [
+    { label: 'Clasificación', width: classificationWidths[0], value: (row) => row.classification === 'waste' ? 'Desecho' : 'Comercial' },
+    { label: 'Especie', width: classificationWidths[1], value: (row) => row.speciesName || row.speciesCode },
+    { label: 'Variedad', width: classificationWidths[2], value: (row) => row.varietyName || row.varietyCode || '-' },
+    { label: 'Envases', width: classificationWidths[3], value: (row) => formatNumber(row.containers, 0) },
+    { label: 'Kilos', width: classificationWidths[4], value: (row) => formatNumber(row.kilos) }
   ]);
   doc.font('Helvetica').fontSize(8).fillColor(muted).text(`Estado: ${data.order.state === 5 ? 'Cuadrada' : 'Pendiente'} · Productor: ${clean(data.order.producerName) || clean(data.order.producerCode) || '-'}`, left, doc.page.height - 42, { width });
   doc.end();
@@ -150,6 +157,16 @@ const writeProcessReportPdf = (doc, data) => {
   const { order, lots, detail, company, yieldPercentage } = data;
   const green = '#176B3A'; const pale = '#EAF5EE'; const ink = '#172033'; const muted = '#607080';
   const left = doc.page.margins.left; const width = doc.page.width - left - doc.page.margins.right;
+  const totalBoxes = detail.reduce((total, row) => total + Number(row.Cajas || 0), 0);
+  const categorySummary = Array.from(detail.reduce((summary, row) => {
+    const code = clean(row.Catcod);
+    const name = clean(row.CatNom) || code || '-';
+    const key = `${code}:${name}`;
+    const current = summary.get(key) || { category: name, boxes: 0 };
+    current.boxes += Number(row.Cajas || 0);
+    summary.set(key, current);
+    return summary;
+  }, new Map()).values());
   let y = 38;
   const ensureSpace = (height, repeatHeader) => {
     if (y + height <= doc.page.height - 48) return;
@@ -174,11 +191,11 @@ const writeProcessReportPdf = (doc, data) => {
   doc.roundedRect(left, y, width, 112, 5).fill(pale);
   const col = width / 3;
   field('Fecha del proceso', formatDate(order.OrdpFecha), left + 14, y + 13, col - 20);
-  field('Inicio', formatTime(order.OrdpHHIniP), left + col + 7, y + 13, col - 20);
-  field('Fin', formatTime(order.OrdpHHFinP), left + col * 2 + 7, y + 13, col - 20);
+  field('Inicio', formatDateTime(order.OrdpHHIniP, order.OrdpFecha), left + col + 7, y + 13, col - 20);
+  field('Fin', formatDateTime(order.OrdpHHFinP, order.OrdpFecha), left + col * 2 + 7, y + 13, col - 20);
   field('Especie', order.EspeNom, left + 14, y + 45, col - 20);
   field('Variedad', order.VarNom, left + col + 7, y + 45, col - 20);
-  field('Productor', order.ProdNom, left + col * 2 + 7, y + 45, col - 20);
+  field('Productor', `${clean(order.ProdCod)} - ${clean(order.ProdNom)}`, left + col * 2 + 7, y + 45, col - 20);
   field('Provincia', order.ProdProvincia, left + 14, y + 77, col - 20);
   field('Comuna', order.ProdComuna, left + col + 7, y + 77, col - 20);
   field('Temporada', order.TempCod, left + col * 2 + 7, y + 77, col - 20);
@@ -190,11 +207,12 @@ const writeProcessReportPdf = (doc, data) => {
 
   doc.font('Helvetica-Bold').fontSize(11).fillColor(green).text('Detalle de cajas capturadas', left, y); y += 18;
   const columns = [
-    { label: 'Envase', width: 175, value: (row) => clean(row.EnvNom) || clean(row.EnvCod) },
-    { label: 'Categoría', width: 145, value: (row) => clean(row.CatNom) || clean(row.Catcod) },
-    { label: 'Calibre', width: 80, value: (row) => clean(row.Calibre) || '-' },
-    { label: 'Cajas', width: 65, value: (row) => formatNumber(row.Cajas, 0), align: 'right' },
-    { label: 'Kilos', width: width - 465, value: (row) => formatNumber(row.Kilos), align: 'right' }
+    { label: 'Envase', width: 135, value: (row) => clean(row.EnvNom) || clean(row.EnvCod) },
+    { label: 'Categoría', width: 115, value: (row) => clean(row.CatNom) || clean(row.Catcod) },
+    { label: 'Calibre', width: 70, value: (row) => clean(row.Calibre) || '-' },
+    { label: 'Cajas', width: 55, value: (row) => formatNumber(row.Cajas, 0), align: 'right' },
+    { label: '% Cajas', width: 70, value: (row) => `${formatNumber(totalBoxes > 0 ? (Number(row.Cajas || 0) / totalBoxes) * 100 : 0)}%`, align: 'right' },
+    { label: 'Kilos', width: width - 445, value: (row) => formatNumber(row.Kilos), align: 'right' }
   ];
   const drawHeader = () => {
     let x = left;
@@ -220,26 +238,58 @@ const writeProcessReportPdf = (doc, data) => {
       });
       y += 24;
     });
+    doc.rect(left, y, width, 25).fill(pale);
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(ink)
+      .text(formatNumber(totalBoxes, 0), left + 320, y + 8, { width: 55, align: 'right' })
+      .text(formatNumber(detail.reduce((total, row) => total + Number(row.Kilos || 0), 0)), left + 445, y + 8, { width: width - 445, align: 'right' });
+    y += 25;
   }
   y += 18;
   ensureSpace(128);
   doc.font('Helvetica-Bold').fontSize(11).fillColor(green).text('Resumen del proceso', left, y); y += 18;
+  const wasteKilos = Number(order.OrdpDesecho || 0);
+  const shrinkageKilos = Number(order.OrdpTotKilos || 0) - Number(order.OrdpKilosExp || 0) - Number(order.OrdpKilosCom || 0) - wasteKilos;
   const summary = [
     ['Ingresados', `${formatNumber(order.OrdpTotKilos)} kg`],
     ['Exportación', `${formatNumber(order.OrdpKilosExp)} kg`],
     ['Comercial', `${formatNumber(order.OrdpKilosCom)} kg`],
-    ['Desecho / diferencia', `${formatNumber(order.OrdpDesecho)} kg`],
-    ['Rendimiento', `${formatNumber(yieldPercentage, 3)}%`]
+    ['Desecho', `${formatNumber(wasteKilos)} kg`],
+    ['Merma', `${formatNumber(shrinkageKilos)} kg`],
+    ['% Rendimiento', `${formatNumber(yieldPercentage, 3)}%`]
   ];
   const boxWidth = width / summary.length;
   summary.forEach(([label, value], index) => {
     const x = left + index * boxWidth;
-    doc.rect(x, y, boxWidth - 4, 56).fill(index === 4 ? green : pale);
-    doc.font('Helvetica-Bold').fontSize(6.8).fillColor(index === 4 ? '#D8F0E0' : muted).text(label.toUpperCase(), x + 7, y + 9, { width: boxWidth - 18, align: 'center' });
-    doc.font('Helvetica-Bold').fontSize(10.5).fillColor(index === 4 ? '#FFFFFF' : ink).text(value, x + 7, y + 29, { width: boxWidth - 18, align: 'center' });
+    doc.rect(x, y, boxWidth - 4, 56).fill(index === 5 ? green : pale);
+    doc.font('Helvetica-Bold').fontSize(6.8).fillColor(index === 5 ? '#D8F0E0' : muted).text(label.toUpperCase(), x + 7, y + 9, { width: boxWidth - 18, align: 'center' });
+    doc.font('Helvetica-Bold').fontSize(9.5).fillColor(index === 5 ? '#FFFFFF' : ink).text(value, x + 5, y + 29, { width: boxWidth - 14, align: 'center' });
   });
-  y += 66;
-  doc.font('Helvetica').fontSize(8).fillColor(muted).text(`Envases exportados: ${formatNumber(order.OrdpEnvExp, 0)} · Kilos exportados: ${formatNumber(order.OrdpKilosExp)} kg`, left, y, { width, align: 'right' });
+  y += 76;
+
+  ensureSpace(65 + categorySummary.length * 23);
+  doc.font('Helvetica-Bold').fontSize(11).fillColor(green).text('Resumen por categoría', left, y); y += 18;
+  const categoryColumns = [
+    { label: 'Categoría', width: width - 200 },
+    { label: 'Cajas', width: 100 },
+    { label: '% Cajas', width: 100 }
+  ];
+  let categoryX = left;
+  categoryColumns.forEach((column) => {
+    doc.rect(categoryX, y, column.width, 22).fill(green);
+    doc.font('Helvetica-Bold').fontSize(8).fillColor('#FFFFFF').text(column.label, categoryX + 6, y + 7, { width: column.width - 12, align: column.label === 'Categoría' ? 'left' : 'right' });
+    categoryX += column.width;
+  });
+  y += 22;
+  categorySummary.forEach((row, index) => {
+    if (index % 2 === 0) doc.rect(left, y, width, 23).fill('#F4F8F5');
+    doc.font('Helvetica').fontSize(8.5).fillColor(ink).text(row.category, left + 6, y + 7, { width: width - 212 });
+    doc.text(formatNumber(row.boxes, 0), left + width - 200, y + 7, { width: 88, align: 'right' });
+    doc.text(`${formatNumber(totalBoxes > 0 ? (row.boxes / totalBoxes) * 100 : 0)}%`, left + width - 100, y + 7, { width: 88, align: 'right' });
+    y += 23;
+  });
+  doc.rect(left, y, width, 24).fill(pale);
+  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(ink).text('Total cajas', left + 6, y + 7, { width: width - 212, align: 'right' });
+  doc.text(formatNumber(totalBoxes, 0), left + width - 200, y + 7, { width: 88, align: 'right' });
 
   const pages = doc.bufferedPageRange();
   for (let page = 0; page < pages.count; page += 1) {

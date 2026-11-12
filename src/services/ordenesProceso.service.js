@@ -14,12 +14,16 @@ const optionalDate = (value, name) => {
 const roundMoney = (value) => Math.round((Number(value) + Number.EPSILON) * 10000) / 10000;
 
 const normalizeCommercialRows = (rows) => {
-  if (!Array.isArray(rows)) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La fruta comercial debe enviarse como una lista.');
-  if (rows.length > 100) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La cuadratura admite hasta 100 lineas comerciales.');
+  if (!Array.isArray(rows)) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La clasificacion de cuadratura debe enviarse como una lista.');
+  if (rows.length > 100) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La cuadratura admite hasta 100 lineas de clasificacion.');
   const seen = new Set();
   return rows.map((row, index) => {
     const speciesCode = int(row?.speciesCode, `especie comercial ${index + 1}`, 1);
     const varietyCode = int(row?.varietyCode, `variedad comercial ${index + 1}`, 1);
+    const classification = String(row?.classification || 'commercial').trim().toLowerCase();
+    if (!['commercial', 'waste'].includes(classification)) {
+      throw new OrdenesProcesoError(400, 'INVALID_QUADRATURE_CLASSIFICATION', `La clasificacion de la linea ${index + 1} no es valida.`);
+    }
     const containers = int(row?.containers, `envases comerciales ${index + 1}`, 0);
     const kilos = money(row?.kilos, `kilos comerciales ${index + 1}`, 0);
     if (containers > 32767) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', `Los envases comerciales ${index + 1} superan el maximo permitido.`);
@@ -27,12 +31,13 @@ const normalizeCommercialRows = (rows) => {
       throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', `Los kilos comerciales ${index + 1} deben tener hasta dos decimales.`);
     }
     if (containers === 0 && kilos === 0) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', `La linea comercial ${index + 1} no tiene cantidades.`);
-    const key = `${speciesCode}:${varietyCode}`;
-    if (seen.has(key)) throw new OrdenesProcesoError(400, 'DUPLICATE_COMMERCIAL_LINE', 'No repita una misma especie y variedad en la fruta comercial.');
+    const key = `${classification}:${speciesCode}:${varietyCode}`;
+    if (seen.has(key)) throw new OrdenesProcesoError(400, 'DUPLICATE_COMMERCIAL_LINE', 'No repita una misma especie, variedad y clasificacion en la cuadratura.');
     seen.add(key);
     return {
       speciesCode,
       varietyCode,
+      classification,
       containers,
       kilos: roundMoney(kilos),
       observation: String(row?.observation || 'Ingreso por Proceso - Sistema').trim().slice(0, 50)
@@ -292,18 +297,35 @@ const getQuadrature = async (empCod, tempCod, ordpnumInput, { poolProvider = get
   const order = result.recordsets[0]?.[0];
   if (!order) throw new OrdenesProcesoError(404, 'ORDER_NOT_FOUND', 'La orden de proceso no existe.');
   const quadrature = buildQuadrature(order, result.recordsets[1] || []);
+  const commercial = (result.recordsets[2] || []).map((row) => ({
+    lineNumber: Number(row.lineNumber),
+    classification: 'commercial',
+    speciesCode: Number(row.speciesCode),
+    speciesName: String(row.speciesName || '').trim(),
+    varietyCode: Number(row.varietyCode),
+    varietyName: String(row.varietyName || '').trim(),
+    containers: Number(row.containers || 0),
+    kilos: Number(row.kilos || 0),
+    observation: String(row.observation || '').trim()
+  }));
+  const classifications = [...commercial];
+  if (Number(order.OrdpEstado) === 5 && Number(order.OrdpDesecho || 0) > 0) {
+    classifications.push({
+      lineNumber: classifications.length + 1,
+      classification: 'waste',
+      speciesCode: Number(order.Especod),
+      speciesName: String(order.EspeNom || '').trim(),
+      varietyCode: Number(order.VarCod),
+      varietyName: String(order.VarNom || '').trim(),
+      containers: Math.max(0, Number(order.OrdpTotEnv || 0) - Number(order.OrdpEnvExp || 0) - Number(order.OrdpEnvCom || 0)),
+      kilos: Number(order.OrdpDesecho || 0),
+      observation: 'Desecho registrado en cuadratura'
+    });
+  }
   return {
     ...quadrature,
-    commercial: (result.recordsets[2] || []).map((row) => ({
-      lineNumber: Number(row.lineNumber),
-      speciesCode: Number(row.speciesCode),
-      speciesName: String(row.speciesName || '').trim(),
-      varietyCode: Number(row.varietyCode),
-      varietyName: String(row.varietyName || '').trim(),
-      containers: Number(row.containers || 0),
-      kilos: Number(row.kilos || 0),
-      observation: String(row.observation || '').trim()
-    })),
+    commercial,
+    classifications,
     history: (result.recordsets[4] || []).map((row) => ({
       auditId: Number(row.auditId),
       action: String(row.action || '').trim(),
@@ -392,9 +414,13 @@ const finalizeQuadrature = async (
   const temp = String(tempCod || '').trim();
   const ordpnum = int(ordpnumInput, 'orden', 1);
   if (!temp) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La temporada es obligatoria.');
-  const commercial = normalizeCommercialRows(body.commercial || []);
+  const classified = normalizeCommercialRows(body.classifications || body.commercial || []);
+  const commercial = classified.filter((row) => row.classification === 'commercial');
+  const waste = classified.filter((row) => row.classification === 'waste');
   const commercialContainers = commercial.reduce((total, row) => total + row.containers, 0);
   const commercialKilos = roundMoney(commercial.reduce((total, row) => total + row.kilos, 0));
+  const classifiedWasteContainers = waste.reduce((total, row) => total + row.containers, 0);
+  const classifiedWasteKilos = roundMoney(waste.reduce((total, row) => total + row.kilos, 0));
   const pool = await poolProvider();
   const transaction = transactionFactory ? transactionFactory(pool) : new sql.Transaction(pool);
   await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
@@ -439,7 +465,7 @@ const finalizeQuadrature = async (
       throw new OrdenesProcesoError(409, 'READINGS_CONFIRMATION_REQUIRED', 'La orden no tiene cajas leidas. Confirme expresamente si desea cuadrarla sin lecturas.');
     }
 
-    for (const row of commercial) {
+    for (const row of classified) {
       const catalog = await requestFactory(transaction)
         .input('EmpCod', sql.SmallInt, empCod)
         .input('Species', sql.SmallInt, row.speciesCode)
@@ -456,6 +482,13 @@ const finalizeQuadrature = async (
     let wasteKilos = roundMoney(Number(order.OrdpTotKilos || 0) - readKilos - commercialKilos);
     if (wasteKilos < -0.01) throw new OrdenesProcesoError(409, 'QUADRATURE_OVER_READING', 'Los kilos leidos y comerciales superan los kilos procesados.');
     if (wasteKilos < 0) wasteKilos = 0;
+    const wasteContainers = Number(order.OrdpTotEnv || 0) - readContainers - commercialContainers;
+    if (waste.length && wasteContainers !== classifiedWasteContainers) {
+      throw new OrdenesProcesoError(409, 'QUADRATURE_NOT_BALANCED', 'Los envases clasificados como desecho deben completar la diferencia del proceso.');
+    }
+    if (waste.length && Math.abs(wasteKilos - classifiedWasteKilos) > 0.01) {
+      throw new OrdenesProcesoError(409, 'QUADRATURE_NOT_BALANCED', 'Los kilos clasificados como desecho deben completar la diferencia del proceso.');
+    }
 
     await baseRequest()
       .input('ReadContainers', sql.Int, readContainers)
@@ -653,7 +686,7 @@ const setProcessActive = async (
           ORDER BY Ordpnum DESC;
         `);
       if (activeOrder.recordset.length) {
-        throw new OrdenesProcesoError(409, 'ACTIVE_ORDER_EXISTS', `La orden ${activeOrder.recordset[0].Ordpnum} ya esta activa. Debe desactivarla antes de iniciar otra.`);
+        throw new OrdenesProcesoError(409, 'ACTIVE_ORDER_EXISTS', `La orden ${activeOrder.recordset[0].Ordpnum} ya esta activa. Debe terminarla antes de iniciar otra.`);
       }
       await request.query(`
         UPDATE ORDPROC
@@ -664,7 +697,7 @@ const setProcessActive = async (
     } else {
       await request.query(`
         UPDATE ORDPROC
-        SET OrdpEstado=0, OrdpHHFinP=GETDATE()
+        SET OrdpEstado=4, OrdpHHFinP=GETDATE()
         WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum;
       `);
     }
@@ -675,12 +708,12 @@ const setProcessActive = async (
       tempCod: temp,
       ordpnum,
       active,
-      state: active ? 1 : 0,
+      state: active ? 1 : 4,
       message: active
         ? currentState === 4
           ? `Orden ${ordpnum} reactivada para continuar la lectura.`
           : `Orden ${ordpnum} iniciada correctamente.`
-        : `Orden ${ordpnum} desactivada correctamente.`
+        : `Orden ${ordpnum} terminada correctamente.`
     };
   } catch (error) {
     await transaction.rollback();
