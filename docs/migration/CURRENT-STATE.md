@@ -1,5 +1,19 @@
 # Estado vigente de la migracion CONEX
 
+## Guías por pasos y edición de packing — 2026-11-13
+
+El formulario central APERP usa cuatro pasos para BOD/COM y cinco para EXP,
+con fechas nuevas de Chile, carga automática desde packing y revisión explícita
+al reemplazar datos. La captura EXP incorpora los campos del documento de
+ejemplo y distingue cajas, kilos, pallets y bultos. Guarda antecedentes y
+trazabilidad en el complemento JSON y revalida el origen al guardar.
+El packing permite editar participantes, puertos, viaje y sellos/termógrafos;
+cabecera y extensión se actualizan transaccionalmente. No cambia menú,
+autenticación, folios ni stock. Las pruebas aisladas y compilaciones pasan;
+la precarga y el guardado/lectura se comprobaron en SQL local, y la
+edición packing se ensayó con rollback. El envío internacional sigue pendiente
+de homologación. Ver [guías](guias-origen-conex.md) y [packing](packing-list.md).
+
 ## Sucursal y punto de emisión en guías — 2026-11-12
 
 El formulario de guía central abierto desde CONEX exige Sucursal y Punto de emisión de la empresa APERP homologada. APERP valida la relación activa en servidor y deriva el número local Púlsar; la precarga inicial conserva su automatismo y el borrador debe completarse antes de actualizarse o emitirse.

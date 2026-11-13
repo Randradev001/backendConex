@@ -17,7 +17,7 @@ const type = (value) => {
 };
 const date = (value, label) => {
   const text = String(value || '').slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text) || Number.isNaN(Date.parse(`${text}T00:00:00`))) fail(`${label} debe ser una fecha válida.`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text) || Number.isNaN(Date.parse(`${text}T00:00:00Z`)) || new Date(`${text}T00:00:00Z`).toISOString().slice(0, 10) !== text) fail(`${label} debe ser una fecha válida.`);
   return text;
 };
 const optionalDate = (value, label) => value ? date(value, label) : null;
@@ -33,11 +33,18 @@ const key = (request, empCod, tempCod, packNumI) => base(request, empCod, tempCo
 const getFormData = async (empCod) => {
   const pool = await getPool();
   const tempCod = await activeSeason(pool.request(), empCod);
-  const [clients, ports] = await Promise.all([
-    pool.request().input('EmpCod', sql.SmallInt, empCod).query('SELECT CliCod id,RTRIM(CliNom) name FROM CLIENTES WHERE EmpCod=@EmpCod ORDER BY CliNom'),
-    pool.request().query('SELECT PuCod id,RTRIM(PuNombre) name,RTRIM(PUCodHomo) homologation FROM PUERTOS ORDER BY PuNombre')
-  ]);
-  return { tempCod, clients: clients.recordset, ports: ports.recordset };
+  const definitions = {
+    clients: 'SELECT CliCod id,RTRIM(CliNom) name FROM CLIENTES WHERE EmpCod=@EmpCod ORDER BY CliNom',
+    ports: 'SELECT PuCod id,RTRIM(PuNombre) name,PuCodHomo homologation,PuNac [national] FROM PUERTOS ORDER BY PuNombre',
+    exporters: 'SELECT ExpCod id,RTRIM(ExpNom) name FROM EXPORT1 WHERE EmpCod=@EmpCod ORDER BY ExpNom',
+    consignees: 'SELECT ConsCod id,RTRIM(ConsNom) name FROM CONSIG WHERE EmpCod=@EmpCod ORDER BY ConsNom',
+    destinations: 'SELECT DestCod id,RTRIM(DestNom) name,DestCMP homologation FROM DESTINOS ORDER BY DestNom',
+    agents: 'SELECT AgeCod id,RTRIM(AgeNom) name FROM AGENTES WHERE EmpCod=@EmpCod ORDER BY AgeNom',
+    dispatchers: 'SELECT DACod id,RTRIM(DANombre) name FROM DESPAAUTO WHERE EmpCod=@EmpCod ORDER BY DANombre',
+  };
+  const entries = await Promise.all(Object.entries(definitions).map(async ([name, query]) => [name,
+    (await pool.request().input('EmpCod', sql.SmallInt, empCod).query(query)).recordset]));
+  return { tempCod, ...Object.fromEntries(entries) };
 };
 
 const list = async (empCod, filters = {}) => {
@@ -193,51 +200,102 @@ const create = async (empCod, login, input = {}) => {
   }
 };
 
+const packingCatalogFields = [
+  ['exporterId', 'ExpCod', 'EXPORT1', 'Exportadora', true],
+  ['consigneeId', 'ConsCod', 'CONSIG', 'Consignatario', true],
+  ['destinationId', 'DestCod', 'DESTINOS', 'Destino', false],
+  ['agentId', 'AgeCod', 'AGENTES', 'Agente', true],
+  ['dispatcherId', 'DACod', 'DESPAAUTO', 'Despachador autorizado', true],
+  ['originPortId', 'PackPuOr', 'PUERTOS', 'Puerto de embarque', false, 'PuCod'],
+  ['destinationPortId', 'PackPuDe', 'PUERTOS', 'Puerto de destino', false, 'PuCod'],
+];
+const packingTextFields = [
+  ['vessel', 'PackNave', 30], ['containerNumber', 'PAckNContenedor', 20],
+  ['thermograph1', 'PackNTermografo', 20], ['thermograph2', 'Packntermograf2', 20],
+  ['palletNumber1', 'PackNumPalTer1', 10], ['palletNumber2', 'PackNumPalTer2', 10],
+  ['seal1', 'PackNSello1', 10], ['sealIssuer1', 'PackEmisor1', 15],
+  ['seal2', 'PackNSello2', 10], ['sealIssuer2', 'PackEmisor2', 15],
+  ['spsNumber', 'PackSPSN', 10], ['marks', 'PackMarcas', 20], ['countermarks', 'PackContram', 30],
+  ['observation2', 'PackObs2', 50], ['dispatchDescription', 'PackTipoDesp', 20],
+];
+const packingLabels = { vessel: 'Nave', containerNumber: 'Contenedor', thermograph1: 'Termógrafo 1', thermograph2: 'Termógrafo 2',
+  palletNumber1: 'Pallet termógrafo 1', palletNumber2: 'Pallet termógrafo 2', seal1: 'Sello 1', seal2: 'Sello 2',
+  sealIssuer1: 'Emisor sello 1', sealIssuer2: 'Emisor sello 2', spsNumber: 'SPS', marks: 'Marcas', countermarks: 'Contramarcas',
+  observation2: 'Observación 2', dispatchDescription: 'Descripción del despacho' };
 const update = async (empCod, packNumI, input = {}) => {
-  const pool = await getPool();
-  const tempCod = await activeSeason(pool.request(), empCod);
   const id = number(packNumI, 'El packing');
   const clientId = number(input.clientId, 'El cliente');
   const departureDate = date(input.departureDate, 'La fecha de zarpe');
   const departureTime = text(input.departureTime, 8);
   if (departureTime && !/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(departureTime)) fail('La hora de salida no es válida.');
   const arrivalDate = optionalDate(input.arrivalDate, 'La fecha estimada de llegada');
-  const result = await key(pool.request(), empCod, tempCod, id)
-    .input('CliCod', sql.Int, clientId).input('PackFecZar', sql.DateTime, departureDate)
-    .input('PackChofer', sql.Char(30), text(input.driver, 30))
-    .input('PackRutChofer', sql.Char(12), text(input.driverRut, 12))
-    .input('PackPatente', sql.Char(30), text(input.patent, 30))
-    .input('PackHora', sql.Char(8), departureTime)
-    .input('PackEmptrans', sql.Char(15), text(input.transportCompany, 15))
-    .input('PackTipCamion', sql.Char(15), text(input.truckType, 15))
-    .input('PackObs1', sql.Char(50), text(input.observation, 50))
-    .query(`UPDATE p SET CliCod=@CliCod,PackFecZar=@PackFecZar,PackChofer=@PackChofer,
-      PackRutChofer=@PackRutChofer,PackPatente=@PackPatente,PackHora=@PackHora,
-      PackEmptrans=@PackEmptrans,PackTipCamion=@PackTipCamion,PackObs1=@PackObs1
-      FROM PACKLIST p WHERE p.EmpCod=@EmpCod AND p.TempCod=@TempCod AND p.PackNumI=@PackNumI
-      AND ISNULL(p.PackEstado,0)=0
-      AND EXISTS(SELECT 1 FROM CLIENTES c WHERE c.EmpCod=p.EmpCod AND c.CliCod=@CliCod)`);
-  if (!result.rowsAffected[0]) fail('No fue posible editar el packing. Verifique cliente, estado y guía asociada.', 409, 'NOT_EDITABLE');
-  await key(pool.request(), empCod, tempCod, id)
-    .input('TransportistaNombre', sql.NVarChar(150), text(input.transportCompany, 150))
-    .input('TransportistaRut', sql.NVarChar(20), text(input.carrierRut, 20))
-    .input('PatenteCarro', sql.NVarChar(20), text(input.trailerPlate, 20))
-    .input('FechaLlegada', sql.Date, arrivalDate)
-    .input('OrigenDireccion', sql.NVarChar(200), text(input.originAddress, 200))
-    .input('OrigenComuna', sql.NVarChar(100), text(input.originCommune, 100))
-    .input('DestinoDireccion', sql.NVarChar(200), text(input.destinationAddress, 200))
-    .input('DestinoComuna', sql.NVarChar(100), text(input.destinationCommune, 100))
-    .query(`MERGE integracion.PackingGuiaDatos AS target
-      USING (SELECT @EmpCod EmpCod,@TempCod TempCod,@PackNumI PackNumI) AS source
-      ON target.EmpCod=source.EmpCod AND target.TempCod=source.TempCod AND target.PackNumI=source.PackNumI
-      WHEN MATCHED THEN UPDATE SET TransportistaNombre=@TransportistaNombre,TransportistaRut=@TransportistaRut,
-        PatenteCarro=@PatenteCarro,FechaLlegada=@FechaLlegada,OrigenDireccion=@OrigenDireccion,
-        OrigenComuna=@OrigenComuna,DestinoDireccion=@DestinoDireccion,DestinoComuna=@DestinoComuna,ActualizadoEn=SYSUTCDATETIME()
-      WHEN NOT MATCHED THEN INSERT (EmpCod,TempCod,PackNumI,TransportistaNombre,TransportistaRut,PatenteCarro,
-        FechaLlegada,OrigenDireccion,OrigenComuna,DestinoDireccion,DestinoComuna)
-        VALUES (@EmpCod,@TempCod,@PackNumI,@TransportistaNombre,@TransportistaRut,@PatenteCarro,
-        @FechaLlegada,@OrigenDireccion,@OrigenComuna,@DestinoDireccion,@DestinoComuna);`);
-  return { id };
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+  try {
+    const tempCod = await activeSeason(new sql.Request(transaction), empCod);
+    const client = await new sql.Request(transaction).input('EmpCod', sql.SmallInt, empCod).input('id', sql.Int, clientId)
+      .query('SELECT CliCod FROM CLIENTES WHERE EmpCod=@EmpCod AND CliCod=@id');
+    if (!client.recordset.length) fail('El cliente no pertenece a la empresa.');
+    const request = key(new sql.Request(transaction), empCod, tempCod, id);
+    const changes = [];
+    for (const [name, column, table, label, company, catalogKey] of packingCatalogFields) {
+      if (input[name] === undefined) continue;
+      const value = input[name] === '' || input[name] == null || Number(input[name]) === 0 ? 0 : number(input[name], label, 32767);
+      if (value) {
+        const code = catalogKey || column;
+        const result = await new sql.Request(transaction).input('EmpCod', sql.SmallInt, empCod).input('id', sql.Int, value)
+          .query(`SELECT TOP 1 ${code}${table === 'PUERTOS' ? ',PuCodHomo' : table === 'DESTINOS' ? ',DestCMP' : ''} FROM ${table} WHERE ${code}=@id${company ? ' AND EmpCod=@EmpCod' : ''}`);
+        if (!result.recordset.length) fail(`${label} no existe o no pertenece a la empresa.`);
+        if (table === 'PUERTOS' && !Number(result.recordset[0].PuCodHomo)) fail(`${label} no tiene homologación configurada.`);
+        if (table === 'DESTINOS' && !Number(result.recordset[0].DestCMP)) fail('El destino no tiene homologación de país.');
+      }
+      request.input(name, sql.SmallInt, value);
+      changes.push(`${column}=@${name}`);
+    }
+    for (const [name, column, max] of packingTextFields) {
+      if (input[name] === undefined) continue;
+      if (String(input[name] || '').length > max) fail(`${packingLabels[name]} admite hasta ${max} caracteres.`);
+      request.input(name, sql.VarChar(max), text(input[name], max));
+      changes.push(`${column}=@${name}`);
+    }
+    for (const [name, column, min, max, label] of [['dispatchTypeDte', 'packTipDesExp', 0, 3, 'Tipo de despacho'], ['transferIndicatorDte', 'packIndDesExp', 1, 9, 'Motivo de traslado'], ['customsDeclaration', 'PackDus', 0, 9999999999, 'DUS']]) {
+      if (input[name] === undefined) continue;
+      const value = input[name] === '' || input[name] == null ? 0 : Number(input[name]);
+      if (!Number.isSafeInteger(value) || (value !== 0 && value < min) || value > max) fail(`${label} no es válido.`);
+      request.input(name, sql.Decimal(10, 0), value);
+      changes.push(`${column}=@${name}`);
+    }
+    const result = await request
+      .input('CliCod', sql.Int, clientId).input('PackFecZar', sql.DateTime, departureDate)
+      .input('PackChofer', sql.Char(30), text(input.driver, 30)).input('PackRutChofer', sql.Char(12), text(input.driverRut, 12))
+      .input('PackPatente', sql.Char(30), text(input.patent, 30)).input('PackHora', sql.Char(8), departureTime)
+      .input('PackEmptrans', sql.Char(15), text(input.transportCompany, 15)).input('PackTipCamion', sql.Char(30), text(input.truckType, 30))
+      .input('PackObs1', sql.Char(50), text(input.observation, 50))
+      .query(`UPDATE p WITH (UPDLOCK) SET CliCod=@CliCod,PackFecZar=@PackFecZar,PackChofer=@PackChofer,
+        PackRutChofer=@PackRutChofer,PackPatente=@PackPatente,PackHora=@PackHora,PackEmptrans=@PackEmptrans,
+        PackTipCamion=@PackTipCamion,PackObs1=@PackObs1${changes.length ? ',' + changes.join(',') : ''}
+        FROM PACKLIST p WHERE p.EmpCod=@EmpCod AND p.TempCod=@TempCod AND p.PackNumI=@PackNumI AND ISNULL(p.PackEstado,0)=0`);
+    if (!result.rowsAffected[0]) fail('No fue posible editar el packing. Verifique su estado.', 409, 'NOT_EDITABLE');
+    await key(new sql.Request(transaction), empCod, tempCod, id)
+      .input('TransportistaNombre', sql.NVarChar(150), text(input.transportCompany, 150))
+      .input('TransportistaRut', sql.NVarChar(20), text(input.carrierRut, 20)).input('PatenteCarro', sql.NVarChar(20), text(input.trailerPlate, 20))
+      .input('FechaLlegada', sql.Date, arrivalDate).input('OrigenDireccion', sql.NVarChar(200), text(input.originAddress, 200))
+      .input('OrigenComuna', sql.NVarChar(100), text(input.originCommune, 100)).input('DestinoDireccion', sql.NVarChar(200), text(input.destinationAddress, 200))
+      .input('DestinoComuna', sql.NVarChar(100), text(input.destinationCommune, 100))
+      .query(`MERGE integracion.PackingGuiaDatos WITH (HOLDLOCK) AS target
+        USING (SELECT @EmpCod EmpCod,@TempCod TempCod,@PackNumI PackNumI) AS source
+        ON target.EmpCod=source.EmpCod AND target.TempCod=source.TempCod AND target.PackNumI=source.PackNumI
+        WHEN MATCHED THEN UPDATE SET TransportistaNombre=@TransportistaNombre,TransportistaRut=@TransportistaRut,
+          PatenteCarro=@PatenteCarro,FechaLlegada=@FechaLlegada,OrigenDireccion=@OrigenDireccion,
+          OrigenComuna=@OrigenComuna,DestinoDireccion=@DestinoDireccion,DestinoComuna=@DestinoComuna,ActualizadoEn=SYSUTCDATETIME()
+        WHEN NOT MATCHED THEN INSERT (EmpCod,TempCod,PackNumI,TransportistaNombre,TransportistaRut,PatenteCarro,
+          FechaLlegada,OrigenDireccion,OrigenComuna,DestinoDireccion,DestinoComuna)
+          VALUES (@EmpCod,@TempCod,@PackNumI,@TransportistaNombre,@TransportistaRut,@PatenteCarro,
+          @FechaLlegada,@OrigenDireccion,@OrigenComuna,@DestinoDireccion,@DestinoComuna);`);
+    await transaction.commit();
+    return { id };
+  } catch (error) { await transaction.rollback(); throw error; }
 };
 
 module.exports = { permission, PackingListError, getFormData, list, sources, getDetail, create, update };
