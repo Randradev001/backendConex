@@ -64,8 +64,10 @@ mantiene en una línea búsqueda, rango del último mes y tipo. Las fechas se
 muestran `DD/MM/YYYY` y el rango se valida y filtra en backend.
 `Generar guía` muestra la guía derivada para confirmación; al aceptar, el puente
 autenticado carga nuevamente el packing en APERP, guarda un borrador único en
-`ge.Guia`/`ge.GuiaLinea` y abre su edición. La edición avanzada del packing y
-su impresión siguen pendientes.
+`ge.Guia`/`ge.GuiaLinea` y abre su edición. La ficha editable sigue el orden de
+`PackList`, con los combos de despacho del XPZ, validación de RUT y DUS,
+y peso bruto calculado en el alta. La eliminación, la impresión y Excel del
+packing siguen pendientes.
 Detalle y verificación: [packing-list.md](packing-list.md).
 
 Ultima actualizacion documental: 2026-10-21.

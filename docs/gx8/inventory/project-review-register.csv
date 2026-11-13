@@ -567,7 +567,7 @@
 "Transaction","NivSeg","Seguridad","Seguridad","","","","DISCOVERED",""
 "Transaction","OrdProc","Orden_Proceso","Orden_Proceso","","","","DISCOVERED",""
 "Transaction","Origen","Maestros","Maestros","Mantiene origenes de ingreso por empresa","CRUD_REACT_NODE","/maestros-gx/origenes","IMPLEMENTED","Programa GX8 100/1/8; EmpCod proviene de la sesion."
-"Transaction","PackList","Packing_List","Packing_List","Cabecera operativa de packing list","REIMPLEMENT","src/modules/packingList/packingList.service.js","IN_PROGRESS","Alta y edición básica; restan atributos avanzados, impresión y validación operacional."
+"Transaction","PackList","Packing_List","Packing_List","Cabecera operativa de packing list","REIMPLEMENT","src/modules/packingList/packingList.service.js","IN_PROGRESS","Edición ordenada según el XPZ, combos de despacho y validación de RUT y DUS. Alta y actualización verificadas con rollback local."
 "Transaction","Paletiza01","Paletizado","Paletizado","","","","DISCOVERED",""
 "Transaction","paramgen","Maestros","Maestros","Mantiene parametros generales y sus valores","CRUD_REACT_NODE","/maestros-gx/parametros-generales","IMPLEMENTED","Programa GX8 100/1/30; PARAMGE1 conservado como nivel 2."
 "Transaction","PasoSol","Tablas_Paso","Tablas_Paso","","","","DISCOVERED",""

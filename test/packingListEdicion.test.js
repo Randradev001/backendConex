@@ -18,6 +18,7 @@ class Request {
     if (query.includes('FROM CLIENTES')) return { recordset: [{ CliCod: 1 }] };
     if (query.includes('FROM EXPORT1')) return { recordset: validExporter ? [{ ExpCod: 2 }] : [] };
     if (query.includes('FROM PUERTOS')) return { recordset: [{ PuCod: 1, PuCodHomo: 123 }] };
+    if (query.includes('FROM DESTINOS')) return { recordset: [{ DestCod: 1, DestCMP: 0 }] };
     if (query.includes('UPDATE p WITH')) return { rowsAffected: [1] };
     if (query.includes('MERGE integracion.PackingGuiaDatos')) {
       if (failExtension) throw new Error('Extension unavailable');
@@ -70,4 +71,20 @@ test('una falla de extensión revierte también el cambio de la cabecera', async
 test('rechaza fechas inexistentes y códigos de despacho fuera de rango', async () => {
   await assert.rejects(packing.update(1, 458, { ...input, departureDate: '2026-02-30' }), /fecha válida/);
   await assert.rejects(packing.update(1, 458, { ...input, transferIndicatorDte: 10 }), /no es válido/);
+});
+
+test('valida el dígito verificador de ambos RUT y el formato de DUS', async () => {
+  await assert.rejects(packing.update(1, 458, { ...input, driverRut: '12.345.678-9' }), /RUT del chofer/);
+  await assert.rejects(packing.update(1, 458, { ...input, carrierRut: '12.345.678-9' }), /RUT del transportista/);
+  await assert.rejects(packing.update(1, 458, { ...input, customsDeclaration: '1e4' }), /DUS.*10 dígitos/);
+});
+
+test('identifica el campo que debe marcarse en el formulario', async () => {
+  await assert.rejects(packing.update(1, 458, { ...input, destinationId: 1 }), {
+    field: 'destinationId',
+    message: 'El destino no tiene homologación de país.'
+  });
+  await assert.rejects(packing.update(1, 458, { ...input, driverRut: '12.345.678-9' }), {
+    field: 'driverRut'
+  });
 });

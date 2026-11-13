@@ -6,7 +6,8 @@ const service = require('./packingList.service');
 const run = (handler) => async (req, res, next) => {
   try { await handler(req, res); }
   catch (error) {
-    if (error instanceof service.PackingListError) return res.status(error.status).json({ code: error.code, message: error.message });
+    if (error instanceof service.PackingListError)
+      return res.status(error.status).json({ code: error.code, message: error.message, field: error.field });
     next(error);
   }
 };

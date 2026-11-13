@@ -1,5 +1,22 @@
 # Packing List en CONEX
 
+El editor sigue la transacción `PackList` del XPZ. En la columna izquierda
+quedan identificación, embarque, destino y transporte. La derecha reúne carga,
+sellos, observaciones y los combos de despacho. El código de despacho conserva
+su número y muestra las etiquetas del XPZ tanto en el packing como en la guía
+precargada. Los indicadores nuevos que ofrece el editor son 7, 8 y 9. Los
+indicadores 1 a 6 guardados anteriormente se conservan al editar otros datos.
+
+El backend valida ambos RUT informados, el DUS y la fecha de despacho editada.
+Las validaciones de alta y edición identifican el campo en la respuesta. La
+ficha lo resalta y muestra el motivo debajo, incluida la homologación del
+país destino y de cada puerto.
+Al generar se inicializa la hora local. Para tipos 1 a 3 se hereda el tipo de
+camión y se calcula el peso bruto por línea como kilos más peso bruto del
+envase por cajas, según `PTraeKilosB` y `PTraePesoB`. El alta se verificó
+en SQL local con una planilla de 4.176 kg brutos, y el ensayo revirtió el
+packing y el correlativo. La edición se verificó con rollback sobre el 130.
+
 Actualización 13-11-2026: se amplió la edición de la cabecera de exportación.
 Exportadora, consignatario, destino, agente, despachador y puertos usan
 catálogos; se pueden completar nave, contenedor, DUS/SPS, sellos/emisores,
