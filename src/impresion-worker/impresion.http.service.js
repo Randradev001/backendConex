@@ -198,15 +198,8 @@ const createImpresionHttpService = ({
         IF NOT EXISTS (SELECT 1 FROM dbo.LINEAS WHERE EmpCod=@EmpCod AND LinMaquina=@Machine AND LinID=@Line)
           THROW 50043, 'La línea indicada no existe en la empresa autenticada.', 1;
 
-        IF COLUMNPROPERTY(OBJECT_ID(N'dbo.OrdenImpresion'),N'OPLCID','IsIdentity')=1
-          INSERT dbo.OrdenImpresion(OPLCIMP,OPLCFecha,OPLCProc,OPLCFechaIns)
-            OUTPUT INSERTED.OPLCID AS id VALUES(@Line,NULL,0,GETDATE());
-        ELSE BEGIN
-          DECLARE @Next decimal(10,0);
-          SELECT @Next=ISNULL(MAX(OPLCID),0)+1 FROM dbo.OrdenImpresion WITH (UPDLOCK,HOLDLOCK);
-          INSERT dbo.OrdenImpresion(OPLCID,OPLCIMP,OPLCFecha,OPLCProc,OPLCFechaIns)
-            OUTPUT INSERTED.OPLCID AS id VALUES(@Next,@Line,NULL,0,GETDATE());
-        END;
+        INSERT dbo.OrdenImpresion(OPLCIMP,OPLCFecha,OPLCProc,OPLCFechaIns)
+          OUTPUT INSERTED.OPLCID AS id VALUES(@Line,NULL,0,GETDATE());
       `);
       await transaction.commit();
       return { queued: true, id: Number(result.recordset[0].id), machine, line };

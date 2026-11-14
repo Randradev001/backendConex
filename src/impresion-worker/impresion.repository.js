@@ -112,6 +112,7 @@ const createImpresionRepository = ({ poolProvider = getPool, empCod = Number(pro
       .input('Pending', sql.SmallInt, PRINT_STATUS.PENDING)
       .input('Processing', sql.SmallInt, PRINT_STATUS.PROCESSING)
       .query(`
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
         ;WITH siguiente AS (
           SELECT TOP (1) *
           FROM dbo.OrdenImpresionFolio WITH (UPDLOCK, READPAST, ROWLOCK)
