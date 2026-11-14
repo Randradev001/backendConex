@@ -45,8 +45,10 @@ y el formulario de cambio de la caja seleccionada. Generación por rango muestra
 banner bloqueado con la orden y organiza rango, clasificación y origen técnico en
 secciones separadas. Detalle se abre desde la grilla en pantalla completa y mantiene
 la orden bloqueada, sus métricas y la descarga de todas las cajas de la orden.
-El ADM de ordenes de proceso reutiliza esa pantalla completa cuando la orden ya
-no presenta la accion iniciar/desactivar. Las rutas `GET` aceptan el programa de
+El ADM de ordenes de proceso mantiene un icono CAPCAJAS por cada orden para
+mostrar su estado y abrir esa pantalla completa. Iniciar y terminar aparecen
+como una acción adicional en estados 0/1; el término confirma previamente el
+resumen de lecturas y deja la orden en estado 4. Las rutas `GET` aceptan el programa de
 Captura `100/8/1` o el programa del ADM `110/2/2`; altas, cierre, generacion y
 reclasificacion siguen exigiendo exclusivamente `100/8/1`.
 `GenCajas` genera entre 1 y 1.000 cajas en una sola transacción para una orden

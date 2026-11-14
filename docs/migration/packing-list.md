@@ -1,5 +1,30 @@
 # Packing List en CONEX
 
+El editor sigue la transacción `PackList` del XPZ. En la columna izquierda
+quedan identificación, embarque, destino y transporte. La derecha reúne carga,
+sellos, observaciones y los combos de despacho. El código de despacho conserva
+su número y muestra las etiquetas del XPZ tanto en el packing como en la guía
+precargada. Los indicadores nuevos que ofrece el editor son 7, 8 y 9. Los
+indicadores 1 a 6 guardados anteriormente se conservan al editar otros datos.
+
+El backend valida ambos RUT informados, el DUS y la fecha de despacho editada.
+Las validaciones de alta y edición identifican el campo en la respuesta. La
+ficha lo resalta y muestra el motivo debajo, incluida la homologación del
+país destino y de cada puerto.
+Al generar se inicializa la hora local. Para tipos 1 a 3 se hereda el tipo de
+camión y se calcula el peso bruto por línea como kilos más peso bruto del
+envase por cajas, según `PTraeKilosB` y `PTraePesoB`. El alta se verificó
+en SQL local con una planilla de 4.176 kg brutos, y el ensayo revirtió el
+packing y el correlativo. La edición se verificó con rollback sobre el 130.
+
+Actualización 13-11-2026: se amplió la edición de la cabecera de exportación.
+Exportadora, consignatario, destino, agente, despachador y puertos usan
+catálogos; se pueden completar nave, contenedor, DUS/SPS, sellos/emisores,
+termógrafos/pallets, marcas, contramarcas y segunda observación. Los códigos
+de despacho y traslado se muestran separados. La API valida empresa y
+homologaciones y actualiza `PACKLIST` y `PackingGuiaDatos` en una transacción.
+Los campos avanzados omitidos por clientes anteriores no se sobrescriben.
+
 ## Origen GX8 y propósito
 
 El XPZ `GXW.xpz` separa el flujo en tres WorkPanels: `PackingList` lista y abre
@@ -43,12 +68,22 @@ físico permanece en `PACKLIST` con clave `EmpCod + TempCod + PackNumI`.
 ## Pendientes operativos
 
 Después de generar se abre la edición del packing para completar cliente,
-zarpe, conductor, RUT, patente y observación.
-Los campos avanzados de GX8 ya se presentan en modo lectura; su edición sigue
-limitada a cliente, zarpe, conductor, RUT, patente y observación. Faltan la
+zarpe, conductor, RUT, patente y observación. Los RUT de conductor y
+transportista aplican máscara chilena mientras se digitan y al cargar datos
+existentes (`12.345.678-5`).
+Los campos de auditoría y los totales heredados se conservan en lectura; la
+edición avanzada ya incluye los campos operativos indicados arriba. Faltan la
 impresión/Excel del packing y la homologación editable de puertos y catálogos.
 La generación crea un borrador central; la validación tributaria y la emisión
 Púlsar siguen a cargo del módulo de Guías, no de `PACKLIST`.
+
+El formulario de guía ahora es por pasos y conserva las magnitudes de origen
+por separado. Recargar el origen permite completar vacíos o reemplazar tras
+revisión; no se ejecuta una segunda generación de guía. Las fechas de guías
+nuevas usan hoy en Chile, con opción explícita de tomar fechas logísticas del
+packing. Las pruebas aisladas de actualización y rollback aprobaron. El servicio real
+de edición se ensayó en CONEX local dentro de una transacción revertida,
+comprobando que la cabecera y extensión permanecieran intactas.
 
 ## Verificación
 

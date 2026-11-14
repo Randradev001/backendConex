@@ -1,5 +1,23 @@
 # Estado vigente de la migracion CONEX
 
+## Guías por pasos y edición de packing — 2026-11-13
+
+El formulario central APERP usa cuatro pasos para BOD/COM y cinco para EXP,
+con fechas nuevas de Chile, carga automática desde packing y revisión explícita
+al reemplazar datos. La captura EXP incorpora los campos del documento de
+ejemplo y distingue cajas, kilos, pallets y bultos. Guarda antecedentes y
+trazabilidad en el complemento JSON y revalida el origen al guardar.
+El packing permite editar participantes, puertos, viaje y sellos/termógrafos;
+cabecera y extensión se actualizan transaccionalmente. No cambia menú,
+autenticación, folios ni stock. Las pruebas aisladas y compilaciones pasan;
+la precarga y el guardado/lectura se comprobaron en SQL local, y la
+edición packing se ensayó con rollback. El envío internacional sigue pendiente
+de homologación. Ver [guías](guias-origen-conex.md) y [packing](packing-list.md).
+
+## Sucursal y punto de emisión en guías — 2026-11-12
+
+El formulario de guía central abierto desde CONEX exige Sucursal y Punto de emisión de la empresa APERP homologada. APERP valida la relación activa en servidor y deriva el número local Púlsar; la precarga inicial conserva su automatismo y el borrador debe completarse antes de actualizarse o emitirse.
+
 ## Dashboard operacional (2026-11-04)
 
 La opción `Dashboard` de Navigation abre la nueva ruta
@@ -46,8 +64,10 @@ mantiene en una línea búsqueda, rango del último mes y tipo. Las fechas se
 muestran `DD/MM/YYYY` y el rango se valida y filtra en backend.
 `Generar guía` muestra la guía derivada para confirmación; al aceptar, el puente
 autenticado carga nuevamente el packing en APERP, guarda un borrador único en
-`ge.Guia`/`ge.GuiaLinea` y abre su edición. La edición avanzada del packing y
-su impresión siguen pendientes.
+`ge.Guia`/`ge.GuiaLinea` y abre su edición. La ficha editable sigue el orden de
+`PackList`, con los combos de despacho del XPZ, validación de RUT y DUS,
+y peso bruto calculado en el alta. La eliminación, la impresión y Excel del
+packing siguen pendientes.
 Detalle y verificación: [packing-list.md](packing-list.md).
 
 Ultima actualizacion documental: 2026-10-21.
@@ -223,16 +243,19 @@ Estado operativo:
   sus iconos interactivos a tamano medio en los listados del sistema. La impresion resuelve
   `{{productor}}` desde el `ProdCod` persistido en la orden activa;
   ver `docs/migration/ordenes-proceso-operacion.md`.
-- El ADM de ordenes de proceso incorpora una accion confirmada para iniciar o
-  desactivar una orden. El backend registra los datos de apertura y evita que
+- El ADM de ordenes de proceso incorpora un icono permanente con el estado y
+  resumen CAPCAJAS, además de acciones confirmadas para iniciar o terminar una
+  orden. El diálogo de término muestra cajas, kilos, envases, calibres y rango
+  de lecturas; el backend registra los datos de apertura/cierre, deja la orden
+  terminada en estado 4 y evita que
   dos ordenes queden activas simultaneamente para la misma empresa y temporada.
   En estados distintos de 0/1, el mismo espacio de accion muestra las lecturas
   CAPCAJAS en pantalla completa. La lectura de `CAP001` acepta `100/8/1` o
   `110/2/2`; altas, cierre, generacion y reclasificacion conservan solo
   `100/8/1`. Las órdenes cerradas y cuadradas incorporan una vista operativa de
   cuadratura: compara `ORDPROC` con las lecturas `CAP001`, permite distribuir
-  fruta comercial por especie/variedad y muestra en vivo kilos, envases,
-  rendimiento y desecho. La confirmación replica `GrabaCuadratura` en una
+  cada diferencia por especie/variedad como fruta comercial o desecho y muestra
+  en vivo kilos, envases y rendimiento. La confirmación replica `GrabaCuadratura` en una
   transacción serializable: vuelve a validar el estado y las lecturas, actualiza
   `ORDPROC` a estado 5 e inserta las líneas automáticas `1/50` en `FCOMERCIAL`.
   Una orden cuadrada queda solo en consulta y permite descargar PDF o Excel. La
@@ -245,8 +268,10 @@ Estado operativo:
   Como acción separada, los estados 4 y 5 permiten descargar el PDF
   `Informe de proceso`, homologado con `InfProceso01`: usa datos corporativos,
   cabecera y lotes de `ORDPROC/ORDPROC1`, ubicación del productor, detalle de
-  `CAP001` agrupado por envase, categoría y calibre, y el resumen histórico de
-  kilos y rendimiento. Este documento no sustituye el PDF operativo de
+  `CAP001` con Envase, Categoría, Calibre, Cajas, `% Cajas` y Kilos; el resumen
+  Ingresados, Exportación, Comercial, Desecho, Merma y `% Rendimiento`; y el
+  consolidado por categoría con cajas y porcentaje.
+  Este documento no sustituye el PDF operativo de
   cuadratura ni el comprobante de creación.
 - `database/20260818_importar_usuarios_rut_real_login_2016.sql` importa desde
   `CONEX_MIGRACION` a `CONEX` solo usuarios activos con RUT/DV valido y empresa
@@ -290,7 +315,8 @@ seleccionado cuando existe asociación y deja editable el detalle cuando no la
 hay. Envase se selecciona en la cabecera y variedad y categoría se capturan por
 cada fila de detalle, filtradas por especie y envase respectivamente. El detalle
 se presenta en una sola línea. La cabecera conserva Configuración del pallet
-con Envase, Base de pallet, Destino y Tipo de altura; dichos valores permanecen
+con Envase, Base de pallet y Tipo de altura; Destino permanece en la tabla por
+compatibilidad histórica, pero no se muestra ni solicita. Dichos valores permanecen
 seleccionados para el siguiente ingreso después de guardar. Las columnas
 aditivas `DestCod`, `FPNCaja`, `FPServicio` y `TEtCod` se mantienen por
 compatibilidad, aunque N° de Caja, Servicio y Etiqueta ya no se capturan en la

@@ -943,6 +943,8 @@ const listCatalog = (catalogName) => async (req, res) => {
       request.input('q', sql.NVarChar(120), q ? `%${q}%` : null);
       const result = await request.query(`SELECT o.*, RTRIM(p.ProdNom) ProdNom, RTRIM(x.ExpNom) ExpNom,
         RTRIM(e.EspeNom) EspeNom, RTRIM(v.VarNom) VarNom,
+        COALESCE(cap.TotalCajas,0) CapTotalCajas,COALESCE(cap.TotalKilos,0) CapTotalKilos,
+        cap.PrimeraLectura CapPrimeraLectura,cap.UltimaLectura CapUltimaLectura,
         STUFF((SELECT ', ' + CAST(d.Ordp1Nlote AS varchar(20)) + ' (' + CAST(d.Ordp1Env AS varchar(20)) + ' env, ' + CAST(d.Ordp1Kilos AS varchar(30)) + ' kg)' FROM ORDPROC1 d WHERE d.EmpCod=o.EmpCod AND d.TempCod=o.TempCod AND d.Ordpnum=o.Ordpnum ORDER BY d.Ordp1Nlote FOR XML PATH(''),TYPE).value('.','nvarchar(max)'),1,2,'') lotesUsados,
         STUFF((SELECT ', ' + CAST(d.Ordp1Nlote AS varchar(20)) + ' - ' + COALESCE(CAST(q.CalRecPorCalidad AS varchar(20)),'-') + '%' FROM ORDPROC1 d OUTER APPLY (SELECT TOP 1 c.CalRecPorCalidad FROM CALRECEP c WHERE c.EmpCod=d.EmpCod AND c.TempCod=d.TempCod AND c.Mov1Nlote=d.Ordp1Nlote AND c.CalRecEstado='F' ORDER BY c.CalRecFecha DESC,c.CalRecHora DESC,c.CalRecId DESC) q WHERE d.EmpCod=o.EmpCod AND d.TempCod=o.TempCod AND d.Ordpnum=o.Ordpnum ORDER BY d.Ordp1Nlote FOR XML PATH(''),TYPE).value('.','nvarchar(max)'),1,2,'') calidadLotes
         FROM ORDPROC o
@@ -950,6 +952,9 @@ const listCatalog = (catalogName) => async (req, res) => {
         LEFT JOIN EXPORT1 x ON x.EmpCod=o.EmpCod AND x.ExpCod=o.ExpCod
         LEFT JOIN ESPECIES e ON e.EmpCod=o.EmpCod AND e.Especod=o.Especod
         LEFT JOIN ESPECIES1 v ON v.EmpCod=o.EmpCod AND v.Especod=o.Especod AND v.VarCod=o.VarCod
+        OUTER APPLY (SELECT COUNT_BIG(*) TotalCajas,COALESCE(SUM(c.CAPKilos),0) TotalKilos,
+          MIN(c.CAPFecLog) PrimeraLectura,MAX(c.CAPFecLog) UltimaLectura
+          FROM CAP001 c WHERE c.EmpCod=o.EmpCod AND c.TempCod=o.TempCod AND c.CAPNproc=o.Ordpnum) cap
         WHERE o.EmpCod=@EmpCod
           AND (@TempCod IS NULL OR o.TempCod=@TempCod)
           AND (@From IS NULL OR o.OrdpFecha>=@From)

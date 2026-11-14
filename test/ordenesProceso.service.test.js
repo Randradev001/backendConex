@@ -108,13 +108,14 @@ test('reactiva una orden terminada para continuar la lectura de cajas', async ()
   assert.match(deps.queries[2], /OrdpHHFinP=NULL/);
 });
 
-test('desactiva solamente una orden activa y registra el termino', async () => {
+test('termina solamente una orden activa, la cierra y registra el termino', async () => {
   const deps = dependencies([{ recordset: [{ OrdpEstado: 1 }] }, { recordset: [] }]);
   const result = await setProcessActive(1, 'OPERADOR', '2017-2018', 25, false, deps.options);
 
-  assert.equal(result.state, 0);
+  assert.equal(result.state, 4);
+  assert.equal(result.message, 'Orden 25 terminada correctamente.');
   assert.equal(deps.transaction.committed, true);
-  assert.match(deps.queries[1], /OrdpEstado=0/);
+  assert.match(deps.queries[1], /OrdpEstado=4/);
   assert.match(deps.queries[1], /OrdpHHFinP=GETDATE\(\)/);
 });
 
@@ -161,12 +162,12 @@ test('normaliza lineas comerciales y rechaza clasificaciones repetidas', () => {
   const rows = normalizeCommercialRows([
     { speciesCode: 1, varietyCode: 2, containers: 3, kilos: '12,34', observation: ' Comercial ' }
   ]);
-  assert.deepEqual(rows, [{ speciesCode: 1, varietyCode: 2, containers: 3, kilos: 12.34, observation: 'Comercial' }]);
+  assert.deepEqual(rows, [{ speciesCode: 1, varietyCode: 2, classification: 'commercial', containers: 3, kilos: 12.34, observation: 'Comercial' }]);
 
   assert.throws(
     () => normalizeCommercialRows([
-      { speciesCode: 1, varietyCode: 2, containers: 1, kilos: 10 },
-      { speciesCode: 1, varietyCode: 2, containers: 2, kilos: 20 }
+      { speciesCode: 1, varietyCode: 2, classification: 'waste', containers: 1, kilos: 10 },
+      { speciesCode: 1, varietyCode: 2, classification: 'waste', containers: 2, kilos: 20 }
     ]),
     (error) => error instanceof OrdenesProcesoError && error.code === 'DUPLICATE_COMMERCIAL_LINE'
   );
@@ -176,24 +177,36 @@ test('normaliza lineas comerciales y rechaza clasificaciones repetidas', () => {
   );
 });
 
+test('acepta la misma especie y variedad cuando comercial y desecho son distintos', () => {
+  const rows = normalizeCommercialRows([
+    { speciesCode: 1, varietyCode: 2, classification: 'commercial', containers: 1, kilos: 150 },
+    { speciesCode: 1, varietyCode: 2, classification: 'waste', containers: 0, kilos: 50 }
+  ]);
+  assert.deepEqual(rows.map((row) => row.classification), ['commercial', 'waste']);
+});
+
 test('cuadra una orden terminada y graba cabecera y fruta comercial en una transaccion', async () => {
   const deps = dependencies([
     { recordset: [{ OrdpEstado: 4, OrdpFecha: new Date('2026-10-26'), OrdpTotEnv: 100, OrdpTotKilos: 1000 }] },
     { recordset: [] },
     { recordset: [{ readContainers: 80, readKilos: 800, invalidReadings: 0, readingRecords: 80 }] },
     { recordset: [{ VarCod: 2 }] },
+    { recordset: [{ VarCod: 2 }] },
     { recordset: [] },
     { recordset: [] }
   ]);
   const result = await finalizeQuadrature(1, 'OPERADOR', '2017-2018', 174, {
-    commercial: [{ speciesCode: 1, varietyCode: 2, containers: 10, kilos: 150 }]
+    classifications: [
+      { speciesCode: 1, varietyCode: 2, classification: 'commercial', containers: 10, kilos: 150 },
+      { speciesCode: 1, varietyCode: 2, classification: 'waste', containers: 10, kilos: 50 }
+    ]
   }, deps.options);
 
   assert.equal(result.state, 5);
   assert.equal(result.totals.wasteKilos, 50);
   assert.equal(deps.transaction.committed, true);
-  assert.match(deps.queries[4], /OrdpEstado=5/);
-  assert.match(deps.queries[5], /INSERT FCOMERCIAL/);
+  assert.match(deps.queries[5], /OrdpEstado=5/);
+  assert.match(deps.queries[6], /INSERT FCOMERCIAL/);
 });
 
 test('revierte la cuadratura cuando las salidas superan los kilos procesados', async () => {

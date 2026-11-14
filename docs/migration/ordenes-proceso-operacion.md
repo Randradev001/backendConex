@@ -51,24 +51,28 @@ adicional para crear, modificar, eliminar o cambiar el estado.
   `PRODUCTORES.ProdNom` y `EXPORT1.ExpNom` en la grilla y en sus exportaciones.
   Las acciones de cada fila usan iconos de tamano medio, centrados verticalmente
   respecto de la fila.
-- El ADM ofrece una accion explicita para iniciar o desactivar el proceso. La
+- El ADM ofrece acciones separadas para consultar el estado CAPCAJAS e iniciar
+  o terminar el proceso. El icono CAPCAJAS permanece visible en cada fila y
+  resume por color y texto si no hay lecturas, si la lectura está activa o si
+  terminó, junto con la cantidad de cajas registrada. La
   confirmacion reutiliza el detalle persistido de la orden. Al iniciar registra
   fecha, usuario y hora de apertura; impide iniciar estados distintos de
   `Ingresada` y rechaza una segunda orden activa en la misma empresa y
-  temporada. Desactivar devuelve la orden a `Ingresada` y registra la hora de
-  termino del proceso.
+  temporada. Terminar abre una confirmación con total de cajas, kilos, envases,
+  calibres y primera/última lectura; registra la hora de término y deja la orden
+  en estado 4 (`Cerrada`), igual que el cierre de `CAPCajas02`.
 - La accion `Visualizar` abre un dialogo amplio de solo lectura. Presenta los
   25 campos persistidos de la cabecera en tarjetas de identificacion,
   configuracion, cantidades y auditoria; debajo conserva el `DataGrid` de
   detalle con lote, calidad, especie, variedad, productor, envases y kilos.
-- La columna de acciones conserva siempre la posicion de operacion: estados 0
-  y 1 muestran iniciar o desactivar proceso; los demas estados muestran
-  `Ver lecturas CAPCAJAS`. Esta accion abre a pantalla completa la consulta
+- La columna de acciones conserva siempre el icono de estado/consulta CAPCAJAS;
+  los estados 0 y 1 agregan iniciar o terminar proceso. El icono abre a pantalla completa la consulta
   paginada de `CAP001`, con resumen, exportacion y ciclo por caja.
 - La primera etapa operativa de `CuadraProc` permite cuadrar órdenes cerradas
   (estado 4) desde el mismo diálogo. Compara `ORDPROC` con las lecturas de
-  `CAP001`, permite ingresar fruta comercial por especie y variedad, recalcula
-  desecho y diferencias en vivo y exige confirmación antes del cierre. El
+  `CAP001`, permite clasificar por especie y variedad cada diferencia como
+  fruta comercial o desecho, recalcula kilos y envases en vivo y exige que la
+  clasificación complete el saldo antes del cierre. El
   caso sin lecturas muestra una advertencia reforzada y requiere confirmación
   explícita. El backend vuelve a leer y bloquear la orden y sus lecturas dentro de una
   transacción serializable, actualiza los totales y el estado 5 en `ORDPROC` e
@@ -90,8 +94,9 @@ adicional para crear, modificar, eliminar o cambiar el estado.
 - Las órdenes finalizadas y cuadradas ofrecen una acción independiente
   `Informe de proceso`. El PDF reproduce `InfProceso01` del XPZ: identificación
   de empresa, proceso, productor, ubicación, horarios y lotes; detalle de
-  `CAP001` agrupado por envase, categoría y calibre; y resumen de ingreso,
-  exportación, comercial, desecho y rendimiento. No reemplaza el comprobante
+  `CAP001` con Envase, Categoría, Calibre, Cajas, `% Cajas` y Kilos; resumen
+  con Ingresados, Exportación, Comercial, Desecho, Merma y `% Rendimiento`;
+  y consolidado por categoría con cajas y porcentaje. No reemplaza el comprobante
   de alta ni el reporte operativo de cuadratura.
 
 ## Regla de saldo

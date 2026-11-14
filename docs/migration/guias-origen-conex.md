@@ -1,8 +1,44 @@
 # Vistas de origen Conex para el módulo de guías APERP
 
+## Formulario por pasos — 13-11-2026
+
+El formulario compartido en APERP implementa Operación, Receptor/ruta,
+Transporte y Detalle/revisión, con un paso adicional de Exportación para EXP.
+Las fechas de una guía nueva parten hoy en `America/Santiago`; los borradores
+existentes conservan sus fechas. La opción de conservar fechas del origen
+afecta solo logística y no emisión/vencimiento.
+
+Al actualizar datos del packing se elige completar vacíos o reemplazar datos,
+conservando la sucursal/punto y las fechas documentales. El backend vuelve a
+leer origen y líneas, valida unidad y cantidad acumulada por correlativo y
+guarda su instantánea dentro de `ge.GuiaComplemento`. El origen de una guía
+guardada no se puede sustituir por otro desde el navegador. Se recuperan
+nombres/homologaciones de puertos, RUT del agente y metadatos de detalle;
+pallets y bultos quedan separados. Los campos adicionales del ejemplo de
+exportación son captura documental, sin habilitar todavía el indicador 9
+ni ampliar el contrato de envío API.
+
+El principal SQL de APERP requiere lectura de `CONEX.dbo.PACKLIST`,
+`PUERTOS`, `AGENTES`, `CLIENTES`, `EXPORT1`, `CONSIG`, `DESPAAUTO` y `DESTINOS`
+para la cabecera ampliada y los buscadores, además de las vistas existentes.
+Los datos documentales usan el complemento JSON ya existente. La migración
+`20261113_guias_detalle_packing_clave_completa.sql` actualiza la vista de detalle
+para conservar el folio en su clave, tal como la PK física DESORIGEN2.
+Aplicada en CONEX local: 5.515 líneas con clave única; no modifica movimientos.
+Borradores antiguos con referencias parciales deben recargar y Reemplazar líneas.
+Detalle: `APERP/backendAperpBodega/docs/migration/guias-formulario-por-pasos.md`.
+La verificación SQL local creó, leyó y retiró un borrador temporal de 24 líneas
+sin modificar el packing. La prueba de navegador usa el frontend real con API
+simulada. En APERP 100 local faltan puntos de emisión activos para completar
+las guías; la configuración y permisos de producción se revisan al desplegar.
+
 > Actualización 13-10-2026: `wguiasd` abre un listado operativo de lectura de guías históricas Conex. La sesión y el permiso Conex filtran la empresa en el backend; la pantalla compartida vive en APERP. El resto del documento describe el prototipo inicial.
 
 ## Precarga y guardado central habilitados
+
+### Sucursal y punto de emisión — 12-11-2026
+
+El formulario central abierto desde CONEX muestra Sucursal y Punto de emisión como primeros campos. Ambos catálogos se consultan en APERP usando la empresa homologada de la sesión puente; el navegador no informa ni sustituye la empresa. Los puntos activos se filtran por sucursal desde `ge.PuntoEmisionSucursal` y aportan el `NumeroLocal` y `PuntoEmision` del JSON Púlsar. La precarga automática puede crear el borrador inicial antes de completar estos datos, pero toda actualización posterior y el preflight DTE 52 los exigen.
 
 La implementación operativa conserva una sola pantalla en APERP y aplica el tema verde cuando se abre desde Conex. El backend Conex crea un ticket aleatorio de un solo uso, con hash y vencimiento de dos minutos, después de comprobar la sesión y el permiso `70/6/3` o `100/2/20`. APERP consume el ticket en una transacción y entrega una sesión de 30 minutos limitada a las rutas de Guías. Esa sesión fija usuario, empresa Conex, empresa APERP homologada y origen `CONEX`; los parámetros del navegador no pueden sustituir esos valores.
 
