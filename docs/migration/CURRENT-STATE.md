@@ -1,5 +1,17 @@
 # Estado vigente de la migracion CONEX
 
+## Origen de campos de etiquetas — 2026-11-18
+
+El diseñador incorpora la pestaña `Origen de campos`, con búsqueda por contenido,
+tag o tabla, distinción de texto fijo/dinámico/mixto/gráfico y acceso al elemento
+en Diseño. El backend describe las fuentes y reglas de los tags del worker,
+incluidos comuna y provincia del productor de la orden activa; los textos fijos
+como CSE y la ubicación de packing se identifican por su contenido guardado,
+sin atribuirles una consulta a maestros. Se analiza el documento abierto con
+cambios sin guardar y se valida la etiqueta/versión en la empresa de sesión,
+bajo el permiso existente `110/1/1`. No consulta valores productivos ni reserva
+correlativos. Ver [detalle](etiquetas-editor-zpl.md).
+
 ## Guías por pasos y edición de packing — 2026-11-13
 
 El formulario central APERP usa cuatro pasos para BOD/COM y cinco para EXP,

@@ -1,5 +1,45 @@
 # CRUD visual de etiquetas y diseñador ZPL versionado
 
+## Origen de campos — 2026-11-18
+
+La cuarta pestaña del diseñador, `Origen de campos`, lista los elementos del
+documento abierto, incluidos cambios sin guardar. Muestra contenido, tipo,
+tags, tabla/columna de origen, reglas de respaldo y lugar de mantenimiento.
+Permite buscar por contenido, tag o tabla y seleccionar un campo con
+`Ver en diseño`. Incluye elementos gráficos y señala los ocultos.
+
+La descripción se construye en `camposOrigen.service.js`, en el backend, a
+partir del contenido de cada elemento. Los tags corresponden a
+`impresion.service.variableValues`; la prueba de cobertura detecta que aparezcan
+variables productivas sin documentar. Un tag desconocido se marca sin origen
+productivo registrado. La pantalla describe el flujo de impresión por línea;
+no muestra valores reales ni trata las muestras del editor como datos de la
+orden activa.
+
+`{{comuna}}` y `{{provincia}}` provienen de `PRODUCTORES.ProdComuna` y
+`ProdProvincia` mediante `ORDPROC.ProdCod`. Un texto literal como `CSE:93154`
+o `TOWNSHIP: CODEGUA` se identifica como fijo de `EtiDesignJson`, aunque su
+texto coincida con un dato del maestro. La consulta no infiere vinculaciones
+por las palabras CSE, TOWNSHIP o PROVINCE. La tabla corresponde a la versión
+abierta; la impresión por línea utiliza la vigente.
+
+Los endpoints POST de consulta son
+`/catalogo/:etiCod/versiones/:version/origenes-campos` y
+`/configuraciones/:confCod/origenes-campos`, bajo `/backendDocker/etiquetas`.
+Ambos exigen el permiso existente `110/1/1` y comprueban la existencia del
+registro en la empresa de sesión antes de analizar el diseño. No guardan,
+preparan impresiones ni consumen correlativos.
+
+Verificación: 34 pruebas dirigidas aprobadas (orígenes, etiquetas, versiones y
+worker), ESLint de los archivos frontend modificados sin errores ni avisos y
+compilación completa de 6.174 módulos. Vite conserva los avisos de tamaño de
+chunks y antigüedad de Browserslist.
+Se verificó el diseñador en navegador con el ZPL recuperado de POLCURA16 y
+respuestas API de prueba: pestaña, búsqueda de CSE fijo, fuentes de Productores,
+selección del elemento en Diseño, cambios sin guardar y tabla desplazable en
+pantalla móvil. Sin errores JavaScript; esta verificación no consultó SQL ni
+envió impresiones.
+
 ## Alcance decidido
 
 El diseñador visual se implementa como un CRUD de cards accesible desde

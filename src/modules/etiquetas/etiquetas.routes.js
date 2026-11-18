@@ -25,6 +25,7 @@ router.delete('/catalogo/:etiCod/versiones/:version', controller.removeVersion);
 router.post('/catalogo/:etiCod/versiones/:version/importar', controller.importVersionZpl);
 router.post('/catalogo/:etiCod/versiones/:version/render', controller.renderVersion);
 router.post('/catalogo/:etiCod/versiones/:version/preview', controller.previewVersion);
+router.post('/catalogo/:etiCod/versiones/:version/origenes-campos', controller.fieldOrigins);
 router.get('/configuraciones', controller.list);
 router.get('/configuraciones/:confCod/diseno', controller.get);
 router.put('/configuraciones/:confCod/diseno', controller.save);
@@ -33,6 +34,7 @@ router.post('/configuraciones/:confCod/importar', controller.importZpl);
 router.post('/configuraciones/:confCod/rescatar-gx8', controller.rescue);
 router.post('/configuraciones/:confCod/render', controller.render);
 router.post('/configuraciones/:confCod/preview', controller.preview);
+router.post('/configuraciones/:confCod/origenes-campos', controller.fieldOrigins);
 
 module.exports = router;
 module.exports.requireConfigEtiquetaPermission = requireConfigEtiquetaPermission;

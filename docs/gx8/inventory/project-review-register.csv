@@ -638,7 +638,7 @@
 "WorkPanel","CInfoProd","Procesos","Procesos","","","","DISCOVERED",""
 "WorkPanel","Clientes","Maestros","Maestros","","","","DISCOVERED",""
 "WorkPanel","Conex","Menus","Menus","","","","DISCOVERED",""
-"WorkPanel","ConfEtiquetas","ETIQUETAS","ETIQUETAS","Selecciona una configuracion y ejecuta operaciones de etiqueta","REPLACE_WITH_VERSIONED_CARD_CRUD","/etiquetas/disenos","IMPLEMENTED","CRUD de cards verdes con visualizar, editar y versionar; la impresion fisica permanece pendiente."
+"WorkPanel","ConfEtiquetas","ETIQUETAS","ETIQUETAS","Selecciona una configuracion y ejecuta operaciones de etiqueta","REPLACE_WITH_VERSIONED_CARD_CRUD","/etiquetas/disenos","IMPLEMENTED","CRUD de cards verdes con visualizar, editar y versionar; pestaña Origen de campos con fuentes de tags, textos fijos, búsqueda y selección del elemento (2026-11-18). La impresion fisica permanece pendiente."
 "WorkPanel","Consig","Maestros","Maestros","","","","DISCOVERED",""
 "WorkPanel","ConsProcesos","Procesos","Procesos","","","","DISCOVERED",""
 "WorkPanel","COrdProcesos","LecturaCajas","LecturaCajas","","","","DISCOVERED",""

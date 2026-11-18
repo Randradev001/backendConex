@@ -1,5 +1,6 @@
 const service = require('./etiquetas.service');
 const versions = require('./etiquetasVersiones.service');
+const { describeFieldOrigins } = require('./camposOrigen.service');
 
 const respond = (handler) => async (req, res, next) => {
   try {
@@ -35,6 +36,14 @@ const rescue = respond(async (req, res) => res.json(
 const render = respond(async (req, res) => res.json(
   await service.render(req.context?.empCod, req.params.confCod, req.body || {})
 ));
+
+const fieldOrigins = respond(async (req, res) => {
+  const versioned = req.params.version != null;
+  const stored = versioned
+    ? await versions.getVersion(req.context?.empCod, req.params.etiCod, req.params.version)
+    : await service.get(req.context?.empCod, req.params.confCod);
+  return res.json(describeFieldOrigins(req.body?.design || stored.template?.design, { versioned }));
+});
 
 const preview = respond(async (req, res) => {
   const image = await service.preview(req.context?.empCod, req.params.confCod, req.body || {});
@@ -84,7 +93,7 @@ const previewVersion = respond(async (req, res) => {
 });
 
 module.exports = {
-  list, get, save, importZpl, rescue, render, preview, remove,
+  list, get, save, importZpl, rescue, render, preview, remove, fieldOrigins,
   listCatalog, listLabelTypes, createLabel, updateLabel, removeLabel,
   createVersion, getVersion, saveVersion, removeVersion,
   importVersionZpl, renderVersion, previewVersion
