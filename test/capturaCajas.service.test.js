@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { CapturaCajasError, generateBoxes, parseCodigoCaja, permission } = require('../src/modules/capturaCajas/capturaCajas.service');
 const { readPermission, writePermission } = require('../src/modules/capturaCajas/capturaCajas.routes');
+const { CapturaLinkError, createCaptureLink, resolveCaptureLink } = require('../src/modules/capturaCajas/capturaCajas.link');
 
 test('interpreta el código GX8 de 23 dígitos', () => {
   assert.deepEqual(parseCodigoCaja('12345641800128001020153'), { codigo: '12345641800128001020153', caja: 123456, envase: 418, categoria: 1, calibreCodigo: 280, maquina: 1, linea: 2, persona: 153 });
@@ -32,5 +33,25 @@ test('limita la generación masiva a mil cajas', async () => {
   await assert.rejects(
     generateBoxes(1, 'PRUEBA', '2017-2018', 174, { desde: 1, hasta: 1001, envase: 1, categoria: 1, calibreCodigo: 46, maquina: 1, linea: 1, persona: 1 }),
     (error) => error instanceof CapturaCajasError && error.code === 'INVALID_RANGE'
+  );
+});
+test('cifra y resuelve la selección CAPCAJAS solamente en la misma sesión', () => {
+  const context = { sessionToken: 'session-token-for-tests', empCod: 1, login: 'OPERADOR', tempCod: '2026-2027', ordpnum: 174 };
+  const ref = createCaptureLink({ ...context, now: 1000, ttlMs: 10000 });
+
+  assert.equal(ref.includes('2026-2027'), false);
+  assert.equal(ref.includes('174'), false);
+  assert.deepEqual(resolveCaptureLink({ ...context, ref, now: 2000 }), { tempCod: '2026-2027', ordpnum: 174 });
+  assert.throws(
+    () => resolveCaptureLink({ ...context, sessionToken: 'other-session', ref, now: 2000 }),
+    (error) => error instanceof CapturaLinkError && error.code === 'CAPTURE_LINK_INVALID'
+  );
+});
+test('rechaza enlaces CAPCAJAS vencidos', () => {
+  const context = { sessionToken: 'session-token-for-tests', empCod: 1, login: 'OPERADOR', tempCod: '2026-2027', ordpnum: 174 };
+  const ref = createCaptureLink({ ...context, now: 1000, ttlMs: 1000 });
+  assert.throws(
+    () => resolveCaptureLink({ ...context, ref, now: 2001 }),
+    (error) => error instanceof CapturaLinkError && error.code === 'CAPTURE_LINK_EXPIRED'
   );
 });

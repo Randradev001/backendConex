@@ -4,6 +4,8 @@ const orderAdmPermission=Object.freeze({sistema:110,modulo:2,programa:2});
 const readPermission=requireAnyPermission([s.permission,orderAdmPermission]);
 const writePermission=requirePermission(s.permission);
 router.use(auth);
+router.post('/enlaces',writePermission,run((req)=>s.createSecureLink(auth.getSessionToken(req),req.context.empCod,req.context.login,req.body)));
+router.post('/enlaces/resolver',writePermission,run((req)=>s.resolveSecureLink(auth.getSessionToken(req),req.context.empCod,req.context.login,req.body)));
 router.get('/ordenes',readPermission,run((req)=>s.listOrders(req.context.empCod,req.query)));
 router.get('/ordenes/:tempCod/:ordpnum',readPermission,run((req)=>s.getOrder(req.context.empCod,req.params.tempCod,req.params.ordpnum)));
 router.get('/ordenes/:tempCod/:ordpnum/catalogo',readPermission,run((req)=>s.getOrderCatalog(req.context.empCod,req.params.tempCod,req.params.ordpnum,req.query.envase)));
