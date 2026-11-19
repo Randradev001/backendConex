@@ -1,5 +1,16 @@
 # Vistas de origen Conex para el módulo de guías APERP
 
+## Motivos de traslado Púlsar — 19-11-2026
+
+Por confirmación del usuario se retiraron del backend APERP las restricciones
+iniciales de testing a motivos 1/5 y despacho 2. El flujo API admite los motivos
+1–9 del selector y responsables de transporte 1–3, conservando las validaciones
+de datos y la política de importes configurada para la empresa. Esto reemplaza
+la limitación del indicador 9 mencionada en el estado del 13-11 más abajo.
+La prueba recorre 27 combinaciones hasta el JSON y la suite dirigida aprobó
+58 casos, sin emitir documentos. Para producción se debe desplegar y reiniciar
+el backend APERP; no requiere SQL ni build del frontend Conex.
+
 ## Formulario por pasos — 13-11-2026
 
 El formulario compartido en APERP implementa Operación, Receptor/ruta,
