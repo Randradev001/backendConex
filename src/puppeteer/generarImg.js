@@ -2,9 +2,9 @@ const puppeteer = require('puppeteer');
 
 const generarImages = async ({ url }) => {
   const browser = await puppeteer.launch({
-    executablePath: '/usr/bin/chromium-browser',
+    executablePath: process.env.CHROME_PATH || process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     headless: true, // Cambié a true ya que 'new' puede no ser necesario
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: process.platform === 'linux' ? ['--no-sandbox', '--disable-setuid-sandbox'] : [],
     defaultViewport: {
       width: 876,
       height: 2000,

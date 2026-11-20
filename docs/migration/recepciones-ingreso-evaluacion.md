@@ -249,6 +249,12 @@ su efecto sobre stock requiere decision funcional previa.
     `CALRECEP.CalRecObservacion` como tarjetas trazables por control y lote,
     incluyendo fecha, productor, especie y variedad. La misma seccion forma
     parte de la impresion/PDF del navegador y omite controles sin observacion.
+30. Desde 2026-11-20 la temporada operacional es exclusivamente contexto de
+    backend. Ingreso, consulta, controles y dashboard de calidad resuelven la
+    unica `TEMP01.TempActiva=1` de la empresa autenticada. React no muestra ni
+    envia un selector de temporada; el backend ignora cualquier temporada de
+    listado y sobrescribe la temporada enviada al crear. Las mutaciones sobre
+    recepciones historicas se rechazan.
 
 `ListadoRecep` queda como siguiente corte de reportes. El pesaje automatico no
 se contempla.

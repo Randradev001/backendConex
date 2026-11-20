@@ -1307,10 +1307,17 @@ const sendWriteError = (res, catalogName, error, defaultMessage) => {
 };
 
 const insertCatalog = (catalogName) => async (req, res) => {
+  let transaction;
+  let transactionStarted = false;
   try {
     const config = getWritableCatalog(catalogName);
     const pool = await getPool();
-    const request = pool.request();
+    if (catalogName === 'temporadas') {
+      transaction = new sql.Transaction(pool);
+      await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+      transactionStarted = true;
+    }
+    const request = transactionStarted ? new sql.Request(transaction) : pool.request();
     const columns = Object.keys(config.fields).filter((column) => !config.fields[column].serverGenerated);
     const normalizedValues = {};
 
@@ -1321,6 +1328,12 @@ const insertCatalog = (catalogName) => async (req, res) => {
     }
 
     validateRut(config, normalizedValues);
+
+    if (catalogName === 'temporadas' && Number(normalizedValues.TempActiva) === 1) {
+      await new sql.Request(transaction)
+        .input('activeEmpCod', sql.Int, req.context.empCod)
+        .query('UPDATE TEMP01 SET TempActiva=0 WHERE EmpCod=@activeEmpCod AND TempActiva=1;');
+    }
 
     const extraColumns = Object.entries(config.insertDefaults || {});
     for (const [column, definition] of extraColumns) {
@@ -1341,6 +1354,10 @@ const insertCatalog = (catalogName) => async (req, res) => {
     `;
 
     await request.query(query);
+    if (transactionStarted) {
+      await transaction.commit();
+      transactionStarted = false;
+    }
 
     return res.status(201).json({
       success: true,
@@ -1349,15 +1366,25 @@ const insertCatalog = (catalogName) => async (req, res) => {
       key: getKeyPayload(req, config)
     });
   } catch (error) {
+    if (transactionStarted) await transaction.rollback().catch(() => undefined);
     return sendWriteError(res, catalogName, error, 'Error insertando maestro');
   }
 };
 
 const updateCatalog = (catalogName) => async (req, res) => {
+  let transaction;
+  let transactionStarted = false;
   try {
     const config = getWritableCatalog(catalogName);
     const pool = await getPool();
-    const request = pool.request();
+    const activatingSeason = catalogName === 'temporadas'
+      && Number(getCatalogWriteParam(req, config, 'TempActiva')) === 1;
+    if (activatingSeason) {
+      transaction = new sql.Transaction(pool);
+      await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+      transactionStarted = true;
+    }
+    const request = transactionStarted ? new sql.Request(transaction) : pool.request();
     const normalizedValues = {};
 
     const mutablePrimaryKey = config.mutablePrimaryKey || {};
@@ -1393,6 +1420,12 @@ const updateCatalog = (catalogName) => async (req, res) => {
 
     validateRut(config, normalizedValues);
 
+    if (activatingSeason) {
+      await new sql.Request(transaction)
+        .input('activeEmpCod', sql.Int, req.context.empCod)
+        .query('UPDATE TEMP01 SET TempActiva=0 WHERE EmpCod=@activeEmpCod AND TempActiva=1;');
+    }
+
     const query = `
       UPDATE ${quoteName(config.table)}
       SET ${updateColumns.map((column) => `${quoteName(getDbColumn(config, column))} = @${column}`).join(', ')}
@@ -1400,6 +1433,10 @@ const updateCatalog = (catalogName) => async (req, res) => {
     `;
 
     const result = await request.query(query);
+    if (transactionStarted) {
+      await transaction.commit();
+      transactionStarted = false;
+    }
 
     return res.json({
       success: true,
@@ -1409,6 +1446,7 @@ const updateCatalog = (catalogName) => async (req, res) => {
       key: getKeyPayload(req, config)
     });
   } catch (error) {
+    if (transactionStarted) await transaction.rollback().catch(() => undefined);
     return sendWriteError(res, catalogName, error, 'Error actualizando maestro');
   }
 };

@@ -1,4 +1,5 @@
 const { getPool, sql } = require('../conectorMysql/conectorSqlServer');
+const { getActiveSeason } = require('./activeSeason.service');
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 1000;
@@ -234,6 +235,7 @@ const detailSql = ({ paginated = true } = {}) => `
 const executeQuery = async (view, empCod, input, options = {}) => {
   const filters = normalizeFilters(input, { paginate: options.paginated !== false });
   const pool = await getPool();
+  filters.tempCod = (await getActiveSeason(pool, empCod)).tempCod;
   const request = bindCommonInputs(pool.request(), empCod, filters);
   const result = await request.query(view === 'summary' ? summarySql(options) : detailSql(options));
   const totals = result.recordsets[0]?.[0] || {};
@@ -258,6 +260,7 @@ const exportRows = (view, empCod, input) => executeQuery(view, empCod, input, { 
 
 const listCatalogs = async (empCod) => {
   const pool = await getPool();
+  const activeSeason = await getActiveSeason(pool, empCod);
   const request = pool.request().input('EmpCod', sql.SmallInt, empCod);
   const result = await request.query(`
     SELECT RTRIM(TempCod) AS value, RTRIM(TempDes) AS label, TempActiva AS active
@@ -272,7 +275,7 @@ const listCatalogs = async (empCod) => {
     FROM ESPECIES WHERE EmpCod=@EmpCod ORDER BY EspeNom,Especod;
   `);
   return {
-    seasons: result.recordsets[0] || [],
+    activeSeason,
     origins: result.recordsets[1] || [],
     producers: result.recordsets[2] || [],
     quarters: result.recordsets[3] || [],

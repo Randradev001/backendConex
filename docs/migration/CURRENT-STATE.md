@@ -1,5 +1,22 @@
 # Estado vigente de la migracion CONEX
 
+## Runtime Node 24 — 2026-11-20
+
+El backend fija Node 24.22.3, su imagen Docker usa Alpine 3.24 con instalación
+reproducible y Puppeteer acepta una ruta de Chrome configurada para Windows.
+Las 259 pruebas backend, el build frontend y la imagen Docker con Chromium
+pasaron con Node 24. El despliegue productivo aún requiere verificar los servicios web/impresión en
+el destino. Ver [migración Node 24](../deployment/node24-migration.md).
+
+## Contexto operacional de temporada — 2026-11-20
+
+Recepcion de fruta, ingreso manual, controles de calidad y dashboard de calidad
+usan internamente la unica temporada activa de la empresa autenticada. Las
+pantallas ya no muestran selector ni columna de temporada. El backend no confia
+en `TempCod` del cliente para listar o crear y rechaza mutaciones historicas.
+Crear o activar una temporada desactiva las anteriores dentro de la misma
+transaccion, evitando multiples temporadas activas por empresa.
+
 ## Origen de campos de etiquetas — 2026-11-18
 
 El diseñador incorpora la pestaña `Origen de campos`, con búsqueda por contenido,

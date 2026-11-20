@@ -1,5 +1,6 @@
 const { getPool, sql } = require('../conectorMysql/conectorSqlServer');
 const { nextCorrelative } = require('./gxCorrelatives.service');
+const { getActiveSeason } = require('./activeSeason.service');
 
 class RecepcionesIngresoError extends Error {
   constructor(status, code, message) {
@@ -102,6 +103,7 @@ const bindKey = (request, empCod, key) => request
 
 const listCatalogs = async (empCod) => {
   const pool = await getPool();
+  const activeSeason = await getActiveSeason(pool, empCod);
   const result = await pool.request().input('EmpCod', sql.SmallInt, empCod).query(`
     SELECT RTRIM(TempCod) value,RTRIM(TempDes) label,TempActiva active FROM TEMP01 WHERE EmpCod=@EmpCod ORDER BY TempCod DESC;
     SELECT OriCod value,CONCAT(OriCod,'.-',RTRIM(Orinom)) label FROM ORIGEN WHERE EmpCod=@EmpCod AND OriCod>0 AND OriEst=1 ORDER BY OriCod;
@@ -117,10 +119,8 @@ const listCatalogs = async (empCod) => {
     FROM TIPMOV tm JOIN TIPMOV1 st ON st.EmpCod=tm.EmpCod AND st.TMcod=tm.TMcod
     WHERE tm.EmpCod=@EmpCod AND tm.TMcod=1 AND st.TMSCod=1;
   `);
-  const active = (result.recordsets[0] || []).filter((item) => Number(item.active) === 1);
-  if (active.length !== 1) throw new RecepcionesIngresoError(409, 'ACTIVE_SEASON_INVALID', 'Debe existir exactamente una temporada activa para la empresa.');
   return {
-    activeSeason: active[0], seasons: result.recordsets[0] || [], origins: result.recordsets[1] || [], producers: result.recordsets[2] || [],
+    activeSeason: { value: activeSeason.tempCod, label: activeSeason.description }, origins: result.recordsets[1] || [], producers: result.recordsets[2] || [],
     quarters: result.recordsets[3] || [], species: result.recordsets[4] || [], varieties: result.recordsets[5] || [],
     containers: result.recordsets[6] || [], conditions: result.recordsets[7] || [],
     documentTypes: result.recordsets[8] || [], movementTypes: result.recordsets[9] || []
@@ -132,7 +132,7 @@ const list = async (empCod, input = {}) => {
   const limit = Math.min(integer(input.limit || 50, 'limite', 1), 200);
   const pool = await getPool();
   const request = pool.request().input('EmpCod', sql.SmallInt, empCod).input('Offset', sql.Int, (page - 1) * limit).input('Limit', sql.Int, limit);
-  const tempCod = text(input.tempCod) || null;
+  const tempCod = (await getActiveSeason(pool, empCod)).tempCod;
   const search = text(input.search).slice(0, 120);
   const from = input.from ? dateOnly(input.from, 'fecha desde') : null;
   const to = input.to ? dateOnly(input.to, 'fecha hasta') : null;
@@ -345,6 +345,8 @@ const listLotBoard = async (empCod, input = {}) => {
 const getOne = async (empCod, rawKey, transaction = null) => {
   const key = normalizeKey(rawKey);
   const pool = transaction || await getPool();
+  const activeSeason = await getActiveSeason(pool, empCod);
+  if (key.tempCod !== activeSeason.tempCod) throw new RecepcionesIngresoError(404, 'NOT_FOUND', 'La recepcion no existe en la temporada activa.');
   const result = await bindKey(makeRequest(pool), empCod, key).query(`
     SELECT h.TempCod,h.OriCod,RTRIM(o.Orinom) OriNom,h.MovTDoc,RTRIM(td.TdNom) TdNom,h.MovNGuia,
       RTRIM(h.MovProd) MovProd,RTRIM(p.ProdNom) ProdNom,h.MovFecha,RTRIM(h.MovObs) MovObs,
@@ -438,9 +440,11 @@ const recalculateTotals = (transaction, empCod, key) => bindKey(makeRequest(tran
 `);
 
 const create = async (empCod, login, input) => {
-  const payload = normalizePayload(input);
+  const pool = await getPool();
+  const activeSeason = await getActiveSeason(pool, empCod);
+  const payload = normalizePayload({ ...input, tempCod: activeSeason.tempCod });
   if (payload.details.some((item) => item.lot !== null)) throw new RecepcionesIngresoError(400, 'VALIDATION_ERROR', 'Los lotes nuevos son asignados por el servidor.');
-  const pool = await getPool(); const transaction = new sql.Transaction(pool);
+  const transaction = new sql.Transaction(pool);
   await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
   try {
     await validateAndEnrich(transaction, empCod, payload);
@@ -463,6 +467,8 @@ const update = async (empCod, login, rawKey, input) => {
   const pool = await getPool(); const transaction = new sql.Transaction(pool);
   await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
   try {
+    const activeSeason = await getActiveSeason(transaction, empCod, { lock: true });
+    if (key.tempCod !== activeSeason.tempCod) throw new RecepcionesIngresoError(404, 'NOT_FOUND', 'La recepcion no existe en la temporada activa.');
     await validateAndEnrich(transaction, empCod, payload);
     const current = await getOne(empCod, key, transaction);
     const currentDate = new Date(current.header.MovFecha).toISOString().slice(0, 10);
@@ -497,6 +503,8 @@ const remove = async (empCod, rawKey) => {
   const key = normalizeKey(rawKey); const pool = await getPool(); const transaction = new sql.Transaction(pool);
   await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
   try {
+    const activeSeason = await getActiveSeason(transaction, empCod, { lock: true });
+    if (key.tempCod !== activeSeason.tempCod) throw new RecepcionesIngresoError(404, 'NOT_FOUND', 'La recepcion no existe en la temporada activa.');
     await getOne(empCod, key, transaction);
     const usage = await bindKey(makeRequest(transaction), empCod, key).query(`SELECT TOP 1 d.Mov1Nlote FROM MOVFRUT1 d JOIN ORDPROC1 op ON op.EmpCod=d.EmpCod AND op.TempCod=d.TempCod AND op.Ordp1Nlote=d.Mov1Nlote WHERE d.EmpCod=@EmpCod AND d.TempCod=@TempCod AND d.OriCod=@OriCod AND d.MovTDoc=@MovTDoc AND d.MovNGuia=@MovNGuia AND d.MovProd=@MovProd;`);
     if (usage.recordset.length) throw new RecepcionesIngresoError(409, 'RECEIPT_ALREADY_USED', 'La recepcion tiene lotes usados en ordenes de proceso y no puede eliminarse.');

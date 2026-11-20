@@ -187,6 +187,11 @@ con debounce, acciones como primera columna y dialogos paginados desde las
 tarjetas. Se conservaron las vistas historicas Resumen y Detalle y el selector
 de temporada requerido por esta consulta.
 
+Desde 2026-11-20 la temporada dejo de ser un filtro visible o aceptado desde
+React. Resumen, detalle y exportaciones resuelven en Node la unica temporada
+activa de `TEMP01` para la empresa autenticada; cero o multiples temporadas
+activas producen un error funcional y no una seleccion silenciosa.
+
 La captura, modificacion y eliminacion de `Recepciones`/`MovFrut` debe
 evaluarse por separado.
 

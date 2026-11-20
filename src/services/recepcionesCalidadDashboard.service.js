@@ -1,5 +1,6 @@
 const { getPool, sql } = require('../conectorMysql/conectorSqlServer');
 const { CalidadError } = require('./recepcionesCalidad.service');
+const { getActiveSeason } = require('./activeSeason.service');
 const clamp=(v)=>Math.max(0,Math.min(100,Number.isFinite(Number(v))?Number(v):0));
 const round=(v,d=1)=>Number(Number(v||0).toFixed(d));
 const avg=(rows,field)=>{const values=rows.map(x=>Number(x[field])).filter(Number.isFinite);return values.length?values.reduce((a,b)=>a+b,0)/values.length:0;};
@@ -17,17 +18,17 @@ const getDashboard=async(empCod,input={})=>{
  const defaults=defaultRange(),from=validDate(input.from||defaults.from,'Fecha desde'),to=validDate(input.to||defaults.to,'Fecha hasta');
  if(from>to)throw new CalidadError(400,'VALIDATION_ERROR','La fecha desde no puede superar la fecha hasta.');
  const lot=input.lot==null||input.lot===''?null:Number(input.lot);if(lot!==null&&(!Number.isInteger(lot)||lot<=0))throw new CalidadError(400,'VALIDATION_ERROR','El lote no es valido.');
- const pool=await getPool();const result=await pool.request().input('EmpCod',sql.SmallInt,empCod).input('From',sql.Date,from).input('To',sql.Date,to).input('Lot',sql.Decimal(10,0),lot).query(`
+ const pool=await getPool(),tempCod=(await getActiveSeason(pool,empCod)).tempCod;const result=await pool.request().input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),tempCod).input('From',sql.Date,from).input('To',sql.Date,to).input('Lot',sql.Decimal(10,0),lot).query(`
  SELECT c.CalRecId id,c.Mov1Nlote lot,c.CalRecFecha inspectionDate,c.CalRecTamMuestra sampleSize,c.CalRecDuroAV firmness,c.CalRecPorExport exportPct,c.CalRecPorComercial commercialPct,c.CalRecObservacion observation,h.MovGBrik brix,RTRIM(p.ProdNom) producer,RTRIM(e.EspeNom) species,RTRIM(v.VarNom) variety
  FROM CALRECEP c JOIN MOVFRUT h ON h.EmpCod=c.EmpCod AND h.TempCod=c.TempCod AND h.OriCod=c.OriCod AND h.MovTDoc=c.MovTDoc AND h.MovNGuia=c.MovNGuia AND h.MovProd=c.MovProd JOIN MOVFRUT1 d ON d.EmpCod=c.EmpCod AND d.TempCod=c.TempCod AND d.OriCod=c.OriCod AND d.MovTDoc=c.MovTDoc AND d.MovNGuia=c.MovNGuia AND d.MovProd=c.MovProd AND d.Mov1Nlote=c.Mov1Nlote LEFT JOIN PRODUCTORES p ON p.EmpCod=c.EmpCod AND p.ProdCod=c.MovProd LEFT JOIN ESPECIES e ON e.EmpCod=c.EmpCod AND e.Especod=c.Especod LEFT JOIN ESPECIES1 v ON v.EmpCod=c.EmpCod AND v.Especod=c.Especod AND v.VarCod=d.Mov1Var
- WHERE c.EmpCod=@EmpCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To) AND (@Lot IS NULL OR c.Mov1Nlote=@Lot);
- SELECT d.CalRecId controlId,RTRIM(m.MADanDes) label,d.CalDanFrutos fruits FROM CALRECEPDANO d JOIN CALRECEP c ON c.EmpCod=d.EmpCod AND c.CalRecId=d.CalRecId JOIN MAdanos m ON m.EmpCod=d.EmpCod AND m.Especod=d.Especod AND m.MADanCod=d.MADanCod WHERE c.EmpCod=@EmpCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To) AND (@Lot IS NULL OR c.Mov1Nlote=@Lot);
- SELECT d.CalRecId controlId,RTRIM(d.Calibre) label,d.CalPorcentaje percentage,d.CalPreCalibre preCaliber,COALESCE(m.CalOrden,m.CalCod,32767) displayOrder FROM CALRECEPCALIBRE d JOIN CALRECEP c ON c.EmpCod=d.EmpCod AND c.CalRecId=d.CalRecId LEFT JOIN CALIBRES m ON m.EmpCod=d.EmpCod AND m.Especod=d.Especod AND m.Calibre=d.Calibre WHERE c.EmpCod=@EmpCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To) AND (@Lot IS NULL OR c.Mov1Nlote=@Lot);
- SELECT d.CalRecId controlId,RTRIM(d.Calibre) label,d.CalRojoClaro lightRed,d.CalRojoOscuro darkRed,COALESCE(m.CalOrden,m.CalCod,32767) displayOrder FROM CALRECEPCOLORCALIBRE d JOIN CALRECEP c ON c.EmpCod=d.EmpCod AND c.CalRecId=d.CalRecId LEFT JOIN CALIBRES m ON m.EmpCod=d.EmpCod AND m.Especod=d.Especod AND m.Calibre=d.Calibre WHERE c.EmpCod=@EmpCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To) AND (@Lot IS NULL OR c.Mov1Nlote=@Lot);
- SELECT d.CalRecId controlId,RTRIM(m.MAPlaTipo) type,RTRIM(m.MAPlaDes) label FROM CALRECEPPLAGA d JOIN CALRECEP c ON c.EmpCod=d.EmpCod AND c.CalRecId=d.CalRecId JOIN MAPlagas m ON m.EmpCod=d.EmpCod AND m.Especod=d.Especod AND m.MAPlaCod=d.MAPlaCod WHERE c.EmpCod=@EmpCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To) AND (@Lot IS NULL OR c.Mov1Nlote=@Lot);
+ WHERE c.EmpCod=@EmpCod AND c.TempCod=@TempCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To) AND (@Lot IS NULL OR c.Mov1Nlote=@Lot);
+ SELECT d.CalRecId controlId,RTRIM(m.MADanDes) label,d.CalDanFrutos fruits FROM CALRECEPDANO d JOIN CALRECEP c ON c.EmpCod=d.EmpCod AND c.CalRecId=d.CalRecId JOIN MAdanos m ON m.EmpCod=d.EmpCod AND m.Especod=d.Especod AND m.MADanCod=d.MADanCod WHERE c.EmpCod=@EmpCod AND c.TempCod=@TempCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To) AND (@Lot IS NULL OR c.Mov1Nlote=@Lot);
+ SELECT d.CalRecId controlId,RTRIM(d.Calibre) label,d.CalPorcentaje percentage,d.CalPreCalibre preCaliber,COALESCE(m.CalOrden,m.CalCod,32767) displayOrder FROM CALRECEPCALIBRE d JOIN CALRECEP c ON c.EmpCod=d.EmpCod AND c.CalRecId=d.CalRecId LEFT JOIN CALIBRES m ON m.EmpCod=d.EmpCod AND m.Especod=d.Especod AND m.Calibre=d.Calibre WHERE c.EmpCod=@EmpCod AND c.TempCod=@TempCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To) AND (@Lot IS NULL OR c.Mov1Nlote=@Lot);
+ SELECT d.CalRecId controlId,RTRIM(d.Calibre) label,d.CalRojoClaro lightRed,d.CalRojoOscuro darkRed,COALESCE(m.CalOrden,m.CalCod,32767) displayOrder FROM CALRECEPCOLORCALIBRE d JOIN CALRECEP c ON c.EmpCod=d.EmpCod AND c.CalRecId=d.CalRecId LEFT JOIN CALIBRES m ON m.EmpCod=d.EmpCod AND m.Especod=d.Especod AND m.Calibre=d.Calibre WHERE c.EmpCod=@EmpCod AND c.TempCod=@TempCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To) AND (@Lot IS NULL OR c.Mov1Nlote=@Lot);
+ SELECT d.CalRecId controlId,RTRIM(m.MAPlaTipo) type,RTRIM(m.MAPlaDes) label FROM CALRECEPPLAGA d JOIN CALRECEP c ON c.EmpCod=d.EmpCod AND c.CalRecId=d.CalRecId JOIN MAPlagas m ON m.EmpCod=d.EmpCod AND m.Especod=d.Especod AND m.MAPlaCod=d.MAPlaCod WHERE c.EmpCod=@EmpCod AND c.TempCod=@TempCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To) AND (@Lot IS NULL OR c.Mov1Nlote=@Lot);
  SELECT f.CalRecId controlId,f.CalFotoId id,RTRIM(f.CalFotoNombre) name,RTRIM(f.CalFotoMime) mime,f.CalFotoOrden sortOrder
  FROM CALRECEPFOTO f JOIN CALRECEP c ON c.EmpCod=f.EmpCod AND c.CalRecId=f.CalRecId
- WHERE c.EmpCod=@EmpCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To) AND (@Lot IS NULL OR c.Mov1Nlote=@Lot)
+ WHERE c.EmpCod=@EmpCod AND c.TempCod=@TempCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To) AND (@Lot IS NULL OR c.Mov1Nlote=@Lot)
  ORDER BY c.Mov1Nlote,f.CalFotoOrden,f.CalFotoId;
  SELECT c.CalRecId id,c.Mov1Nlote lot,RTRIM(p.ProdNom) producer,RTRIM(e.EspeNom) species,RTRIM(v.VarNom) variety
  FROM CALRECEP c
@@ -35,12 +36,12 @@ const getDashboard=async(empCod,input={})=>{
  LEFT JOIN PRODUCTORES p ON p.EmpCod=c.EmpCod AND p.ProdCod=c.MovProd
  LEFT JOIN ESPECIES e ON e.EmpCod=c.EmpCod AND e.Especod=c.Especod
  LEFT JOIN ESPECIES1 v ON v.EmpCod=c.EmpCod AND v.Especod=c.Especod AND v.VarCod=d.Mov1Var
- WHERE c.EmpCod=@EmpCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To)
+ WHERE c.EmpCod=@EmpCod AND c.TempCod=@TempCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To)
  ORDER BY c.Mov1Nlote;
  SELECT COALESCE(SUM(c.CalRecTamMuestra),0) sampleTotal,COALESCE(SUM(COALESCE(d.damageTotal,0)),0) damageTotal
  FROM CALRECEP c
  OUTER APPLY(SELECT SUM(x.CalDanFrutos) damageTotal FROM CALRECEPDANO x WHERE x.EmpCod=c.EmpCod AND x.CalRecId=c.CalRecId)d
- WHERE c.EmpCod=@EmpCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To);`);
+ WHERE c.EmpCod=@EmpCod AND c.TempCod=@TempCod AND c.CalRecEstado='F' AND c.CalRecFecha>=@From AND c.CalRecFecha<DATEADD(day,1,@To);`);
  const [controls,damages,calibers,colors,pests,photos,availableLots,historyRows]=result.recordsets,sampleTotal=controls.reduce((s,x)=>s+Number(x.sampleSize||0),0),damageTotal=damages.reduce((s,x)=>s+Number(x.fruits||0),0);
  const classification=buildQualityClassification(sampleTotal,damageTotal),exportFruit=classification[0].value,commercial=classification[1].value,history=historyRows[0]||{},historicalClassification=buildQualityClassification(history.sampleTotal,history.damageTotal),projectedYield=historicalClassification[0].value,firmnessValue=avg(controls,'firmness'),firmness=clamp(firmnessValue/70*100),brixValue=avg(controls,'brix'),brix=clamp(brixValue/20*100),defectFree=exportFruit,sanitary=controls.length?clamp(100-pests.length/controls.length*25):0;
  const colorDistribution=buildColorDistribution(colors);
