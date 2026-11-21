@@ -148,6 +148,12 @@ router.post(
     res.json(await impVentana.printFolios(req.context.empCod, req.body)),
   ),
 );
+router.post(
+  "/print-window/prepare",
+  run(async (req, res) =>
+    res.json(await impVentana.prepareFolios(req.context.empCod, req.body)),
+  ),
+);
 router.get("/import/template", run(sendImportTemplate));
 router.post(
   "/import",

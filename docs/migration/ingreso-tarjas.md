@@ -225,13 +225,16 @@ con valor y no se registraron nulos.
 La etiqueta física usa la Zebra GK420t a 203 dpi, con formato ZPL de 799 x 1558
 puntos (10 cm x 19,5 cm). Las dimensiones siguen configurables por `PARAMGE1`
 (`PARCod=10, PAR1Cod=2`) y las copias por `PARCod=10, PAR1Cod=1`, mediante el
-mismo procedimiento `TraeParametro`. La pantalla realiza impresión directa por
-TCP al puerto 9100 de la impresora seleccionada en `ConfImpresoras`; no usa el
-worker ni la tabla `OrdenImpresionFolio`. Si falta la IP de la impresora o el
-envío falla, responde un error funcional y no abre una ventana ni el diálogo de
-impresión del navegador. Como el envío físico no es transaccional, si un lote de
-folios falla después de enviar otros, el mensaje informa cuántas etiquetas ya
-fueron entregadas para evitar duplicados.
+mismo procedimiento `TraeParametro`. La pantalla guarda por navegador una
+configuración de impresión. En modo Ethernet envía directamente por TCP 9100 a
+la impresora seleccionada en `ConfImpresoras`. En modo USB, el endpoint
+autenticado `POST /print-window/prepare` prepara el mismo ZPL sin enviarlo y
+Chrome o Edge lo transfiere a una Zebra autorizada mediante WebUSB. La identidad
+se conserva en `localStorage`, mientras que el permiso físico sigue bajo el
+control del navegador y puede requerir una nueva selección. WebUSB exige HTTPS
+o localhost. Ningún modo usa el worker ni `OrdenImpresionFolio`. Si el envío
+falla después de entregar algunas etiquetas, el mensaje informa cuántas fueron
+enviadas para evitar duplicados.
 
 Al componer la etiqueta, el calibre elimina únicamente los ceros iniciales
 (por ejemplo, `0XLD` se imprime como `XLD`); los ceros internos se conservan.

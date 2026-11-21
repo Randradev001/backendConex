@@ -210,7 +210,7 @@
 "Procedure","Eti_CV_Normal14","ETIQUETAS","ETIQUETAS","","","","DISCOVERED",""
 "Procedure","Eti_CV_RioBlanco","ETIQUETAS","ETIQUETAS","","","","DISCOVERED",""
 "Procedure","Eti_CV_VINA2016","ETIQUETAS","ETIQUETAS","Layout ZPL historico VINASA","REIMPLEMENT_IMPORTABLE_TEMPLATE","/backendDocker/etiquetas/configuraciones/:confCod/rescatar-gx8","IMPLEMENTED","Rescatado como documento editable de 799x400; canvas y preview usan orientacion visual de lectura sin alterar ZPL; la impresion fisica permanece pendiente."
-"Procedure","Eti_VentanaP1","Ingreso_de_Folios","Ingreso_de_Folios","Genera etiqueta ZPL de folio procesado","REIMPLEMENT","src/modules/ingresoTarjas/impVentana.service.js","IMPLEMENTED_NOT_DEPLOYED","Conserva el layout 799x1558, variedades, calibres, cajas, peso del ultimo detalle, cuartel y folio; worker o dialogo segun configuracion."
+"Procedure","Eti_VentanaP1","Ingreso_de_Folios","Ingreso_de_Folios","Genera etiqueta ZPL de folio procesado","REIMPLEMENT","src/modules/ingresoTarjas/impVentana.service.js","IMPLEMENTED_NOT_DEPLOYED","Conserva el layout 799x1558, variedades, calibres, cajas, peso del ultimo detalle, cuartel y folio; Ventana de Impresion permite Ethernet TCP 9100 o USB local WebUSB segun la configuracion guardada en el navegador."
 "Procedure","Eti_LineaVina","ETIQUETAS","ETIQUETAS","","","","DISCOVERED",""
 "Procedure","Eti_LineaVina14","ETIQUETAS","ETIQUETAS","","","","DISCOVERED",""
 "Procedure","ExcelInfProc","Orden_Proceso","Orden_Proceso","","","","DISCOVERED",""

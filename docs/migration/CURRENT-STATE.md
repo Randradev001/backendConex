@@ -387,10 +387,13 @@ En escritorio ambos listados se distribuyen en columnas 60/40 y en pantallas
 pequeñas se apilan. `Ventana de Impresión` se abre desde el botón del listado,
 mantiene los filtros parciales y permite seleccionar varios folios. La etiqueta
 usa el ZPL histórico de `Eti_VentanaP1`, adaptado a la Zebra GK420t (10 x 19,5
-cm; 799 x 1558 puntos a 203 dpi), y lo envía directamente por TCP al puerto
-9100 de la impresora seleccionada en `ConfImpresoras`; no usa worker ni cola
-SQL. Si falta la IP de red o el envío falla, la pantalla informa el error y no
-abre una representación en el navegador.
+cm; 799 x 1558 puntos a 203 dpi). `Configurar impresora` permite guardar por
+navegador uno de dos modos: Ethernet, con envío TCP 9100 a una impresora de
+`ConfImpresoras`, o USB local, con selección de una Zebra y transferencia
+WebUSB desde Chrome/Edge bajo HTTPS o localhost. En USB,
+`POST /print-window/prepare` devuelve el ZPL sin imprimirlo en el servidor.
+Ningún modo usa worker ni cola SQL; los errores de red, permiso o desconexión
+USB se presentan en la pantalla.
 `EnvPesoSag` se agrega a `ENVCAT` y
 se inicializa desde `EnvPeso`; fue aplicado y verificado el 2026-09-30 sobre
 los 15 envases de la base configurada, sin valores nulos. Los cuarteles se conservan en los detalles.

@@ -328,6 +328,18 @@ const printFolios = async (empCod, payload = {}, dependencies = {}) => {
   return { mode: 'direct', sent, printer, tempCod };
 };
 
+const prepareFolios = async (empCod, payload = {}, dependencies = {}) => {
+  const poolProvider = dependencies.poolProvider || getPool;
+  const pool = await poolProvider();
+  const tempCod = await getActiveSeason(empCod, pool);
+  const labels = await loadPrintLabels(empCod, payload.folios, { ...dependencies, poolProvider: async () => pool });
+  return {
+    mode: 'prepared',
+    tempCod,
+    labels: labels.map((label) => ({ folio: label.folio, zpl: label.zpl }))
+  };
+};
+
 module.exports = {
   permission,
   PRINT_STATUS,
@@ -337,6 +349,7 @@ module.exports = {
   listPrintWindow: (empCod, query, dependencies = {}) => listTarjas(empCod, query, dependencies),
   getPrintWindowConfig,
   loadPrintLabels,
+  prepareFolios,
   printFolios,
   normalizeFolios
 };
