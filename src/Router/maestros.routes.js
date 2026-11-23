@@ -217,6 +217,12 @@ bindAuthorizedMaster('/subtipos-movimiento', {
   update: MaestrosController.updateSubtipoMovimiento,
   remove: MaestrosController.deleteSubtipoMovimiento
 }, 2);
+bindAuthorizedMaster('/correlativos', {
+  list: MaestrosController.listCorrelativos,
+  insert: MaestrosController.insertCorrelativo,
+  update: MaestrosController.updateCorrelativo,
+  remove: MaestrosController.deleteCorrelativo
+}, 17);
 bindAuthorizedMaster('/parametros-generales', {
   list: MaestrosController.listParametrosGenerales,
   insert: MaestrosController.insertParametroGeneral,
