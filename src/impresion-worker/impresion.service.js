@@ -1,8 +1,15 @@
 const { generateZpl } = require('../modules/etiquetas/zpl/zplCore');
 const { buildLegacyBoxCode } = require('./barcode');
 const { PRINT_STATUS } = require('./constants');
+const { getCommuneByNumericId } = require('../catalogs/chileComunas');
 
 const trim = (value) => String(value ?? '').trim();
+const communeName = (value) => {
+  const storedValue = trim(value);
+  const communeId = Number(storedValue);
+  if (!Number.isInteger(communeId) || communeId <= 0) return storedValue;
+  return getCommuneByNumericId(communeId)?.Comdesc || storedValue;
+};
 const formatDate = (value, type = 1, separator = '/') => {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '';
@@ -29,7 +36,7 @@ const variableValues = (context, code) => ({
   productor: trim(context.producerName || context.producerCode),
   productor_codigo: trim(context.producerExternalCode || context.producerCode),
   productor_secundario: trim(context.producerSecondaryName || context.producerName || context.producerCode),
-  comuna: trim(context.producerCommune),
+  comuna: communeName(context.producerCommune),
   provincia: trim(context.producerProvince),
   envase: trim(context.containerName || context.envCode),
   envase_externo: trim(context.containerExternalName || context.containerName || context.envCode),
@@ -134,4 +141,4 @@ const createImpresionService = ({ repository, printer, logger = console, workerI
   return { processNext };
 };
 
-module.exports = { createImpresionService, variableValues, formatDate, unresolvedVariables, buildPreparedLabel };
+module.exports = { createImpresionService, variableValues, formatDate, communeName, unresolvedVariables, buildPreparedLabel };

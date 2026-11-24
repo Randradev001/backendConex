@@ -64,6 +64,11 @@ const mapPrintContext = (row, { empCod, lineId, printerPort = 9100, printerTimeo
   if (!trim(row.EtiCod) || row.EtiVersion == null || !row.EtiDesignJson) throw new Error('La orden activa no tiene una etiqueta vigente disponible.');
   let labelDesign;
   try { labelDesign = JSON.parse(row.EtiDesignJson); } catch { throw new Error('El diseño vigente de la etiqueta contiene JSON inválido.'); }
+  const storedCommune = trim(row.ProdComuna);
+  const communeId = Number(storedCommune);
+  const producerCommune = Number.isInteger(communeId) && communeId > 0
+    ? getCommuneByNumericId(communeId)?.Comdesc || storedCommune
+    : storedCommune;
   return {
     empCod: Number(row.EmpCod), machine: Number(row.LinMaquina), lineId: Number(row.LinID), lineState: Number(row.LinEstado),
     caliber: trim(row.Calibre), envCode: Number(row.EnvCod), categoryCode: Number(row.Catcod), personCode: Number(row.LConfCodPer || 0),
@@ -72,7 +77,7 @@ const mapPrintContext = (row, { empCod, lineId, printerPort = 9100, printerTimeo
     processNumber: Number(row.Ordpnum), processDate: row.ProcessOrderDate, producerCode: trim(row.ProdCod),
     speciesName: trim(row.EspeNom), speciesExternalName: trim(row.EspeNomExt), varietyName: trim(row.VarNom),
     producerName: trim(row.OrderProducerName), producerSecondaryName: trim(row.ProdNom2), producerExternalCode: trim(row.ProdCodExt),
-    producerCommune: trim(row.ProdComuna), producerProvince: trim(row.ProdProvincia),
+    producerCommune, producerProvince: trim(row.ProdProvincia),
     containerName: trim(row.EnvNom), containerExternalName: trim(row.EnvNomExt),
     categoryName: trim(row.CatNom), categoryExternalName: trim(row.CatNomExt), caliberCode: Number(row.CalCod),
     dateFormatType: Number(row.ConfTipFecha || 1), dateSeparator: trim(row.ConfSepFec) || '/',
@@ -146,13 +151,7 @@ const createImpresionRepository = ({ poolProvider = getPool, empCod = Number(pro
       .input('EmpCod', sql.SmallInt, empCod)
       .input('LinID', sql.SmallInt, job.lineId);
     const result = await request.query(PRINT_CONTEXT_SQL);
-    const row = result.recordset[0];
-    const communeId = Number(trim(row?.ProdComuna));
-    if (Number.isInteger(communeId) && communeId > 0) {
-      const communeName = getCommuneByNumericId(communeId)?.Comdesc || null;
-      if (communeName) row.ProdComuna = communeName;
-    }
-    return mapPrintContext(row, {
+    return mapPrintContext(result.recordset[0], {
       empCod,
       lineId: job.lineId,
       printerPort: process.env.PRINT_PORT || 9100,
