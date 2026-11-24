@@ -35,6 +35,7 @@ const getAuthorizedMenu = async (pool, empCod, login) => {
       INNER JOIN MODULOS M ON M.SistCod=A.SistCod AND M.Modcod=A.Modcod
       INNER JOIN PROGRAM P ON P.SistCod=A.SistCod AND P.Modcod=A.Modcod AND P.ProgCod=A.ProgCod
       WHERE P.ProgTipo=1
+         OR (P.SistCod=100 AND P.Modcod=15 AND P.ProgCod=20)
       ORDER BY S.SistCod, M.Modcod, P.ProgCod
     `);
 

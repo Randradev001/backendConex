@@ -18,6 +18,12 @@ una empresa enviada por el navegador. Frontend y backend exigen el programa
 `database/20261124_dashboard_produccion.sql` completa el programa sin asignarlo
 automáticamente a usuarios o roles.
 
+La navegación reconoce este acceso por sus códigos `100/15/20`, no por el texto
+de `ProgNomGX`, `ProgIDmenu` ni por acciones de segundo nivel. Si el programa
+forma parte de los permisos efectivos del usuario, el menú publica
+`/dashboard/produccion` y la navegación directa queda habilitada. El backend
+también conserva este programa en el árbol aun si `ProgTipo` no está informado.
+
 ## Selección de la orden
 
 La consulta usa la temporada activa de `TEMP01` y selecciona una sola orden no

@@ -1449,3 +1449,8 @@ o no positivo produce un error de configuración explícito y nunca usa un valor
 fijo. La migración `database/20261124_dashboard_produccion.sql` completa
 `ProgNomGX=wdashproduccion` sin conceder permisos automáticamente. Detalle en
 [dashboard-produccion.md](dashboard-produccion.md).
+
+La visibilidad del acceso se resuelve directamente por la asignación efectiva
+del programa `100/15/20`. React no depende de `ProgNomGX`, `ProgIDmenu` ni de
+acciones adicionales para publicar `/dashboard/produccion`, y el constructor
+del menú backend no descarta este programa por `ProgTipo`.
