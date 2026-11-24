@@ -30,6 +30,10 @@ El catálogo de selección prioriza `Fact_Comunas.ComNombre`, la misma fuente de
 las guías electrónicas, y la complementa con `COMUNAS`, los valores no vacíos
 ya usados en `PRODUCTORES.ProdComuna`/`ProdPackCom` y un respaldo empacado. No
 requiere seleccionar una región previamente y nunca debe responder vacío.
+En instalaciones donde `PRODUCTORES.ProdComuna` o `ProdPackCom` son columnas
+numéricas, el backend traduce el nombre seleccionado a `Fact_Comunas.Id` antes
+de insertar o actualizar. El worker realiza la conversión inversa al preparar
+la etiqueta para que `Township` siempre reciba el nombre y no el identificador.
 
 ## Origen de campos — 2026-11-18
 

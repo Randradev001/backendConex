@@ -1393,6 +1393,44 @@ const sendWriteError = (res, catalogName, error, defaultMessage) => {
   });
 };
 
+const normalizeProductorCommuneWrite = async (req) => {
+  const pool = await getPool();
+  const schema = await pool.request().query(`
+    SELECT name AS FieldName, TYPE_NAME(user_type_id) AS DataType
+    FROM sys.columns
+    WHERE object_id=OBJECT_ID('PRODUCTORES') AND name IN ('ProdComuna','ProdPackCom')
+  `);
+  const dataTypes = new Map(schema.recordset.map((row) => [String(row.FieldName).toLowerCase(), String(row.DataType).toLowerCase()]));
+  const numericTypes = new Set(['tinyint', 'smallint', 'int', 'bigint', 'numeric', 'decimal']);
+
+  req.body = { ...(req.body || {}) };
+  for (const fieldName of ['ProdComuna', 'ProdPackCom']) {
+    if (!numericTypes.has(dataTypes.get(fieldName.toLowerCase()))) continue;
+    const rawValue = getWriteParam(req, fieldName);
+    if (rawValue === undefined || rawValue === null || String(rawValue).trim() === '') continue;
+    if (/^\d+$/.test(String(rawValue).trim())) continue;
+
+    const result = await pool.request()
+      .input('communeName', sql.VarChar(120), String(rawValue).trim())
+      .query(`
+        SELECT TOP (1) Id
+        FROM Fact_Comunas
+        WHERE UPPER(RTRIM(ComNombre))=UPPER(@communeName)
+      `);
+    if (!result.recordset[0]) throw httpError(400, `Comuna no encontrada en guías electrónicas: ${rawValue}`);
+    req.body[fieldName] = String(result.recordset[0].Id);
+  }
+};
+
+const withProductorCommuneNormalization = (handler) => async (req, res) => {
+  try {
+    await normalizeProductorCommuneWrite(req);
+    return handler(req, res);
+  } catch (error) {
+    return sendWriteError(res, 'productores', error, 'Error resolviendo comuna del productor');
+  }
+};
+
 const insertCatalog = (catalogName) => async (req, res) => {
   let transaction;
   let transactionStarted = false;
@@ -1737,8 +1775,8 @@ module.exports = {
   deleteCategoriaEnvase: deleteCatalog('categoriasEnvase'),
   listComunas,
   listProductores: listCatalog('productores'),
-  insertProductor: insertCatalog('productores'),
-  updateProductor: updateCatalog('productores'),
+  insertProductor: withProductorCommuneNormalization(insertCatalog('productores')),
+  updateProductor: withProductorCommuneNormalization(updateCatalog('productores')),
   deleteProductor: deleteCatalog('productores'),
   listCuarteles: listCatalog('cuarteles'),
   insertCuartel: insertCatalog('cuarteles'),

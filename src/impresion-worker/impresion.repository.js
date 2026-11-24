@@ -145,7 +145,19 @@ const createImpresionRepository = ({ poolProvider = getPool, empCod = Number(pro
       .input('EmpCod', sql.SmallInt, empCod)
       .input('LinID', sql.SmallInt, job.lineId);
     const result = await request.query(PRINT_CONTEXT_SQL);
-    return mapPrintContext(result.recordset[0], {
+    const row = result.recordset[0];
+    const communeId = Number(trim(row?.ProdComuna));
+    if (Number.isInteger(communeId) && communeId > 0) {
+      try {
+        const communeResult = await pool.request()
+          .input('CommuneId', sql.Int, communeId)
+          .query('SELECT TOP (1) RTRIM(ComNombre) Comdesc FROM Fact_Comunas WHERE Id=@CommuneId');
+        if (communeResult.recordset[0]?.Comdesc) row.ProdComuna = communeResult.recordset[0].Comdesc;
+      } catch {
+        // Instalaciones históricas guardan directamente el nombre y no poseen Fact_Comunas.
+      }
+    }
+    return mapPrintContext(row, {
       empCod,
       lineId: job.lineId,
       printerPort: process.env.PRINT_PORT || 9100,
