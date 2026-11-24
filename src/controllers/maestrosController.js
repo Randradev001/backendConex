@@ -1,4 +1,5 @@
 const { getPool, sql } = require('../conectorMysql/conectorSqlServer');
+const { buildCommuneCatalog } = require('../catalogs/chileComunas');
 const { nextCorrelative } = require('../services/gxCorrelatives.service');
 
 const DEFAULT_LIMIT = 200;
@@ -1083,7 +1084,26 @@ const listComunas = async (req, res) => {
       ORDER BY Comdesc
     `);
 
-    return res.json({ success: true, catalog: catalogName, count: result.recordset.length, data: result.recordset });
+    // Las guías electrónicas mantienen su catálogo en Fact_Comunas. Algunas
+    // instalaciones antiguas no tienen esa tabla, por eso se consulta de forma
+    // independiente y se conserva el respaldo local si no existe.
+    let electronicGuideRows = [];
+    try {
+      const guideResult = await pool.request().query(`
+        SELECT CONVERT(varchar(20), Id) ComCod, RTRIM(ComNombre) Comdesc
+        FROM Fact_Comunas
+        WHERE NULLIF(RTRIM(ComNombre), '') IS NOT NULL
+      `);
+      electronicGuideRows = guideResult.recordset;
+    } catch {
+      electronicGuideRows = [];
+    }
+
+    // Producción puede tener COMUNAS vacía. El catálogo empacado mantiene el
+    // selector operativo sin requerir una carga manual previa en SQL Server.
+    const data = buildCommuneCatalog({ databaseRows: [...result.recordset, ...electronicGuideRows], q, limit });
+
+    return res.json({ success: true, catalog: catalogName, count: data.length, data });
   } catch (error) {
     const status = error.status || 500;
     return res.status(status).json({
