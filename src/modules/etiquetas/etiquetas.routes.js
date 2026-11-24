@@ -23,6 +23,7 @@ router.get('/catalogo/:etiCod/versiones/:version', controller.getVersion);
 router.put('/catalogo/:etiCod/versiones/:version', controller.saveVersion);
 router.delete('/catalogo/:etiCod/versiones/:version', controller.removeVersion);
 router.post('/catalogo/:etiCod/versiones/:version/importar', controller.importVersionZpl);
+router.post('/catalogo/:etiCod/versiones/:version/restaurar-predeterminada', controller.restoreDefaultVersion);
 router.post('/catalogo/:etiCod/versiones/:version/render', controller.renderVersion);
 router.post('/catalogo/:etiCod/versiones/:version/preview', controller.previewVersion);
 router.post('/catalogo/:etiCod/versiones/:version/origenes-campos', controller.fieldOrigins);

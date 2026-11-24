@@ -1,5 +1,24 @@
 # CRUD visual de etiquetas y diseñador ZPL versionado
 
+## Correcciones operacionales urgentes — 2026-11-24
+
+La edición de una versión ofrece `Volver a predeterminada`. La acción reconstruye
+el layout desde `Eti_CV_VINA2016` y la `CONFIGETI` asociada, lo carga en el
+editor sin persistirlo y exige pulsar `Guardar` para reemplazar la versión. De
+este modo se puede revisar el resultado y cancelar antes de alterar la versión
+vigente.
+
+Los textos editables incorporan un selector de dato dinámico. `Township` queda
+vinculado explícitamente a `{{comuna}}`, cuya fuente productiva es
+`PRODUCTORES.ProdComuna` del productor de `ORDPROC.ProdCod`; `Province` usa
+`{{provincia}}` y `PRODUCTORES.ProdProvincia`. El selector mantiene el prefijo
+fijo del campo y sincroniza la lista de variables del documento.
+
+La fecha regulatoria `{{fecha}}` se toma exclusivamente de
+`ORDPROC.OrdpFecha`, expuesta en la consulta como `ProcessOrderDate`. El worker
+rechaza una orden activa sin esa fecha y no consulta `MOVFRUT.MovFecha` ni
+`MOVFRUT1.Mov1Fecha`, evitando usar la fecha de recepción.
+
 ## Origen de campos — 2026-11-18
 
 La cuarta pestaña del diseñador, `Origen de campos`, lista los elementos del

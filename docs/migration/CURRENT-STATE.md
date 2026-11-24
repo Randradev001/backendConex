@@ -1,5 +1,13 @@
 # Estado vigente de la migracion CONEX
 
+## Etiquetas operacionales — 2026-11-24
+
+La fecha impresa se obtiene exclusivamente de `ORDPROC.OrdpFecha`, no de la
+recepción. El diseñador versionado permite volver al layout predeterminado
+recuperado del XPZ antes de guardar y ofrece un selector de datos dinámicos en
+los textos. `Township` se vincula a `PRODUCTORES.ProdComuna` del productor de la
+orden y `Province` a `PRODUCTORES.ProdProvincia`.
+
 ## Runtime Node 24 — 2026-11-20
 
 El backend fija Node 24.22.3, su imagen Docker usa Alpine 3.24 con instalación

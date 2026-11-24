@@ -81,7 +81,7 @@ test('el contexto de impresión obtiene el productor guardado en la orden activa
       return {
         recordset: [{
           EmpCod: 1, LinMaquina: 1, LinID: 1, LinEstado: 1, Calibre: 'XL', EnvCod: 2,
-          Catcod: 34, Especod: 1, LConfCodPer: 6000, Ordpnum: 176, OrdpFecha: new Date('2026-09-29'),
+          Catcod: 34, Especod: 1, LConfCodPer: 6000, Ordpnum: 176, ProcessOrderDate: new Date('2026-09-29'),
           ProdCod: '7', VarCod: 17, EspeNom: 'CEREZAS', VarNom: 'BING',
           OrderProducerName: 'PRODUCTOR DE LA ORDEN', ProdComuna: 'TENO', ProdProvincia: 'CURICÓ',
           EnvNom: '5 KG', EnvNomExt: 'CAJA 5 KG', CatNom: 'EXPORTACIÓN', CalCod: 7,
@@ -97,6 +97,9 @@ test('el contexto de impresión obtiene el productor guardado en la orden activa
 
   assert.equal(loaded.producerCode, '7');
   assert.equal(loaded.producerName, 'PRODUCTOR DE LA ORDEN');
+  assert.equal(loaded.processDate.toISOString().slice(0, 10), '2026-09-29');
+  assert.match(statement, /o\.OrdpFecha AS ProcessOrderDate/);
+  assert.doesNotMatch(statement, /MovFecha|Mov1Fecha/);
   assert.match(statement, /p\.ProdCod=o\.ProdCod/);
   assert.match(statement, /AS OrderProducerName/);
   assert.match(statement, /cfg\.ConfLinea=1/);

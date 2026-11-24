@@ -82,6 +82,9 @@ const removeVersion = respond(async (req, res) => res.json(
 const importVersionZpl = respond(async (req, res) => res.json(
   await versions.importZpl(req.context?.empCod, req.params.etiCod, req.params.version, req.body || {})
 ));
+const restoreDefaultVersion = respond(async (req, res) => res.json(
+  await versions.restoreDefault(req.context?.empCod, req.params.etiCod, req.params.version)
+));
 const renderVersion = respond(async (req, res) => res.json(
   await versions.render(req.context?.empCod, req.params.etiCod, req.params.version, req.body || {})
 ));
@@ -96,5 +99,5 @@ module.exports = {
   list, get, save, importZpl, rescue, render, preview, remove, fieldOrigins,
   listCatalog, listLabelTypes, createLabel, updateLabel, removeLabel,
   createVersion, getVersion, saveVersion, removeVersion,
-  importVersionZpl, renderVersion, previewVersion
+  importVersionZpl, restoreDefaultVersion, renderVersion, previewVersion
 };
