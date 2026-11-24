@@ -1049,6 +1049,52 @@ const listCatalog = (catalogName) => async (req, res) => {
   }
 };
 
+const listComunas = async (req, res) => {
+  const catalogName = 'comunas';
+
+  try {
+    const pool = await getPool();
+    const limit = getLimit(req);
+    const q = getTextParam(req, 'q');
+    const request = pool.request()
+      .input('limit', sql.Int, limit)
+      .input('empCod', sql.Int, getContextEmpCod(req))
+      .input('q', sql.NVarChar(120), q ? `%${q}%` : null);
+    const result = await request.query(`
+      WITH CommuneOptions AS (
+        SELECT RTRIM(ComCod) ComCod, RTRIM(Comdesc) Comdesc
+        FROM COMUNAS
+        WHERE NULLIF(RTRIM(Comdesc), '') IS NOT NULL
+        UNION ALL
+        SELECT '' ComCod, RTRIM(ProdComuna) Comdesc
+        FROM PRODUCTORES
+        WHERE EmpCod=@empCod AND NULLIF(RTRIM(ProdComuna), '') IS NOT NULL
+        UNION ALL
+        SELECT '' ComCod, RTRIM(ProdPackCom) Comdesc
+        FROM PRODUCTORES
+        WHERE EmpCod=@empCod AND NULLIF(RTRIM(ProdPackCom), '') IS NOT NULL
+      )
+      SELECT TOP (@limit)
+        COALESCE(MAX(NULLIF(ComCod, '')), '') ComCod,
+        Comdesc
+      FROM CommuneOptions
+      WHERE @q IS NULL OR Comdesc LIKE @q
+      GROUP BY Comdesc
+      ORDER BY Comdesc
+    `);
+
+    return res.json({ success: true, catalog: catalogName, count: result.recordset.length, data: result.recordset });
+  } catch (error) {
+    const status = error.status || 500;
+    return res.status(status).json({
+      success: false,
+      catalog: catalogName,
+      message: status === 500 ? 'Error consultando comunas' : error.message,
+      error: error.message
+    });
+  }
+};
+
 const listExportadoraProductores = async (req, res) => {
   const catalogName = 'exportadoraProductores';
 
@@ -1669,7 +1715,7 @@ module.exports = {
   insertCategoriaEnvase: insertCatalog('categoriasEnvase'),
   updateCategoriaEnvase: updateCatalog('categoriasEnvase'),
   deleteCategoriaEnvase: deleteCatalog('categoriasEnvase'),
-  listComunas: listCatalog('comunas'),
+  listComunas,
   listProductores: listCatalog('productores'),
   insertProductor: insertCatalog('productores'),
   updateProductor: updateCatalog('productores'),
