@@ -6,6 +6,7 @@ const path = require("path");
 const ExcelJS = require("exceljs");
 
 const {
+  permission,
   IngresoTarjasError,
   normalizeFolio,
   listFilters,
@@ -18,6 +19,10 @@ const {
   resolveImportRow,
   importFoliosExcel,
 } = require("../src/modules/ingresoTarjas/ingresoTarjas.service");
+
+test("protege todo Folios Procesados solo con el programa 100/2/9", () => {
+  assert.deepEqual(permission, { sistema: 100, modulo: 2, programa: 9 });
+});
 
 const dependencies = ({
   usedBoxes = 2,

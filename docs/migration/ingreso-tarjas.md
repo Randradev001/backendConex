@@ -27,30 +27,25 @@ ese procedimiento GX como migrado por esta equivalencia.
 Los XPZ `ImpVentana.xpz` y `Eti_VentanaP1.xpz` fueron contrastados el
 2026-09-30. La pantalla nueva conserva sus filtros y la etiqueta ZPL historica;
 la ruta React es `/procesos-sag/folios-procesados/impresion` y reutiliza el
-permiso `100/20/5` del listado.
+permiso `100/2/9` del listado.
 
 ## Ubicacion y seguridad
 
 - Sistema: `100`, Control de Produccion Fruticola.
-- Modulo existente: `20`, Procesos S.A.G.
-- Programa nuevo: `5`, Folios Procesados.
-- Llamado GX para React: `wfoliosprocesados`.
+- Modulo existente: `2`, Procesos Planta.
+- Programa: `9`, Ingreso de Folios Autorizados.
+- Llamado GX para React: `wGENFOLPALLET`.
 - Ruta React de menu: `/procesos-sag/folios-procesados`.
 - Rutas React del formulario: `/nuevo`, `/:folio/ver` y `/:folio/editar`
   bajo la ruta de menu.
 - Ruta Node: `/backendDocker/ingreso-tarjas`.
 
-El acceso directo se registra adicionalmente como `120/1/4`, **Ingreso de
-Tarjas**, con el llamado `sagtarjas`, que resuelve la ruta React
-`/procesos-sag/folios-procesados/nuevo`. La
-migración idempotente `database/20261027_ingreso_tarjas_menu.sql` copia este
-permiso a quienes ya tienen Folios Procesados (`120/1/1`, `100/20/5` o el
-programa histórico `100/2/10`). La API acepta cualquiera de esos permisos.
-
-El programa historico `100/2/10`, `wfoliosprocesado`, no se modifica. El nuevo
-programa debe asignarse expresamente a usuarios o roles. Todas las rutas Node
-usan `EmpCod` y login desde la sesion; la pantalla no puede reemplazar la
-empresa autenticada.
+Desde el 2026-11-24 la única autorización aceptada por la API y por las rutas
+React es `100/2/9`. Los programas alternativos `120/1/1`, `120/1/4` y
+`100/20/5` no habilitan el listado ni sus subrutas. Los catálogos internos del
+formulario se consultan bajo el mismo endpoint y no exigen programas adicionales.
+Todas las rutas Node usan `EmpCod` y login desde la sesión; la pantalla no puede
+reemplazar la empresa autenticada.
 
 ## Modelo de datos
 
@@ -199,7 +194,8 @@ deshabilitados y deja `Visualizar` como la unica accion operativa.
 7. Se rechazan cajas que superan el saldo de la orden y lote.
 8. Dos altas concurrentes no pueden consumir el mismo saldo.
 9. Una falla de detalle no deja cabecera ni filas parciales.
-10. El endpoint rechaza usuarios sin permiso `100/20/5`.
+10. El endpoint rechaza usuarios sin permiso `100/2/9`, aunque tengan alguno de
+    los programas alternativos usados anteriormente.
 11. La carga acepta solo `.xlsx` y rechaza archivos que superen 1 GB.
 12. Un folio repetido dentro del archivo conserva la primera fila y reporta el descarte de las siguientes.
 13. Un error de un folio revierte solo ese folio y aparece en el reporte sin impedir la carga de los folios validos.
@@ -268,4 +264,4 @@ compatible con `SubeFoliosExcel`.
 La respuesta incluye folios cargados, rechazados y filas repetidas descartadas.
 La pantalla presenta un reporte con linea, folio y descripcion del error, mas
 un resumen de advertencias. El endpoint esta protegido por el permiso
-`100/20/5` y toma empresa y temporada de la sesion.
+`100/2/9` y toma empresa y temporada de la sesion.

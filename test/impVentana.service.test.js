@@ -1,6 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeFolios, labelData, buildLabelZpl } = require('../src/modules/ingresoTarjas/impVentana.service');
+const { permission, normalizeFolios, labelData, buildLabelZpl } = require('../src/modules/ingresoTarjas/impVentana.service');
+
+test('la ventana de impresión usa exclusivamente el programa 100/2/9', () => {
+  assert.deepEqual(permission, { sistema: 100, modulo: 2, programa: 9 });
+});
 
 test('normaliza y elimina folios repetidos para impresión', () => {
   assert.deepEqual(normalizeFolios(['73', '0000000073', '74']), ['0000000073', '0000000074']);

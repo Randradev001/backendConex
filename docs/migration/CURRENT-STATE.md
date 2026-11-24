@@ -326,7 +326,7 @@ Estado operativo:
 ## Folios Procesados e Ingreso de Tarjas
 
 Implementado en `/procesos-sag/folios-procesados` y
-`/backendDocker/ingreso-tarjas` con permiso `100/20/5`. El menú abre el listado
+`/backendDocker/ingreso-tarjas` con permiso único `100/2/9`. El menú abre el listado
 `Folios Procesados`; Agregar, Visualizar y Modificar llaman a la pantalla
 `Ingreso de Tarjas` en el modo correspondiente dentro de un componente `Dialog`;
 las rutas directas se mantienen por compatibilidad. El listado conserva los filtros
@@ -364,7 +364,8 @@ pero se deshabilitan para folios automáticos, inspeccionados, despachados, no
 disponibles o anulados; Visualizar continúa operativo. Excel se
 genera en Node como `.xlsx` con todo el resultado filtrado. El script
 `database/20260929_ingreso_tarjas_2016.sql` fue aplicado sobre `CONEX` el
-2026-09-29 y registró `wfoliosprocesados`; su asignación a usuarios o roles
+2026-09-29 y registró `wfoliosprocesados`; esa opción antigua ya no autoriza la
+ruta. El menú vigente resuelve `wGENFOLPALLET` y su asignación a usuarios o roles
 queda bajo Seguridad. Evidencia: [ingreso-tarjas.md](ingreso-tarjas.md).
 El filtro de folio del listado usa coincidencia parcial y la exportación Excel
 reutiliza ese mismo criterio.
@@ -1397,9 +1398,9 @@ Un objeto queda `READY` solo cuando:
 
 ## Vistas de origen para guías centralizadas en APERP (2026-10-07)
 
-Actualización 15-10-2026: se creó y aplicó en CONEX local el sistema `120 Procesos SAG`, módulo `1 Operacional`, con Folios Procesados, Inspecciones y Despachos SAG. La migración copia permisos equivalentes del sistema histórico 100 y conserva ambos códigos en el middleware; el menú prioriza el sistema 120 para evitar duplicados visuales. Rutas: `/procesos-sag/folios-procesados`, `/procesos-sag/inspecciones` y `/procesos-sag/despachos-sag`.
+Actualización 15-10-2026: se creó y aplicó en CONEX local el sistema `120 Procesos SAG`, módulo `1 Operacional`, con Folios Procesados, Inspecciones y Despachos SAG. Las rutas de Inspecciones y Despachos SAG conservan su política propia. Desde el 2026-11-24, `/procesos-sag/folios-procesados` dejó de aceptar el programa alternativo `120/1/1`.
 
-Actualización 27-10-2026: se preparó `database/20261027_ingreso_tarjas_menu.sql` para agregar `120/1/4 Ingreso de Tarjas` como acceso directo a `/procesos-sag/folios-procesados/nuevo`. El script copia permisos de Folios Procesados y la API acepta el nuevo programa junto con los códigos anteriores. El SQL quedó preparado e idempotente; no se ejecutó en producción desde este repositorio.
+Actualización 27-10-2026: se preparó `database/20261027_ingreso_tarjas_menu.sql` para agregar `120/1/4 Ingreso de Tarjas` como acceso directo. El SQL quedó como antecedente histórico y no fue ejecutado en producción desde este repositorio. Desde el 2026-11-24, la API y React no aceptan ese programa: todo Folios Procesados usa exclusivamente `100/2/9`.
 
 Actualización 15-10-2026: se agregó en CONEX local el sistema `130 Guias electronicas`, módulo `1 Operacional`, programa `1 Guías de Despacho`. La migración `database/20261015_guias_electronicas_menu.sql` copia únicamente los permisos ya existentes para `wguiasd` (100/2/20 o 70/6/3), y el menú web prioriza la nueva agrupación. La ruta sigue abriendo la misma pantalla central de APERP; su administración electrónica permanece en el sistema de APERP y conserva permisos separados. En desarrollo, Conex usa `VITE_APERP_GUIDES_URL` para apuntar al frontend APERP cuando ambos corren en puertos distintos.
 
@@ -1419,3 +1420,21 @@ APERP restringe guías al origen/empresa autorizados y ofrece modalidad XML por
 separado. Sin emisión real ni despliegue productivo. Detalle actualizado en
 [guias-origen-conex.md](guias-origen-conex.md). No se cambia a validado el estado
 de los objetos GeneXus: pendiente comparación con guía real Psoto.
+
+## Dashboard de producción en línea (2026-11-24)
+
+Implementado localmente `/dashboard/produccion` y
+`GET /backendDocker/dashboard-produccion`, ambos protegidos por el programa
+`100/15/20`. La empresa proviene exclusivamente de la sesión. La consulta toma
+la orden no cuadrada más reciente de la temporada activa, priorizando la orden
+en proceso, y actualiza la pantalla cada 30 segundos.
+
+El tablero presenta kilos ingresados y procesados, cajas leídas, variedades,
+distribución por calibre y calidad de los lotes ponderada por
+`ORDPROC1.Ordp1Kilos`. Exportación se estima como kilos `CAP001` sobre kilos
+ingresados y Comercial como su diferencia contra 100. Los pallets se calculan
+con redondeo inferior usando `PARAMGE1 70/1` de la empresa. El parámetro ausente
+o no positivo produce un error de configuración explícito y nunca usa un valor
+fijo. La migración `database/20261124_dashboard_produccion.sql` completa
+`ProgNomGX=wdashproduccion` sin conceder permisos automáticamente. Detalle en
+[dashboard-produccion.md](dashboard-produccion.md).

@@ -80,6 +80,8 @@ la diferencia es trabajo incompleto, cambio no documentado o una regresion.
   liberación de folios.
 - [Dashboard de inicio y atajos](migration/dashboard-inicio.md): portada
   operacional filtrada por el menu autorizado de cada usuario.
+- [Dashboard de producción](migration/dashboard-produccion.md): seguimiento
+  gerencial en línea de la orden, calidad ponderada, avance y pallets estimados.
 - [operacion de ordenes de proceso](migration/ordenes-proceso-operacion.md):
   seleccion de saldos, alta transaccional y confirmacion del correlativo.
 - [Folios Procesados e Ingreso de Tarjas](migration/ingreso-tarjas.md):

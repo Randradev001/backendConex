@@ -43,6 +43,7 @@ router.use('/lista-precios', require('../modules/listaPrecios/listaPrecios.route
 router.use('/guias-electronicas', require('./guiasElectronicas.routes'))
 router.use('/integraciones/aperp', require('./integracionesAperp.routes'))
 router.use('/dashboard-operacional', require('./dashboardOperacional.routes'))
+router.use('/dashboard-produccion', require('./dashboardProduccion.routes'))
 router.use('/print-agent/v1', printAgentRouter)
 
 // test para confirmar que este router está montado

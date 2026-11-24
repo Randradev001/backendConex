@@ -5,9 +5,7 @@ const os = require("os");
 const path = require("path");
 const multer = require("multer");
 const authContext = require("../../middleware/authContext");
-const {
-  requireAnyPermission,
-} = require("../../middleware/securityAuthorization");
+const { requirePermission } = require("../../middleware/securityAuthorization");
 const service = require("./ingresoTarjas.service");
 const impVentana = require("./impVentana.service");
 
@@ -112,11 +110,7 @@ const sendImportTemplate = async (_req, res) => {
 
 router.use(
   authContext,
-  requireAnyPermission([
-    { sistema: 120, modulo: 1, programa: 4 },
-    { sistema: 120, modulo: 1, programa: 1 },
-    service.permission,
-  ]),
+  requirePermission(service.permission),
 );
 router.get(
   "/form-data",

@@ -2,7 +2,7 @@ const { getPool, sql } = require('../../conectorMysql/conectorSqlServer');
 const { listTarjas, normalizeFolio } = require('./ingresoTarjas.service');
 const { sendZpl } = require('../../impresion-worker/printerClient');
 
-const permission = Object.freeze({ sistema: 100, modulo: 20, programa: 5 });
+const permission = Object.freeze({ sistema: 100, modulo: 2, programa: 9 });
 const PRINT_STATUS = Object.freeze({ PENDING: 0, PRINTED: 1, FAILED: 3, UNCERTAIN: 4, PROCESSING: 9 });
 const DEFAULT_DIMENSIONS = Object.freeze({
   1: [104, 211],

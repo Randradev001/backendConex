@@ -1,6 +1,6 @@
 const { getPool, sql } = require("../../conectorMysql/conectorSqlServer");
 
-const permission = { sistema: 100, modulo: 20, programa: 5 };
+const permission = { sistema: 100, modulo: 2, programa: 9 };
 const ANULADO_STATUS = 0;
 
 class IngresoTarjasError extends Error {
