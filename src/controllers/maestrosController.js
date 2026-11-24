@@ -496,6 +496,24 @@ const catalogos = {
       { table: 'MOVFRUT', fields: ['EmpCod', 'TMcod', 'TMSCod'] }
     ]
   },
+  correlativos: {
+    table: 'GenCor',
+    gxLevel: 1,
+    parentTable: 'DEFEMP',
+    parentKey: ['EmpCod'],
+    requiresEmpCod: true,
+    primaryKey: ['EmpCod', 'GenCod'],
+    columns: ['EmpCod', 'GenCod', 'GenCor10', 'GenCor5'],
+    orderBy: ['GenCod'],
+    filters: [{ param: 'GenCod', column: 'GenCod', type: 'text', length: 8, operator: 'like' }],
+    searchColumns: ['GenCod', 'GenCor10', 'GenCor5'],
+    fields: {
+      EmpCod: { type: 'int', required: true, min: 1 },
+      GenCod: { type: 'text', length: 8, required: true, uppercase: true },
+      GenCor10: { type: 'decimal', precision: 10, scale: 0, integer: true, required: true, min: 0, max: 9999999999, insertDefault: 0 },
+      GenCor5: { type: 'decimal', precision: 5, scale: 0, integer: true, required: true, min: 0, max: 99999, insertDefault: 0 }
+    }
+  },
   parametrosGenerales: {
     table: 'PARAMGEN',
     gxLevel: 1,
@@ -1195,6 +1213,9 @@ const normalizeValue = (fieldName, field, value, required = false) => {
     if (!Number.isFinite(numberValue)) {
       throw httpError(400, `Campo invalido: ${fieldName} debe ser numerico`);
     }
+    if (field.integer && !Number.isInteger(numberValue)) {
+      throw httpError(400, `Campo invalido: ${fieldName} debe ser entero`);
+    }
     validateChoice(fieldName, field, numberValue);
     validateRange(fieldName, field, numberValue);
     return numberValue;
@@ -1701,6 +1722,10 @@ module.exports = {
   insertSubtipoMovimiento: insertCatalog('subtiposMovimiento'),
   updateSubtipoMovimiento: updateCatalog('subtiposMovimiento'),
   deleteSubtipoMovimiento: deleteCatalog('subtiposMovimiento'),
+  listCorrelativos: listCatalog('correlativos'),
+  insertCorrelativo: insertCatalog('correlativos'),
+  updateCorrelativo: updateCatalog('correlativos'),
+  deleteCorrelativo: deleteCatalog('correlativos'),
   listParametrosGenerales: listCatalog('parametrosGenerales'),
   insertParametroGeneral: insertCatalog('parametrosGenerales'),
   updateParametroGeneral: updateCatalog('parametrosGenerales'),
