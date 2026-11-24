@@ -50,6 +50,10 @@ test('completa todas las variables que CONFIGETI puede generar para VINASA', () 
   assert.equal(formatDate(context.processDate, 4, '.'), '2017.29.11');
 });
 
+test('imprime la fecha civil SQL sin retroceder un día en Chile', () => {
+  assert.equal(formatDate(new Date('2026-11-25T00:00:00.000Z')), '25/11/2026');
+});
+
 test('detecta marcadores que el worker no pudo resolver', () => {
   assert.deepEqual(unresolvedVariables('^FD{{linimpre_3}} {{codigo}} {{linimpre_3}}^FS'), ['linimpre_3', 'codigo']);
 });

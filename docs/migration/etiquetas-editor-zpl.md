@@ -19,6 +19,14 @@ La fecha regulatoria `{{fecha}}` se toma exclusivamente de
 rechaza una orden activa sin esa fecha y no consulta `MOVFRUT.MovFecha` ni
 `MOVFRUT1.Mov1Fecha`, evitando usar la fecha de recepción.
 
+La captura de la fecha de orden trata `YYYY-MM-DD` como fecha civil local y no
+como medianoche UTC. Esto evita que una orden ingresada para el día siguiente
+se guarde con el día anterior en la zona horaria de Chile. Al generar el ZPL, la
+fecha devuelta por SQL Server se formatea con sus componentes UTC para conservar
+el mismo día civil y no convertir la medianoche al día anterior. El maestro
+de Productores ofrece además búsqueda directa sobre `COMUNAS.Comdesc` para
+guardar `ProdComuna`, que alimenta `{{comuna}}` en la etiqueta.
+
 ## Origen de campos — 2026-11-18
 
 La cuarta pestaña del diseñador, `Origen de campos`, lista los elementos del

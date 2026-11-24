@@ -7,9 +7,19 @@ const {
   finalizeQuadrature,
   getProcessReport,
   normalizeCommercialRows,
+  processDateValue,
   reopenQuadrature,
   setProcessActive
 } = require('../src/services/ordenesProceso.service');
+
+test('conserva la fecha civil de la orden sin retroceder un día por UTC', () => {
+  const date = processDateValue('2026-11-25');
+  assert.equal(date.getFullYear(), 2026);
+  assert.equal(date.getMonth(), 10);
+  assert.equal(date.getDate(), 25);
+  assert.equal(date.getHours(), 12);
+  assert.throws(() => processDateValue('2026-02-30'), /fecha del proceso/i);
+});
 
 test('arma el informe GX con cabecera, lotes, detalle agrupado y rendimiento', async () => {
   let statement = '';

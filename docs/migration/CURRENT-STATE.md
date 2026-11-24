@@ -7,6 +7,9 @@ recepción. El diseñador versionado permite volver al layout predeterminado
 recuperado del XPZ antes de guardar y ofrece un selector de datos dinámicos en
 los textos. `Township` se vincula a `PRODUCTORES.ProdComuna` del productor de la
 orden y `Province` a `PRODUCTORES.ProdProvincia`.
+La fecha de proceso se guarda como fecha civil local, sin el retroceso de un día
+que producía el parseo UTC. Productores permite buscar y asignar directamente
+una comuna del catálogo `COMUNAS`.
 
 ## Runtime Node 24 — 2026-11-20
 
