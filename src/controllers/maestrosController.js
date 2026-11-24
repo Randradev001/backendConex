@@ -1,4 +1,5 @@
 const { getPool, sql } = require('../conectorMysql/conectorSqlServer');
+const { buildCommuneCatalog, getCommuneNumericId, getCommuneByNumericId } = require('../catalogs/chileComunas');
 const { nextCorrelative } = require('../services/gxCorrelatives.service');
 
 const DEFAULT_LIMIT = 200;
@@ -1049,6 +1050,56 @@ const listCatalog = (catalogName) => async (req, res) => {
   }
 };
 
+const listComunas = async (req, res) => {
+  const catalogName = 'comunas';
+
+  try {
+    const pool = await getPool();
+    const limit = getLimit(req);
+    const q = getTextParam(req, 'q');
+    const request = pool.request()
+      .input('limit', sql.Int, limit)
+      .input('empCod', sql.Int, getContextEmpCod(req))
+      .input('q', sql.NVarChar(120), q ? `%${q}%` : null);
+    const result = await request.query(`
+      WITH CommuneOptions AS (
+        SELECT RTRIM(ComCod) ComCod, RTRIM(Comdesc) Comdesc
+        FROM COMUNAS
+        WHERE NULLIF(RTRIM(Comdesc), '') IS NOT NULL
+        UNION ALL
+        SELECT '' ComCod, RTRIM(ProdComuna) Comdesc
+        FROM PRODUCTORES
+        WHERE EmpCod=@empCod AND NULLIF(RTRIM(ProdComuna), '') IS NOT NULL
+        UNION ALL
+        SELECT '' ComCod, RTRIM(ProdPackCom) Comdesc
+        FROM PRODUCTORES
+        WHERE EmpCod=@empCod AND NULLIF(RTRIM(ProdPackCom), '') IS NOT NULL
+      )
+      SELECT TOP (@limit)
+        COALESCE(MAX(NULLIF(ComCod, '')), '') ComCod,
+        Comdesc
+      FROM CommuneOptions
+      WHERE @q IS NULL OR Comdesc LIKE @q
+      GROUP BY Comdesc
+      ORDER BY Comdesc
+    `);
+
+    // Producción puede tener COMUNAS vacía. El catálogo empacado mantiene el
+    // selector operativo sin requerir una carga manual previa en SQL Server.
+    const data = buildCommuneCatalog({ databaseRows: result.recordset, q, limit });
+
+    return res.json({ success: true, catalog: catalogName, count: data.length, data });
+  } catch (error) {
+    const status = error.status || 500;
+    return res.status(status).json({
+      success: false,
+      catalog: catalogName,
+      message: status === 500 ? 'Error consultando comunas' : error.message,
+      error: error.message
+    });
+  }
+};
+
 const listExportadoraProductores = async (req, res) => {
   const catalogName = 'exportadoraProductores';
 
@@ -1325,6 +1376,57 @@ const sendWriteError = (res, catalogName, error, defaultMessage) => {
     message,
     error: error.message
   });
+};
+
+const normalizeProductorCommuneWrite = async (req) => {
+  const pool = await getPool();
+  const schema = await pool.request().query(`
+    SELECT name AS FieldName, TYPE_NAME(user_type_id) AS DataType
+    FROM sys.columns
+    WHERE object_id=OBJECT_ID('PRODUCTORES') AND name IN ('ProdComuna','ProdPackCom')
+  `);
+  const dataTypes = new Map(schema.recordset.map((row) => [String(row.FieldName).toLowerCase(), String(row.DataType).toLowerCase()]));
+  const numericTypes = new Set(['tinyint', 'smallint', 'int', 'bigint', 'numeric', 'decimal']);
+
+  req.body = { ...(req.body || {}) };
+  for (const fieldName of ['ProdComuna', 'ProdPackCom']) {
+    if (!numericTypes.has(dataTypes.get(fieldName.toLowerCase()))) continue;
+    const rawValue = getWriteParam(req, fieldName);
+    if (rawValue === undefined || rawValue === null || String(rawValue).trim() === '') continue;
+    if (/^\d+$/.test(String(rawValue).trim())) continue;
+
+    const communeId = getCommuneNumericId(rawValue);
+    if (communeId === null) throw httpError(400, `Comuna no encontrada: ${rawValue}`);
+    req.body[fieldName] = String(communeId);
+  }
+};
+
+const withProductorCommuneNormalization = (handler) => async (req, res) => {
+  try {
+    await normalizeProductorCommuneWrite(req);
+    return handler(req, res);
+  } catch (error) {
+    return sendWriteError(res, 'productores', error, 'Error resolviendo comuna del productor');
+  }
+};
+
+const withProductorCommuneRead = (handler) => async (req, res) => {
+  const sendJson = res.json.bind(res);
+  res.json = (payload) => {
+    if (payload?.success && Array.isArray(payload.data)) {
+      payload.data = payload.data.map((row) => {
+        const normalized = { ...row };
+        for (const fieldName of ['ProdComuna', 'ProdPackCom']) {
+          const communeId = Number(String(row[fieldName] ?? '').trim());
+          if (!Number.isInteger(communeId) || communeId <= 0) continue;
+          normalized[fieldName] = getCommuneByNumericId(communeId)?.Comdesc || row[fieldName];
+        }
+        return normalized;
+      });
+    }
+    return sendJson(payload);
+  };
+  return handler(req, res);
 };
 
 const insertCatalog = (catalogName) => async (req, res) => {
@@ -1669,10 +1771,10 @@ module.exports = {
   insertCategoriaEnvase: insertCatalog('categoriasEnvase'),
   updateCategoriaEnvase: updateCatalog('categoriasEnvase'),
   deleteCategoriaEnvase: deleteCatalog('categoriasEnvase'),
-  listComunas: listCatalog('comunas'),
-  listProductores: listCatalog('productores'),
-  insertProductor: insertCatalog('productores'),
-  updateProductor: updateCatalog('productores'),
+  listComunas,
+  listProductores: withProductorCommuneRead(listCatalog('productores')),
+  insertProductor: withProductorCommuneNormalization(insertCatalog('productores')),
+  updateProductor: withProductorCommuneNormalization(updateCatalog('productores')),
   deleteProductor: deleteCatalog('productores'),
   listCuarteles: listCatalog('cuarteles'),
   insertCuartel: insertCatalog('cuarteles'),

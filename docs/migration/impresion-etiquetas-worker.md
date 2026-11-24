@@ -11,6 +11,11 @@ El proceso queda deshabilitado por defecto. No se considera productivo hasta
 aplicar la migración, cargar `ConfImpresoras`, probar una Zebra real y retirar
 controladamente el trigger SQL histórico.
 
+Corrección 2026-11-24: el campo `{{fecha}}` se alimenta únicamente desde
+`ORDPROC.OrdpFecha` de la orden activa. La consulta lo nombra
+`ProcessOrderDate`, falla si viene vacío y no usa las fechas de recepción de
+`MOVFRUT` o `MOVFRUT1`.
+
 ## Evidencia GeneXus adicional
 
 Fuente: `C:\paso\Export_Coneximprime.xpz`, exportada el 2026-09-08.

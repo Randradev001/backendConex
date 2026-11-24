@@ -414,6 +414,41 @@ const createEtiquetaVersionService = ({ poolProvider = getPool, fetchImpl = glob
     return { ...current, design, zpl: generateZpl(design) };
   };
 
+  const restoreDefault = async (company, codeValue, versionValue) => {
+    const current = await getVersion(company, codeValue, versionValue);
+    const empCod = normalizeCompany(company);
+    const code = normalizeConfigCode(codeValue);
+    const legacyCode = trim(current.label.legacyConfigCode);
+    if (!legacyCode) throw new EtiquetaError(422, 'HISTORICAL_SOURCE_NOT_FOUND', 'La etiqueta no tiene una configuración GX8 asociada.');
+
+    const pool = await poolProvider();
+    const historical = await pool.request()
+      .input('EmpCod', sql.SmallInt, empCod)
+      .input('ConfCod', sql.Char(10), legacyCode)
+      .query(configurationSql);
+    if (!historical.recordset.length) {
+      throw new EtiquetaError(422, 'HISTORICAL_SOURCE_NOT_FOUND', 'No se encontró la configuración histórica asociada a la etiqueta.');
+    }
+    const type = String(historical.recordset[0]?.ConfTipEti || current.configuration.type || '').trim().toUpperCase();
+    if (type !== 'VINASA') {
+      throw new EtiquetaError(422, 'HISTORICAL_FORMAT_NOT_SUPPORTED', `El rescate automático de ${type || '(sin tipo)'} aún no está implementado.`);
+    }
+
+    const zpl = buildVinasaZpl(historical.recordset);
+    const design = parseZpl(zpl, {
+      dpi: 203,
+      name: current.template.name || `Versión ${current.versionNumber} · ${code}`,
+      description: current.template.description || ''
+    });
+    design.displayRotation = 180;
+    return {
+      ...current,
+      design,
+      zpl,
+      source: { procedure: 'Eti_CV_VINA2016', configuration: legacyCode, persisted: false }
+    };
+  };
+
   const render = async (company, code, version, payload = {}) => {
     const current = await getVersion(company, code, version);
     const design = payload.design ? validateDocument(payload.design) : current.template.design;
@@ -441,7 +476,7 @@ const createEtiquetaVersionService = ({ poolProvider = getPool, fetchImpl = glob
     return bytes;
   };
 
-  return { listTypes, list, createLabel, updateLabel, removeLabel, createVersion, getVersion, saveVersion, removeVersion, importZpl, render, preview };
+  return { listTypes, list, createLabel, updateLabel, removeLabel, createVersion, getVersion, saveVersion, removeVersion, importZpl, restoreDefault, render, preview };
 };
 
 const service = createEtiquetaVersionService();

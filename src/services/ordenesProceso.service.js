@@ -11,6 +11,20 @@ const optionalDate = (value, name) => {
   }
   return text;
 };
+const processDateValue = (value) => {
+  const text = String(value || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La fecha del proceso no es valida.');
+  }
+  const [year, month, day] = text.split('-').map(Number);
+  // Se construye como fecha civil local al mediodía. `new Date('YYYY-MM-DD')`
+  // interpreta UTC y en Chile puede retroceder al día anterior al enviarse a SQL.
+  const date = new Date(year, month - 1, day, 12, 0, 0, 0);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La fecha del proceso no es valida.');
+  }
+  return date;
+};
 const roundMoney = (value) => Math.round((Number(value) + Number.EPSILON) * 10000) / 10000;
 
 const normalizeCommercialRows = (rows) => {
@@ -102,8 +116,7 @@ const create = async (empCod, login, body = {}) => {
   if (!tempCod) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La temporada es obligatoria.');
   if (!Array.isArray(body.lots) || !body.lots.length) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'Debe seleccionar al menos un lote.');
   const process = body.process || {};
-  const processDate = process.date ? new Date(process.date) : new Date();
-  if (Number.isNaN(processDate.getTime())) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La fecha del proceso no es valida.');
+  const processDate = processDateValue(process.date);
   const variety = int(process.variety, 'variedad', 1);
   const exporter = int(process.exporter, 'exportadora', 1);
   const label = String(process.label || '').trim();
@@ -726,7 +739,7 @@ const update = async (empCod, login, tempCod, ordpnumInput, body = {}) => {
   const ordpnum = int(ordpnumInput, 'orden', 1); const temp = String(tempCod || '').trim(); const process = body.process || {};
   if (!temp) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La temporada es obligatoria.');
   if (!Array.isArray(body.lots) || !body.lots.length) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'Debe seleccionar al menos un lote.');
-  const processDate = process.date ? new Date(process.date) : new Date(); if (Number.isNaN(processDate.getTime())) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La fecha del proceso no es valida.');
+  const processDate = processDateValue(process.date);
   const variety = int(process.variety, 'variedad', 1); const exporter = int(process.exporter, 'exportadora', 1); const label = String(process.label || '').trim(); if (!label) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La etiqueta es obligatoria.');
   const pool = await getPool(); const tx = new sql.Transaction(pool); await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
   try {
@@ -767,6 +780,7 @@ module.exports = {
   getQuadrature,
   buildQuadrature,
   normalizeCommercialRows,
+  processDateValue,
   finalizeQuadrature,
   reopenQuadrature,
   setProcessActive

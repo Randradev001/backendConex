@@ -14,7 +14,10 @@ class ZplValidationError extends Error {
 
 const VARIABLE_SAMPLES = Object.freeze({
   calibre: '00LL',
-  calibre_sin_ceros: 'XLD'
+  calibre_sin_ceros: 'XLD',
+  comuna: 'CODEGUA',
+  provincia: 'CACHAPOAL',
+  fecha: '24/11/2026'
 });
 
 const numeric = (value, fallback = 0) => {

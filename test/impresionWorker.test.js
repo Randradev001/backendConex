@@ -1,11 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { buildLegacyBoxCode } = require('../src/impresion-worker/barcode');
-const { createImpresionService, variableValues, formatDate, unresolvedVariables } = require('../src/impresion-worker/impresion.service');
+const { createImpresionService, variableValues, formatDate, communeName, unresolvedVariables } = require('../src/impresion-worker/impresion.service');
 const { createImpresionRepository } = require('../src/impresion-worker/impresion.repository');
 const { PRINT_STATUS } = require('../src/impresion-worker/constants');
 const { printerPrintPermission } = require('../src/impresion-worker/impresion.routes');
 const { createImpresionHttpService, printerPayload, testVariables } = require('../src/impresion-worker/impresion.http.service');
+const { getCommuneNumericId } = require('../src/catalogs/chileComunas');
 
 const design = {
   schemaVersion: 1, name: 'Caja', description: '', widthMm: 100, heightMm: 50,
@@ -50,6 +51,17 @@ test('completa todas las variables que CONFIGETI puede generar para VINASA', () 
   assert.equal(formatDate(context.processDate, 4, '.'), '2017.29.11');
 });
 
+test('imprime la fecha civil SQL sin retroceder un día en Chile', () => {
+  assert.equal(formatDate(new Date('2026-11-25T00:00:00.000Z')), '25/11/2026');
+});
+
+test('nunca imprime el identificador numérico de la comuna', () => {
+  const id = getCommuneNumericId('CODEGUA');
+  assert.equal(id, 50);
+  assert.equal(communeName(id), 'CODEGUA');
+  assert.equal(variableValues({ ...context, producerCommune: id }, '000123').comuna, 'CODEGUA');
+});
+
 test('detecta marcadores que el worker no pudo resolver', () => {
   assert.deepEqual(unresolvedVariables('^FD{{linimpre_3}} {{codigo}} {{linimpre_3}}^FS'), ['linimpre_3', 'codigo']);
 });
@@ -81,9 +93,9 @@ test('el contexto de impresión obtiene el productor guardado en la orden activa
       return {
         recordset: [{
           EmpCod: 1, LinMaquina: 1, LinID: 1, LinEstado: 1, Calibre: 'XL', EnvCod: 2,
-          Catcod: 34, Especod: 1, LConfCodPer: 6000, Ordpnum: 176, OrdpFecha: new Date('2026-09-29'),
+          Catcod: 34, Especod: 1, LConfCodPer: 6000, Ordpnum: 176, ProcessOrderDate: new Date('2026-09-29'),
           ProdCod: '7', VarCod: 17, EspeNom: 'CEREZAS', VarNom: 'BING',
-          OrderProducerName: 'PRODUCTOR DE LA ORDEN', ProdComuna: 'TENO', ProdProvincia: 'CURICÓ',
+          OrderProducerName: 'PRODUCTOR DE LA ORDEN', ProdComuna: String(getCommuneNumericId('CODEGUA')), ProdProvincia: 'CACHAPOAL',
           EnvNom: '5 KG', EnvNomExt: 'CAJA 5 KG', CatNom: 'EXPORTACIÓN', CalCod: 7,
           CIMPNombre: 'Zebra 1', CIMPIP: '192.168.1.51', EtiCod: 'LAVINA16',
           EtiVersion: 2, EtiDesignJson: JSON.stringify(design)
@@ -97,6 +109,10 @@ test('el contexto de impresión obtiene el productor guardado en la orden activa
 
   assert.equal(loaded.producerCode, '7');
   assert.equal(loaded.producerName, 'PRODUCTOR DE LA ORDEN');
+  assert.equal(loaded.producerCommune, 'CODEGUA');
+  assert.equal(loaded.processDate.toISOString().slice(0, 10), '2026-09-29');
+  assert.match(statement, /o\.OrdpFecha AS ProcessOrderDate/);
+  assert.doesNotMatch(statement, /MovFecha|Mov1Fecha/);
   assert.match(statement, /p\.ProdCod=o\.ProdCod/);
   assert.match(statement, /AS OrderProducerName/);
   assert.match(statement, /cfg\.ConfLinea=1/);

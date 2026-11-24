@@ -1,5 +1,42 @@
 # CRUD visual de etiquetas y diseñador ZPL versionado
 
+## Correcciones operacionales urgentes — 2026-11-24
+
+La edición de una versión ofrece `Volver a predeterminada`. La acción reconstruye
+el layout desde `Eti_CV_VINA2016` y la `CONFIGETI` asociada, lo carga en el
+editor sin persistirlo y exige pulsar `Guardar` para reemplazar la versión. De
+este modo se puede revisar el resultado y cancelar antes de alterar la versión
+vigente.
+
+Los textos editables incorporan un selector de dato dinámico. `Township` queda
+vinculado explícitamente a `{{comuna}}`, cuya fuente productiva es
+`PRODUCTORES.ProdComuna` del productor de `ORDPROC.ProdCod`; `Province` usa
+`{{provincia}}` y `PRODUCTORES.ProdProvincia`. El selector mantiene el prefijo
+fijo del campo y sincroniza la lista de variables del documento.
+
+La fecha regulatoria `{{fecha}}` se toma exclusivamente de
+`ORDPROC.OrdpFecha`, expuesta en la consulta como `ProcessOrderDate`. El worker
+rechaza una orden activa sin esa fecha y no consulta `MOVFRUT.MovFecha` ni
+`MOVFRUT1.Mov1Fecha`, evitando usar la fecha de recepción.
+
+La captura de la fecha de orden trata `YYYY-MM-DD` como fecha civil local y no
+como medianoche UTC. Esto evita que una orden ingresada para el día siguiente
+se guarde con el día anterior en la zona horaria de Chile. Al generar el ZPL, la
+fecha devuelta por SQL Server se formatea con sus componentes UTC para conservar
+el mismo día civil y no convertir la medianoche al día anterior. El maestro
+de Productores ofrece además búsqueda directa sobre `COMUNAS.Comdesc` para
+guardar `ProdComuna`, que alimenta `{{comuna}}` en la etiqueta.
+El catálogo del maestro Productores combina `COMUNAS`, los valores no vacíos ya
+usados en `PRODUCTORES.ProdComuna`/`ProdPackCom` y un respaldo empacado. No
+depende del módulo de guías electrónicas, no requiere seleccionar una región
+previamente y nunca debe responder vacío.
+En instalaciones donde `PRODUCTORES.ProdComuna` o `ProdPackCom` son columnas
+numéricas, el backend de Productores traduce el nombre seleccionado a un
+identificador estable del catálogo chileno empacado antes de insertar o
+actualizar. El worker realiza la conversión inversa al preparar la etiqueta
+para que `Township` siempre reciba el nombre y no el identificador. Las guías
+electrónicas no participan ni se modifican en este flujo.
+
 ## Origen de campos — 2026-11-18
 
 La cuarta pestaña del diseñador, `Origen de campos`, lista los elementos del

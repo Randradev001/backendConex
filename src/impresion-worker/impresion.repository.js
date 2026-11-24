@@ -1,4 +1,5 @@
 const { getPool, sql } = require('../conectorMysql/conectorSqlServer');
+const { getCommuneByNumericId } = require('../catalogs/chileComunas');
 const { PRINT_STATUS } = require('./constants');
 
 const trim = (value) => String(value ?? '').trim();
@@ -14,7 +15,7 @@ const PRINT_CONTEXT_SQL = `
   SELECT TOP (1)
     l.EmpCod, l.LinMaquina, l.LinID, l.LinEstado,
     c.Calibre, c.EnvCod, c.Catcod, c.Especod, c.LConfCodPer,
-    o.Ordpnum, o.OrdpFecha, o.ProdCod, o.VarCod,
+    o.Ordpnum, o.OrdpFecha AS ProcessOrderDate, o.ProdCod, o.VarCod,
     LTRIM(RTRIM(e.EspeNom)) AS EspeNom,
     LTRIM(RTRIM(e.EspeNomExt)) AS EspeNomExt,
     LTRIM(RTRIM(v.VarNom)) AS VarNom,
@@ -58,17 +59,25 @@ const PRINT_CONTEXT_SQL = `
 const mapPrintContext = (row, { empCod, lineId, printerPort = 9100, printerTimeoutMs = 5000 }) => {
   if (!row) throw new Error(`No existe la línea ${lineId} para la empresa ${empCod}.`);
   if (row.Ordpnum == null) throw new Error('No existe una orden de proceso activa.');
+  if (row.ProcessOrderDate == null) throw new Error('La orden de proceso activa no tiene fecha de proceso.');
   if (!trim(row.CIMPIP)) throw new Error(`La línea ${lineId} no tiene una IP configurada en ConfImpresoras.`);
   if (!trim(row.EtiCod) || row.EtiVersion == null || !row.EtiDesignJson) throw new Error('La orden activa no tiene una etiqueta vigente disponible.');
   let labelDesign;
   try { labelDesign = JSON.parse(row.EtiDesignJson); } catch { throw new Error('El diseño vigente de la etiqueta contiene JSON inválido.'); }
+  const storedCommune = trim(row.ProdComuna);
+  const communeId = Number(storedCommune);
+  const producerCommune = Number.isInteger(communeId) && communeId > 0
+    ? getCommuneByNumericId(communeId)?.Comdesc || storedCommune
+    : storedCommune;
   return {
     empCod: Number(row.EmpCod), machine: Number(row.LinMaquina), lineId: Number(row.LinID), lineState: Number(row.LinEstado),
     caliber: trim(row.Calibre), envCode: Number(row.EnvCod), categoryCode: Number(row.Catcod), personCode: Number(row.LConfCodPer || 0),
-    processNumber: Number(row.Ordpnum), processDate: row.OrdpFecha, producerCode: trim(row.ProdCod),
+    // La fecha regulatoria de la etiqueta proviene exclusivamente de la cabecera
+    // de la orden de proceso; no usar fechas de MOVFRUT/MOVFRUT1 (recepción).
+    processNumber: Number(row.Ordpnum), processDate: row.ProcessOrderDate, producerCode: trim(row.ProdCod),
     speciesName: trim(row.EspeNom), speciesExternalName: trim(row.EspeNomExt), varietyName: trim(row.VarNom),
     producerName: trim(row.OrderProducerName), producerSecondaryName: trim(row.ProdNom2), producerExternalCode: trim(row.ProdCodExt),
-    producerCommune: trim(row.ProdComuna), producerProvince: trim(row.ProdProvincia),
+    producerCommune, producerProvince: trim(row.ProdProvincia),
     containerName: trim(row.EnvNom), containerExternalName: trim(row.EnvNomExt),
     categoryName: trim(row.CatNom), categoryExternalName: trim(row.CatNomExt), caliberCode: Number(row.CalCod),
     dateFormatType: Number(row.ConfTipFecha || 1), dateSeparator: trim(row.ConfSepFec) || '/',
