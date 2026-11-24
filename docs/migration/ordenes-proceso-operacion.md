@@ -4,6 +4,27 @@ Fecha de revision: 2026-10-21.
 
 Estado: alta y modificacion implementadas.
 
+## Cambio de estado — 2026-11-24
+
+La pantalla `/ordenes-proceso/cambio-estado` implementa el procedimiento GX8
+`CamEstProc` bajo el programa `110/2/3`. Permite ingresar el N° de una orden,
+consultar su estado actual en la temporada activa de la empresa autenticada,
+seleccionar un nuevo estado (`0` Ingresada, `1` En proceso, `4` Cerrada, `5`
+Cuadrada u `8` Anulada) y guardar el cambio.
+
+El backend protege la consulta y la actualización únicamente con la asignación
+del programa `110/2/3` al menú del usuario. La actualización se ejecuta en una
+transacción serializable y modifica exclusivamente `ORDPROC.OrdpEstado`; no
+actualiza fechas, usuario, totales, movimientos ni detalles de la orden. La
+migración de catálogo es `database/20261124_ordenes_proceso_cambio_estado_menu.sql`;
+la asignación de cada usuario debe quedar en `ASIGSIST`, `ASIG` y `ASIGPROG`.
+
+Verificación de menú del 2026-11-24 en `CONEX` local: el programa `110/2/3`
+estaba clasificado como `ProgTipo=0` (Sistema), aunque ya estaba asignado a
+`ADMINFULL` y a sus usuarios. Se corrigió únicamente `ProgTipo` a `1` (Usuario).
+`getAuthorizedMenu` confirmó la opción para `MANDRADE`, `AANDRADE` y `DANNY`,
+empresa 1. La ruta guardada `/ordenes-proceso/cambio-estado` se conservó.
+
 ## Alcance
 
 La pantalla `/ordenes-proceso/operacion` migra el WorkPanel GX8

@@ -1,4 +1,5 @@
 const { sql, getPool } = require('../conectorMysql/conectorSqlServer');
+const orderLinks = require('../modules/ordenesProceso/ordenesProceso.link');
 
 class OrdenesProcesoError extends Error { constructor(status, code, message) { super(message); this.status = status; this.code = code; } }
 const int = (v, name, min = 0) => { const n = Number(v); if (!Number.isInteger(n) || n < min) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', `${name} no es valido.`); return n; };
@@ -770,11 +771,41 @@ const update = async (empCod, login, tempCod, ordpnumInput, body = {}) => {
   } catch (error) { await tx.rollback(); if (error instanceof OrdenesProcesoError) throw error; throw new OrdenesProcesoError(500,'ORDER_UPDATE_ERROR',error.message); }
 };
 
+const createSecureLink = async (sessionToken, empCod, login, data = {}) => {
+  const order = await getOrder(empCod, data.tempCod, data.ordpnum);
+  if (Number(order.header?.OrdpEstado) !== 0) {
+    throw new OrdenesProcesoError(409, 'ORDER_NOT_EDITABLE', 'La orden no se puede editar en su estado actual.');
+  }
+  try {
+    return {
+      ref: orderLinks.createOrderLink({
+        sessionToken,
+        empCod,
+        login,
+        tempCod: data.tempCod,
+        ordpnum: Number(data.ordpnum)
+      })
+    };
+  } catch (error) {
+    throw new OrdenesProcesoError(400, error.code || 'ORDER_LINK_ERROR', error.message);
+  }
+};
+
+const resolveSecureLink = (sessionToken, empCod, login, data = {}) => {
+  try {
+    return orderLinks.resolveOrderLink({ sessionToken, empCod, login, ref: data.ref });
+  } catch (error) {
+    throw new OrdenesProcesoError(error.code === 'ORDER_LINK_EXPIRED' ? 410 : 400, error.code || 'ORDER_LINK_ERROR', error.message);
+  }
+};
+
 module.exports = {
   OrdenesProcesoError,
   listLots,
   create,
   update,
+  createSecureLink,
+  resolveSecureLink,
   getOrder,
   getProcessReport,
   getQuadrature,

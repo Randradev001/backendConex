@@ -150,50 +150,62 @@ const getPermissions = async (pool, login, empCod) => {
 
   const [systems, modules, programs, actions] = await Promise.all([
     request.query(`
-      SELECT DISTINCT SistCod FROM (
-        SELECT SistCod FROM ASIGSIST WHERE GECODEMP=@empCod AND RTRIM(AsgSisLogin)=@login
-        UNION
-        SELECT T.SistCod FROM URolesPorUser R INNER JOIN ASIG T
-          ON T.GECODEMP=0 AND RTRIM(REPLACE(T.AsigUsu,CHAR(160),' '))=RTRIM(R.ROLCod)
-        WHERE R.GECODEMP=@empCod AND RTRIM(R.UsuLogin)=@login
-        UNION
-        SELECT T.SistCod FROM URolesPorUser R INNER JOIN ASIGPROG T
-          ON T.GECODEMP=0 AND RTRIM(T.UsuLogin)=RTRIM(R.ROLCod)
-        WHERE R.GECODEMP=@empCod AND RTRIM(R.UsuLogin)=@login
-      ) P
+      SELECT DISTINCT ASI.SistCod
+      FROM ASIGSIST ASI
+      WHERE ASI.GECODEMP=@empCod
+        AND RTRIM(REPLACE(ASI.AsgSisLogin,CHAR(160),' '))=RTRIM(REPLACE(@login,CHAR(160),' '))
     `),
     pool.request().input('login', sql.VarChar(10), login).input('empCod', sql.Int, empCod)
       .query(`
-        SELECT DISTINCT SistCod, Modcod FROM (
-          SELECT SistCod, AsigMod AS Modcod FROM ASIG
-          WHERE GECODEMP=@empCod AND RTRIM(REPLACE(AsigUsu,CHAR(160),' '))=@login
-          UNION
-          SELECT T.SistCod, T.AsigMod FROM URolesPorUser R INNER JOIN ASIG T
-            ON T.GECODEMP=0 AND RTRIM(REPLACE(T.AsigUsu,CHAR(160),' '))=RTRIM(R.ROLCod)
-          WHERE R.GECODEMP=@empCod AND RTRIM(R.UsuLogin)=@login
-        ) P
+        SELECT DISTINCT A.SistCod, A.AsigMod AS Modcod
+        FROM ASIG A
+        INNER JOIN ASIGSIST ASI
+          ON ASI.GECODEMP=A.GECODEMP
+         AND RTRIM(REPLACE(ASI.AsgSisLogin,CHAR(160),' '))=RTRIM(REPLACE(A.AsigUsu,CHAR(160),' '))
+         AND ASI.SistCod=A.SistCod
+        WHERE A.GECODEMP=@empCod
+          AND RTRIM(REPLACE(A.AsigUsu,CHAR(160),' '))=RTRIM(REPLACE(@login,CHAR(160),' '))
       `),
     pool.request().input('login', sql.VarChar(10), login).input('empCod', sql.Int, empCod)
       .query(`
-        SELECT DISTINCT SistCod, Modcod, ProgCod FROM (
-          SELECT SistCod, Modcod, ProgCod FROM ASIGPROG
-          WHERE GECODEMP=@empCod AND RTRIM(UsuLogin)=@login
-          UNION
-          SELECT T.SistCod, T.Modcod, T.ProgCod FROM URolesPorUser R INNER JOIN ASIGPROG T
-            ON T.GECODEMP=0 AND RTRIM(T.UsuLogin)=RTRIM(R.ROLCod)
-          WHERE R.GECODEMP=@empCod AND RTRIM(R.UsuLogin)=@login
-        ) P
+        SELECT DISTINCT AP.SistCod, AP.Modcod, AP.ProgCod
+        FROM ASIGPROG AP
+        INNER JOIN PROGRAM P
+          ON P.SistCod=AP.SistCod AND P.Modcod=AP.Modcod AND P.ProgCod=AP.ProgCod
+         AND P.ProgTipo=1
+        INNER JOIN ASIG A
+          ON A.GECODEMP=AP.GECODEMP
+         AND RTRIM(REPLACE(A.AsigUsu,CHAR(160),' '))=RTRIM(REPLACE(AP.UsuLogin,CHAR(160),' '))
+         AND A.SistCod=AP.SistCod
+         AND A.AsigMod=AP.Modcod
+        INNER JOIN ASIGSIST ASI
+          ON ASI.GECODEMP=AP.GECODEMP
+         AND RTRIM(REPLACE(ASI.AsgSisLogin,CHAR(160),' '))=RTRIM(REPLACE(AP.UsuLogin,CHAR(160),' '))
+         AND ASI.SistCod=AP.SistCod
+        WHERE AP.GECODEMP=@empCod
+          AND RTRIM(REPLACE(AP.UsuLogin,CHAR(160),' '))=RTRIM(REPLACE(@login,CHAR(160),' '))
       `),
     pool.request().input('login', sql.VarChar(10), login).input('empCod', sql.Int, empCod)
       .query(`
-        SELECT DISTINCT SistCod, Modcod, ProgCod, ProgOPCod FROM (
-          SELECT SistCod, Modcod, ProgCod, ProgOPCod FROM ASIGPROG1
-          WHERE GECODEMP=@empCod AND RTRIM(UsuLogin)=@login
-          UNION
-          SELECT T.SistCod, T.Modcod, T.ProgCod, T.ProgOPCod FROM URolesPorUser R INNER JOIN ASIGPROG1 T
-            ON T.GECODEMP=0 AND RTRIM(T.UsuLogin)=RTRIM(R.ROLCod)
-          WHERE R.GECODEMP=@empCod AND RTRIM(R.UsuLogin)=@login
-        ) P
+        SELECT DISTINCT AP1.SistCod, AP1.Modcod, AP1.ProgCod, AP1.ProgOPCod
+        FROM ASIGPROG1 AP1
+        INNER JOIN ASIGPROG AP
+          ON AP.GECODEMP=AP1.GECODEMP
+         AND RTRIM(REPLACE(AP.UsuLogin,CHAR(160),' '))=RTRIM(REPLACE(AP1.UsuLogin,CHAR(160),' '))
+         AND AP.SistCod=AP1.SistCod
+         AND AP.Modcod=AP1.Modcod
+         AND AP.ProgCod=AP1.ProgCod
+        INNER JOIN ASIG A
+          ON A.GECODEMP=AP.GECODEMP
+         AND RTRIM(REPLACE(A.AsigUsu,CHAR(160),' '))=RTRIM(REPLACE(AP.UsuLogin,CHAR(160),' '))
+         AND A.SistCod=AP.SistCod
+         AND A.AsigMod=AP.Modcod
+        INNER JOIN ASIGSIST ASI
+          ON ASI.GECODEMP=AP.GECODEMP
+         AND RTRIM(REPLACE(ASI.AsgSisLogin,CHAR(160),' '))=RTRIM(REPLACE(AP.UsuLogin,CHAR(160),' '))
+         AND ASI.SistCod=AP.SistCod
+        WHERE AP1.GECODEMP=@empCod
+          AND RTRIM(REPLACE(AP1.UsuLogin,CHAR(160),' '))=RTRIM(REPLACE(@login,CHAR(160),' '))
       `)
   ]);
 

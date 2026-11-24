@@ -1,5 +1,47 @@
 # Estado vigente de la migracion CONEX
 
+## Actualización de roles — 2026-11-24
+
+`Actualizar rol` (`ActuRol16`) reconstruye los permisos de todos los usuarios
+registrados para ese rol en `URolesPorUser`, en cada empresa asignada con
+`GECODEMP>0`. Elimina sus filas de `ASIGPROG1`, `ASIGPROG`, `ASIG` y `ASIGSIST`,
+y carga únicamente los programas de la plantilla del rol (`GECODEMP=0`),
+derivando sistemas y módulos y copiando sus acciones históricas compatibles.
+Los accesos adicionales y los de otros roles también se reemplazan. Una
+plantilla vacía deja al usuario sin permisos. La operación es serializable y
+un fallo revierte los cambios de todos los usuarios.
+
+`Guardar programas` conserva la edición de la plantilla como operación
+separada; la aplicación ocurre con `Actualizar rol`. La reaplicación desde la
+ficha de un usuario se limita a ese usuario en la empresa de sesión. React
+informa el reemplazo en la confirmación y renueva el menú de sesión al terminar.
+El menú continúa leyendo las asignaciones físicas del usuario, con
+`ProgTipo=1`; los permisos `ProgTipo=0` también se copian, pero no se muestran.
+
+Verificación: 279 pruebas backend aprobadas y cuatro escenarios SQL reales en
+tablas temporales mediante `node scripts/verify-role-permissions.js`, incluyendo
+aislamiento de usuarios/empresas, plantilla vacía y rollback total ante un fallo.
+La verificación no modifica permisos reales. Build frontend aprobado y ESLint
+dirigido sin errores; persisten los avisos de formato CRLF preexistentes.
+
+## Cambio de estado de órdenes de proceso — 2026-11-24
+
+El procedimiento GX8 `CamEstProc` está disponible como pantalla React en
+`/ordenes-proceso/cambio-estado`, con menú `110/2/3`. Consulta el N° de orden
+en la temporada activa, muestra el estado vigente y permite seleccionar el
+nuevo valor de `ORDPROC.OrdpEstado`. La ruta backend usa exclusivamente la
+asignación del programa al menú del usuario y la actualización serializable
+modifica solo `OrdpEstado`. La migración del catálogo de programa es
+`database/20261124_ordenes_proceso_cambio_estado_menu.sql`; la asignación debe
+existir directamente para cada usuario en `ASIGSIST`, `ASIG` y `ASIGPROG`.
+
+El catálogo local `CONEX` tenía `110/2/3` como `ProgTipo=0`; se corrigió a
+`1` (Usuario). La consulta real del menú confirmó la opción para `MANDRADE`,
+`AANDRADE` y `DANNY` en empresa 1. Los programas de tipo 0 siguen fuera del menú.
+
+El menú de CONEX se arma desde las asignaciones directas completas del usuario
+en `ASIGSIST`, `ASIG` y `ASIGPROG`; no toma programas desde roles.
+
 ## Etiquetas operacionales — 2026-11-24
 
 La fecha impresa se obtiene exclusivamente de `ORDPROC.OrdpFecha`, no de la
@@ -907,6 +949,7 @@ empresa y fecha local sin contadores intermedios. Ver
 | Usuarios y catalogos | Implementado | CRUD protegido por administrador de Seguridad |
 | Roles por usuario | Operativo | `URolesPorUser`; agregar y quitar conserva permisos directos |
 | Plantilla de rol | Implementado | programas en `ASIGPROG` con `GECODEMP=0` |
+| Actualizar rol | Implementado | reemplaza todos los permisos de sus usuarios con la plantilla del rol |
 | Permisos directos | Implementado | editor por usuario, sistema, modulo y programa |
 | Acciones directas | Conservadas | `ASIGPROG1`; pantalla avanzada disponible |
 | Acciones dentro del rol | Pendiente | no se migran crear/modificar/eliminar en esta etapa |
@@ -914,8 +957,9 @@ empresa y fecha local sin contadores intermedios. Ver
 
 La pantalla `Asignacion de accesos` selecciona una vez el usuario. Muestra una
 pestana `Directos`, todas las pestanas de roles asignados y controles para
-agregar o quitar roles. Administrar una pestana de rol modifica la plantilla y
-afecta dinamicamente a todos sus usuarios; no modifica asignaciones directas.
+agregar o quitar roles. Administrar una pestana de rol modifica la plantilla.
+`Actualizar rol` reemplaza los permisos físicos de todos sus usuarios con los
+programas guardados, incluyendo sus accesos adicionales y los de otros roles.
 Tras cualquiera de esas operaciones, React renueva la sesion autenticada para
 reflejar inmediatamente el menu lateral y los atajos autorizados del dashboard.
 

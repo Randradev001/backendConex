@@ -12,6 +12,8 @@ const processPermission = (required) => (req, res, next) => {
   return requirePermission(required)(req, res, next);
 };
 router.use(authContext, processPermission(permission));
+router.post('/enlaces', controller.createLink);
+router.post('/enlaces/resolver', controller.resolveLink);
 router.get('/lotes', controller.lots);
 router.get('/:tempCod/:ordpnum/pdf', controller.pdf);
 router.get('/:tempCod/:ordpnum/informe-proceso/pdf', controller.processReportPdf);

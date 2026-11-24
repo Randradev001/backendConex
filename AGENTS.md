@@ -48,6 +48,13 @@ update `CURRENT-STATE.md` as part of the same change.
   is HTML with `.xls`, PDF uses the browser print dialog, and both export only
   rows loaded in React.
 
+### Regla general APERP de seguridad
+
+Para los objetos APERP que se modifiquen o creen, la validación funcional de
+seguridad se limita a comprobar que el programa esté asignado al usuario en su
+menú. No se deben considerar permisos de acción, roles, niveles ni otros tipos
+de permisos, salvo que el usuario lo solicite explícitamente.
+
 ## Before Changing Behavior
 
 1. Find the GX object in the XPZ and inventory.

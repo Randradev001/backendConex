@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 
 const { getAuthorizedMenu } = require('../src/services/seguridadMenu.service');
 
-test('incluye 100/15/20 por su asignación aunque no dependa de ProgTipo ni ProgNomGX', async () => {
+test('arma el menu desde ASIGSIST, ASIG y ASIGPROG directos del usuario', async () => {
   const inputs = {};
   let statement = '';
   const pool = {
@@ -38,6 +38,9 @@ test('incluye 100/15/20 por su asignación aunque no dependa de ProgTipo ni Prog
   assert.deepEqual(inputs, { empCod: 7, login: 'GERENCIA' });
   assert.equal(menu[0].modulos[0].programas[0].progCod, 20);
   assert.equal(menu[0].modulos[0].programas[0].llamadoGX, '');
-  assert.match(statement, /OR \(P\.SistCod=100 AND P\.Modcod=15 AND P\.ProgCod=20\)/);
-  assert.doesNotMatch(statement, /ASIGSIST/);
+  assert.match(statement, /ASIGSIST/);
+  assert.match(statement, /INNER JOIN ASIG A/);
+  assert.match(statement, /INNER JOIN ASIGPROG AP/);
+  assert.match(statement, /P\.ProgTipo=1/);
+  assert.doesNotMatch(statement, /URolesPorUser/);
 });

@@ -1,6 +1,6 @@
 # Asignaciones de seguridad interactivas
 
-> Estado al 2026-07-31: implementado y operativo para permisos directos y
+> Estado al 2026-11-24: implementado y operativo para permisos directos y
 > plantillas de rol nuevas. La homologacion automatica de plantillas historicas
 > de `BDCONEXCO` sigue pendiente porque sus catalogos `MODULOS` y `PROGRAM` no
 > coinciden completamente con CONEX. Consultar primero
@@ -72,8 +72,8 @@ editor jerarquico centrado en el usuario:
 5. guarda el sistema completo en una sola transaccion SQL.
 
 Este modo administra excepciones directas en la empresa autenticada. Los
-permisos aportados por `URolesPorUser` no se copian ni se eliminan al editar al
-usuario.
+permisos se editan directamente en `ASIG*`. La aplicación separada de un rol
+puede reemplazarlos por completo según la regla de `Actualizar rol`.
 
 ### Pestanas de roles
 
@@ -85,9 +85,16 @@ usuario.
 5. informa cuantos usuarios reciben actualmente el rol.
 
 La plantilla se guarda con `GECODEMP = 0` y el codigo del rol en las columnas
-de usuario de `ASIG` y `ASIGPROG`. No modifica las asignaciones directas de los
-usuarios. Todos los integrantes registrados en `URolesPorUser` reciben los
-cambios dinamicamente al calcular sus permisos efectivos.
+de usuario de `ASIG` y `ASIGPROG`. Guardar no aplica todavía cambios a usuarios.
+`Actualizar rol` toma todos los integrantes registrados en `URolesPorUser` en
+sus empresas asignadas (`GECODEMP>0`), elimina todos sus permisos en `ASIGPROG1`,
+`ASIGPROG`, `ASIG` y `ASIGSIST`, y carga únicamente los programas guardados del
+rol. Deriva sistemas y módulos, y copia las acciones históricas compatibles de
+la plantilla. También reemplaza accesos adicionales y permisos de otros roles.
+Una plantilla vacía deja al usuario sin permisos. Todo el reemplazo ocurre en
+una transacción serializable; si un usuario falla se revierte la operación
+completa. La reaplicación desde la ficha del usuario afecta solo a ese usuario
+en la empresa autenticada.
 
 ## Estado de las plantillas historicas
 
@@ -125,6 +132,9 @@ pendientes de una homologacion de codigos de Seguridad.
 - Quitar un modulo elimina sus programas y acciones.
 - Quitar el sistema elimina toda su rama de asignaciones directas.
 - Guardar un rol no crea ni elimina filas directas de sus usuarios.
+- Actualizar un rol reemplaza todos los permisos de cada usuario asignado con
+  los programas de ese rol, incluyendo `ProgTipo=0` y `ProgTipo=1`.
+- El menú lee únicamente las asignaciones físicas y muestra `ProgTipo=1`.
 
 ## API
 
@@ -133,6 +143,7 @@ pendientes de una homologacion de codigos de Seguridad.
 - `PUT /backendDocker/seguridad/catalogos/usuarios/:login/asignaciones/:sistema`
 - `GET /backendDocker/seguridad/catalogos/roles/:role/permisos`
 - `PUT /backendDocker/seguridad/catalogos/roles/:role/permisos`
+- `POST /backendDocker/seguridad/catalogos/roles/:role/reaplicar`
 
 El `PUT` de usuario recibe `assigned` y una lista `modules`. El `PUT` de rol
 recibe la lista `programs`. Ninguno recibe `GECODEMP` desde React.
@@ -142,3 +153,9 @@ recibe la lista `programs`. Ninguno recibe `GECODEMP` desde React.
 Las reglas puras de normalizacion y sincronizacion se cubren con
 `test/seguridadAsignaciones.rules.test.js`. La compilacion de React verifica la
 integracion de la pantalla con las rutas y el cliente HTTP.
+`test/seguridadRoles.service.test.js` verifica el alcance y rollback del
+reemplazo. `node scripts/verify-role-permissions.js` ejecuta el SQL real sobre
+tablas temporales con las columnas de la base configurada; comprueba el
+reemplazo de programas y jerarquía, conservación de usuarios ajenos y plantillas,
+alcance de la reaplicación individual, rol vacío y rollback total. No modifica
+permisos reales.

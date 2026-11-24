@@ -1,4 +1,5 @@
 const service = require('../services/ordenesProceso.service');
+const authContext = require('../middleware/authContext');
 const PDFDocument = require('pdfkit');
 const context = (req) => ({ empCod: Number(req.context?.empCod), login: String(req.context?.login || '') });
 const run = (fn) => async (req, res, next) => { try { return await fn(req, res); } catch (e) { if (e instanceof service.OrdenesProcesoError) return res.status(e.status).json({ code: e.code, message: e.message }); return next(e); } };
@@ -310,6 +311,18 @@ const processReportPdf = run(async (req, res) => {
 });
 
 module.exports = {
+  createLink: run(async (req, res) => res.json(await service.createSecureLink(
+    authContext.getSessionToken(req),
+    context(req).empCod,
+    context(req).login,
+    req.body
+  ))),
+  resolveLink: run(async (req, res) => res.json(await service.resolveSecureLink(
+    authContext.getSessionToken(req),
+    context(req).empCod,
+    context(req).login,
+    req.body
+  ))),
   lots: run(async (req, res) => res.json(await service.listLots(context(req).empCod, req.query))),
   create: run(async (req, res) => res.status(201).json(await service.create(context(req).empCod, context(req).login, req.body))),
   update: run(async (req, res) => res.json(await service.update(context(req).empCod, context(req).login, req.params.tempCod, req.params.ordpnum, req.body))),

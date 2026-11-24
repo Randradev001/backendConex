@@ -7,35 +7,35 @@ const getAuthorizedMenu = async (pool, empCod, login) => {
     .input('empCod', sql.Int, empCod)
     .input('login', sql.VarChar(10), login)
     .query(`
-      WITH EffectivePrograms AS (
-        SELECT SistCod, Modcod, ProgCod
-        FROM ASIGPROG
-        WHERE GECODEMP=@empCod AND RTRIM(UsuLogin)=@login
-        UNION
-        SELECT T.SistCod, T.Modcod, T.ProgCod
-        FROM URolesPorUser R
-        INNER JOIN ASIGPROG T
-          ON T.GECODEMP=0 AND RTRIM(T.UsuLogin)=RTRIM(R.ROLCod)
-        WHERE R.GECODEMP=@empCod AND RTRIM(R.UsuLogin)=@login
-      )
       SELECT DISTINCT
         S.SistCod,
         S.SistNombre,
         S.SistFAIcons,
         M.Modcod,
-        M.ModDes,
+        COALESCE(NULLIF(RTRIM(A.AsigDes),''),RTRIM(M.ModDes)) AS ModDes,
         M.ModFAIcons,
         P.ProgCod,
         P.ProgDes,
         P.ProgNomGX,
         P.ProgIDmenu,
         P.ProgTarget
-      FROM EffectivePrograms A
-      INNER JOIN SISTEMAS S ON S.SistCod=A.SistCod
-      INNER JOIN MODULOS M ON M.SistCod=A.SistCod AND M.Modcod=A.Modcod
-      INNER JOIN PROGRAM P ON P.SistCod=A.SistCod AND P.Modcod=A.Modcod AND P.ProgCod=A.ProgCod
-      WHERE P.ProgTipo=1
-         OR (P.SistCod=100 AND P.Modcod=15 AND P.ProgCod=20)
+      FROM ASIGSIST SS
+      INNER JOIN SISTEMAS S ON S.SistCod=SS.SistCod
+      INNER JOIN ASIG A
+        ON A.GECODEMP=SS.GECODEMP
+       AND RTRIM(REPLACE(A.AsigUsu,CHAR(160),' '))=RTRIM(REPLACE(SS.AsgSisLogin,CHAR(160),' '))
+       AND A.SistCod=SS.SistCod
+      INNER JOIN MODULOS M ON M.SistCod=A.SistCod AND M.Modcod=A.AsigMod
+      INNER JOIN ASIGPROG AP
+        ON AP.GECODEMP=A.GECODEMP
+       AND RTRIM(REPLACE(AP.UsuLogin,CHAR(160),' '))=RTRIM(REPLACE(A.AsigUsu,CHAR(160),' '))
+       AND AP.SistCod=A.SistCod
+       AND AP.Modcod=A.AsigMod
+      INNER JOIN PROGRAM P
+        ON P.SistCod=AP.SistCod AND P.Modcod=AP.Modcod AND P.ProgCod=AP.ProgCod
+       AND P.ProgTipo=1
+      WHERE SS.GECODEMP=@empCod
+        AND RTRIM(REPLACE(SS.AsgSisLogin,CHAR(160),' '))=RTRIM(REPLACE(@login,CHAR(160),' '))
       ORDER BY S.SistCod, M.Modcod, P.ProgCod
     `);
 

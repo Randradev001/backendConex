@@ -56,7 +56,7 @@ const bindRoleContext = (request, { empCod, login, role, actor }) => request
   .input('role', sql.VarChar(10), role)
   .input('actor', sql.VarChar(10), actor);
 
-// Los permisos de rol se unen en lectura; nunca se copian sobre los permisos GX8 directos.
+// Asignar el rol conserva los permisos existentes; Actualizar rol aplica la plantilla.
 const materializeRolePermissions = async () => {};
 
 const removeRoleAssignment = async (transaction, context) => {
@@ -218,32 +218,71 @@ const saveRolePermissions = async (roleValue, payload, context) => {
   }
 };
 
-const reapplyRolePermissions = async (roleValue, payload, context) => {
+const replaceUserPermissionsFromRole = async (transaction, context) => {
+  // ActuRol16 reemplaza todo el acceso del usuario por esta plantilla,
+  // incluso si tenia permisos directos o programas de otros roles.
+  await bindRoleContext(transaction.request(), context).query(`
+    DELETE FROM ASIGPROG1 WHERE GECODEMP=@empCod AND RTRIM(UsuLogin)=@login;
+    DELETE FROM ASIGPROG WHERE GECODEMP=@empCod AND RTRIM(UsuLogin)=@login;
+    DELETE FROM ASIG WHERE GECODEMP=@empCod AND RTRIM(AsigUsu)=@login;
+    DELETE FROM ASIGSIST WHERE GECODEMP=@empCod AND RTRIM(AsgSisLogin)=@login;
+
+    INSERT INTO ASIGSIST (GECODEMP, AsgSisLogin, SistCod)
+    SELECT DISTINCT @empCod, @login, SistCod
+    FROM ASIGPROG WHERE GECODEMP=0 AND RTRIM(UsuLogin)=@role;
+
+    INSERT INTO ASIG (GECODEMP, AsigUsu, SistCod, AsigMod, AsigAsig)
+    SELECT DISTINCT @empCod, @login, SistCod, Modcod, @actor
+    FROM ASIGPROG WHERE GECODEMP=0 AND RTRIM(UsuLogin)=@role;
+
+    INSERT INTO ASIGPROG (GECODEMP, UsuLogin, SistCod, Modcod, ProgCod, ProgUsuC)
+    SELECT @empCod, @login, SistCod, Modcod, ProgCod, @actor
+    FROM ASIGPROG WHERE GECODEMP=0 AND RTRIM(UsuLogin)=@role;
+
+    INSERT INTO ASIGPROG1 (GECODEMP, UsuLogin, SistCod, Modcod, ProgCod, ProgOPCod)
+    SELECT @empCod, @login, A.SistCod, A.Modcod, A.ProgCod, A.ProgOPCod
+    FROM ASIGPROG1 A
+    INNER JOIN ASIGPROG P ON P.GECODEMP=A.GECODEMP AND P.UsuLogin=A.UsuLogin
+      AND P.SistCod=A.SistCod AND P.Modcod=A.Modcod AND P.ProgCod=A.ProgCod
+    WHERE A.GECODEMP=0 AND RTRIM(A.UsuLogin)=@role;
+  `);
+};
+
+const reapplyRolePermissions = async (roleValue, payload, context, options = {}) => {
   const role = normalizeRole(roleValue);
   const targetLogin = String(payload?.UsuLogin || '').trim().toUpperCase();
   if (targetLogin.length > 10) throw new SecurityError(400, 'VALIDATION_ERROR', 'El usuario admite hasta 10 caracteres.');
 
-  const pool = await getPool();
-  const transaction = new sql.Transaction(pool);
-  await transaction.begin();
+  const pool = await (options.poolProvider || getPool)();
+  const transaction = options.transactionFactory ? options.transactionFactory(pool) : new sql.Transaction(pool);
+  await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
   try {
     await assertRoleExists(() => transaction.request(), role);
     const request = transaction.request().input('role', sql.VarChar(10), role);
-    let where = 'RTRIM(ROLCod)=@role';
+    let where = 'GECODEMP>0 AND RTRIM(ROLCod)=@role';
     if (targetLogin) {
       request.input('empCod', sql.Int, context.empCod).input('login', sql.VarChar(10), targetLogin);
       where += ' AND GECODEMP=@empCod AND RTRIM(UsuLogin)=@login';
     }
-    const targets = await request.query(`SELECT DISTINCT GECODEMP, RTRIM(UsuLogin) AS UsuLogin FROM URolesPorUser WHERE ${where} ORDER BY GECODEMP, UsuLogin`);
+    const targets = await request.query(`SELECT DISTINCT GECODEMP, RTRIM(UsuLogin) AS UsuLogin FROM URolesPorUser WITH (UPDLOCK, HOLDLOCK) WHERE ${where} ORDER BY GECODEMP, UsuLogin`);
     if (targetLogin && !targets.recordset.length) {
       throw new SecurityError(404, 'ROLE_ASSIGNMENT_NOT_FOUND', 'El usuario no tiene asignado este rol.');
+    }
+
+    for (const target of targets.recordset) {
+      await replaceUserPermissionsFromRole(transaction, {
+        empCod: positiveInteger(target.GECODEMP, 'GECODEMP'),
+        login: normalizeLogin(target.UsuLogin),
+        role,
+        actor: context.login
+      });
     }
 
     await transaction.commit();
     return {
       message: targets.recordset.length === 1
-        ? 'Los permisos efectivos del usuario ya reflejan la plantilla vigente.'
-        : `La plantilla vigente aplica a ${targets.recordset.length} usuarios.`,
+        ? 'Permisos del usuario reemplazados por los programas del rol.'
+        : `Permisos reemplazados por los programas del rol en ${targets.recordset.length} usuarios.`,
       data: { updatedUsers: targets.recordset.length }
     };
   } catch (error) {

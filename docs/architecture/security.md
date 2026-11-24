@@ -38,7 +38,8 @@ La autorizacion sigue la jerarquia original de CONEX:
 - `ASIGPROG1` conserva el segundo nivel historico de acciones (`ProgOPCod`). La
   autorizacion moderna de CONEX se concede por programa completo en `ASIGPROG`.
 - `UROLES` y `URolesPorUser` contienen los roles vigentes; `ADMINFULL` autoriza
-  la administracion de Seguridad.
+  la administracion de Seguridad. Los roles no arman el menú operacional ni
+  conceden permisos de negocio por sí solos.
 - `NIVSEG` y `USUARIOS.UsuNseg` se conservan desde la base GX8 original.
 
 ## Autenticacion
@@ -103,7 +104,9 @@ El `PUT` no acepta empresa: usa exclusivamente `req.context.empCod`. Al quitar
 un programa elimina tambien su nivel `ASIGPROG1`; las acciones de los programas
 retenidos no se modifican. La pantalla avanzada de acciones sigue disponible
 desde el editor. Los permisos provenientes de roles se muestran y administran
-por separado para no confundirlos con estas asignaciones directas.
+por separado para no confundirlos con estas asignaciones directas. El menú
+operacional y la autorización de negocio usan únicamente las filas directas
+del usuario.
 
 Las tablas `SecRole`, `SecUserRole` y `SecFunctionalityRole` estan vacias en la
 base evaluada y no se usan como fuente de autorizacion. Las asignaciones
@@ -121,13 +124,15 @@ La exportacion `APERPSeguridad.xpz` confirma un segundo nivel de administracion:
 - `ASIGPROG1` se conserva para compatibilidad GX8. Guardar una plantilla de rol
   retiene las acciones historicas de los programas que siguen seleccionados,
   aunque la autorizacion moderna no dependa de ellas.
-- El backend une dinamicamente los permisos directos del usuario con sus
-  plantillas de rol; no copia ni elimina permisos historicos GX8.
+- El backend mantiene las plantillas de rol separadas de los permisos directos
+  del usuario. `Actualizar rol` copia la plantilla sobre las asignaciones
+  físicas de sus usuarios mediante el reemplazo completo descrito abajo.
 
 `seguridadRoles.service.js` conserva el resultado de negocio de
 `RMAsingarRoles`, `RMAsignaRol`, `RMQuitarRol` y `EliRolporUser`, usando
-`URolesPorUser` y plantillas con empresa 0. Al quitar un rol desaparece su
-aporte dinamico, pero los permisos directos originales permanecen intactos.
+`URolesPorUser` y plantillas con empresa 0. Asignar o quitar la relación del rol
+conserva los permisos existentes; su aplicación explícita se hace desde
+`Actualizar rol`.
 
 La administracion de roles por usuario usa
 `GET /catalogos/usuarios/:login/roles`. El endpoint devuelve todos los roles con
@@ -140,15 +145,24 @@ rol.
 
 El mismo servicio implementa `permisosRol16` y la finalidad de `ActuRol16`. En
 React se navega por sistema y modulo, pero el rol se arma seleccionando programas.
-Su efecto es inmediato, por lo que actualizar solamente confirma los usuarios
-alcanzados y no reconstruye tablas.
+Guardar modifica únicamente la plantilla. `Actualizar rol` toma todos los
+usuarios con ese rol en `URolesPorUser` y `GECODEMP>0`, elimina sus permisos en
+`ASIGPROG1`, `ASIGPROG`, `ASIG` y `ASIGSIST`, y carga exclusivamente la plantilla
+vigente en su empresa. Se derivan sistemas y módulos de los programas y se
+copian las acciones históricas de la plantilla que tienen programa padre.
+También se reemplazan permisos adicionales y los de otros roles; una plantilla
+vacía deja al usuario sin permisos. La transacción serializable incluye a todos
+los usuarios y revierte por completo si uno falla. Desde la ficha de usuario,
+la reaplicación se limita al usuario y empresa de sesión. Las relaciones de
+`URolesPorUser` y las plantillas con empresa 0 permanecen intactas.
 
 ## Menu autorizado
 
 El menu se construye en el backend con la jerarquia fisica
-`SISTEMAS -> MODULOS -> PROGRAM` y se filtra por la union de permisos directos
-en `ASIGPROG` y plantillas de los roles vigentes. Un sistema o modulo sin
-programas autorizados no se envia al frontend.
+`ASIGSIST -> ASIG -> ASIGPROG` del usuario y luego resuelve los nombres en
+`SISTEMAS -> MODULOS -> PROGRAM`. No consulta `URolesPorUser` ni plantillas de
+roles. Un sistema, módulo o programa sin asignación directa completa no se
+envía al frontend.
 
 Cada programa conserva `ProgNomGX`, `ProgIDmenu` y `ProgTarget`. React traduce
 `ProgNomGX` a una ruta mediante `menu-items/authorizedMenu.jsx`; también acepta
