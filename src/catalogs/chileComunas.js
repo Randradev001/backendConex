@@ -1390,5 +1390,19 @@ const buildCommuneCatalog = ({ databaseRows = [], q = '', limit = 1000 } = {}) =
     .slice(0, limit);
 };
 
-module.exports = { CHILE_COMUNAS, buildCommuneCatalog };
+const normalizeCommuneName = (value) => String(value || '').trim().toLocaleUpperCase('es-CL');
+
+const getCommuneNumericId = (name) => {
+  const normalizedName = normalizeCommuneName(name);
+  const index = CHILE_COMUNAS.findIndex((row) => normalizeCommuneName(row.Comdesc) === normalizedName);
+  return index < 0 ? null : index + 1;
+};
+
+const getCommuneByNumericId = (id) => {
+  const index = Number(id) - 1;
+  if (!Number.isInteger(index) || index < 0 || index >= CHILE_COMUNAS.length) return null;
+  return { ...CHILE_COMUNAS[index], Comdesc: String(CHILE_COMUNAS[index].Comdesc).trim() };
+};
+
+module.exports = { CHILE_COMUNAS, buildCommuneCatalog, getCommuneNumericId, getCommuneByNumericId };
 

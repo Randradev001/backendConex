@@ -26,14 +26,16 @@ fecha devuelta por SQL Server se formatea con sus componentes UTC para conservar
 el mismo día civil y no convertir la medianoche al día anterior. El maestro
 de Productores ofrece además búsqueda directa sobre `COMUNAS.Comdesc` para
 guardar `ProdComuna`, que alimenta `{{comuna}}` en la etiqueta.
-El catálogo de selección prioriza `Fact_Comunas.ComNombre`, la misma fuente de
-las guías electrónicas, y la complementa con `COMUNAS`, los valores no vacíos
-ya usados en `PRODUCTORES.ProdComuna`/`ProdPackCom` y un respaldo empacado. No
-requiere seleccionar una región previamente y nunca debe responder vacío.
+El catálogo del maestro Productores combina `COMUNAS`, los valores no vacíos ya
+usados en `PRODUCTORES.ProdComuna`/`ProdPackCom` y un respaldo empacado. No
+depende del módulo de guías electrónicas, no requiere seleccionar una región
+previamente y nunca debe responder vacío.
 En instalaciones donde `PRODUCTORES.ProdComuna` o `ProdPackCom` son columnas
-numéricas, el backend traduce el nombre seleccionado a `Fact_Comunas.Id` antes
-de insertar o actualizar. El worker realiza la conversión inversa al preparar
-la etiqueta para que `Township` siempre reciba el nombre y no el identificador.
+numéricas, el backend de Productores traduce el nombre seleccionado a un
+identificador estable del catálogo chileno empacado antes de insertar o
+actualizar. El worker realiza la conversión inversa al preparar la etiqueta
+para que `Township` siempre reciba el nombre y no el identificador. Las guías
+electrónicas no participan ni se modifican en este flujo.
 
 ## Origen de campos — 2026-11-18
 

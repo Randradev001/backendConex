@@ -1,4 +1,5 @@
 const { getPool, sql } = require('../conectorMysql/conectorSqlServer');
+const { getCommuneByNumericId } = require('../catalogs/chileComunas');
 const { PRINT_STATUS } = require('./constants');
 
 const trim = (value) => String(value ?? '').trim();
@@ -148,14 +149,8 @@ const createImpresionRepository = ({ poolProvider = getPool, empCod = Number(pro
     const row = result.recordset[0];
     const communeId = Number(trim(row?.ProdComuna));
     if (Number.isInteger(communeId) && communeId > 0) {
-      try {
-        const communeResult = await pool.request()
-          .input('CommuneId', sql.Int, communeId)
-          .query('SELECT TOP (1) RTRIM(ComNombre) Comdesc FROM Fact_Comunas WHERE Id=@CommuneId');
-        if (communeResult.recordset[0]?.Comdesc) row.ProdComuna = communeResult.recordset[0].Comdesc;
-      } catch {
-        // Instalaciones históricas guardan directamente el nombre y no poseen Fact_Comunas.
-      }
+      const communeName = getCommuneByNumericId(communeId)?.Comdesc || null;
+      if (communeName) row.ProdComuna = communeName;
     }
     return mapPrintContext(row, {
       empCod,

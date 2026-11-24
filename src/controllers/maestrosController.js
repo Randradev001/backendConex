@@ -1,5 +1,5 @@
 const { getPool, sql } = require('../conectorMysql/conectorSqlServer');
-const { buildCommuneCatalog } = require('../catalogs/chileComunas');
+const { buildCommuneCatalog, getCommuneNumericId, getCommuneByNumericId } = require('../catalogs/chileComunas');
 const { nextCorrelative } = require('../services/gxCorrelatives.service');
 
 const DEFAULT_LIMIT = 200;
@@ -1084,24 +1084,9 @@ const listComunas = async (req, res) => {
       ORDER BY Comdesc
     `);
 
-    // Las guías electrónicas mantienen su catálogo en Fact_Comunas. Algunas
-    // instalaciones antiguas no tienen esa tabla, por eso se consulta de forma
-    // independiente y se conserva el respaldo local si no existe.
-    let electronicGuideRows = [];
-    try {
-      const guideResult = await pool.request().query(`
-        SELECT CONVERT(varchar(20), Id) ComCod, RTRIM(ComNombre) Comdesc
-        FROM Fact_Comunas
-        WHERE NULLIF(RTRIM(ComNombre), '') IS NOT NULL
-      `);
-      electronicGuideRows = guideResult.recordset;
-    } catch {
-      electronicGuideRows = [];
-    }
-
     // Producción puede tener COMUNAS vacía. El catálogo empacado mantiene el
     // selector operativo sin requerir una carga manual previa en SQL Server.
-    const data = buildCommuneCatalog({ databaseRows: [...result.recordset, ...electronicGuideRows], q, limit });
+    const data = buildCommuneCatalog({ databaseRows: result.recordset, q, limit });
 
     return res.json({ success: true, catalog: catalogName, count: data.length, data });
   } catch (error) {
@@ -1410,15 +1395,9 @@ const normalizeProductorCommuneWrite = async (req) => {
     if (rawValue === undefined || rawValue === null || String(rawValue).trim() === '') continue;
     if (/^\d+$/.test(String(rawValue).trim())) continue;
 
-    const result = await pool.request()
-      .input('communeName', sql.VarChar(120), String(rawValue).trim())
-      .query(`
-        SELECT TOP (1) Id
-        FROM Fact_Comunas
-        WHERE UPPER(RTRIM(ComNombre))=UPPER(@communeName)
-      `);
-    if (!result.recordset[0]) throw httpError(400, `Comuna no encontrada en guías electrónicas: ${rawValue}`);
-    req.body[fieldName] = String(result.recordset[0].Id);
+    const communeId = getCommuneNumericId(rawValue);
+    if (communeId === null) throw httpError(400, `Comuna no encontrada: ${rawValue}`);
+    req.body[fieldName] = String(communeId);
   }
 };
 
@@ -1429,6 +1408,25 @@ const withProductorCommuneNormalization = (handler) => async (req, res) => {
   } catch (error) {
     return sendWriteError(res, 'productores', error, 'Error resolviendo comuna del productor');
   }
+};
+
+const withProductorCommuneRead = (handler) => async (req, res) => {
+  const sendJson = res.json.bind(res);
+  res.json = (payload) => {
+    if (payload?.success && Array.isArray(payload.data)) {
+      payload.data = payload.data.map((row) => {
+        const normalized = { ...row };
+        for (const fieldName of ['ProdComuna', 'ProdPackCom']) {
+          const communeId = Number(String(row[fieldName] ?? '').trim());
+          if (!Number.isInteger(communeId) || communeId <= 0) continue;
+          normalized[fieldName] = getCommuneByNumericId(communeId)?.Comdesc || row[fieldName];
+        }
+        return normalized;
+      });
+    }
+    return sendJson(payload);
+  };
+  return handler(req, res);
 };
 
 const insertCatalog = (catalogName) => async (req, res) => {
@@ -1774,7 +1772,7 @@ module.exports = {
   updateCategoriaEnvase: updateCatalog('categoriasEnvase'),
   deleteCategoriaEnvase: deleteCatalog('categoriasEnvase'),
   listComunas,
-  listProductores: listCatalog('productores'),
+  listProductores: withProductorCommuneRead(listCatalog('productores')),
   insertProductor: withProductorCommuneNormalization(insertCatalog('productores')),
   updateProductor: withProductorCommuneNormalization(updateCatalog('productores')),
   deleteProductor: deleteCatalog('productores'),

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildCommuneCatalog } = require('../src/catalogs/chileComunas');
+const { buildCommuneCatalog, getCommuneNumericId, getCommuneByNumericId } = require('../src/catalogs/chileComunas');
 
 test('despliega comunas aunque la tabla SQL esté vacía', () => {
   const rows = buildCommuneCatalog({ databaseRows: [], limit: 1000 });
@@ -15,4 +15,12 @@ test('busca y combina comunas de productores sin duplicar el catálogo', () => {
     limit: 1000
   });
   assert.deepEqual(rows, [{ ComCod: '', Comdesc: 'COMUNA OPERACIONAL' }]);
+});
+
+test('convierte nombre e identificador numérico sin depender de Fact_Comunas', () => {
+  const id = getCommuneNumericId('CODEGUA');
+  assert.ok(Number.isInteger(id));
+  assert.equal(getCommuneByNumericId(id).Comdesc, 'CODEGUA');
+  assert.equal(getCommuneNumericId('COMUNA INEXISTENTE'), null);
+  assert.equal(getCommuneByNumericId(9999), null);
 });
