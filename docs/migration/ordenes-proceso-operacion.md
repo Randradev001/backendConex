@@ -39,6 +39,13 @@ adicional para crear, modificar, eliminar o cambiar el estado.
 
 ## Presentacion operacional
 
+- Al editar, los botones `Guardar` permanecen habilitados después de quitar
+  el último lote, una vez cargada la orden. `Datos del proceso` conserva la
+  variedad aun sin lotes. El backend acepta explícitamente `lots: []`, elimina
+  `ORDPROC1` y la salida `90/90` de `MOVFRUT/MOVFRUT1`, conserva productor y
+  especie de cabecera y deja envases y kilos en cero dentro de la misma
+  transacción. El alta continúa exigiendo al menos un lote. Una solicitud sin
+  la lista `lots` se rechaza para evitar borrados por payload incompleto.
 - El ADM `/maestros-gx/ordenes-proceso-adm` usa el patrón de listado
   operacional de CONEX: banner verde, temporada activa automática, rango inicial
   de los últimos 30 días, indicadores clicables, filtros en una línea y búsqueda

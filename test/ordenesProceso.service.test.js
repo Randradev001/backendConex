@@ -3,13 +3,15 @@ const assert = require('node:assert/strict');
 
 const {
   OrdenesProcesoError,
+  create,
   buildQuadrature,
   finalizeQuadrature,
   getProcessReport,
   normalizeCommercialRows,
   processDateValue,
   reopenQuadrature,
-  setProcessActive
+  setProcessActive,
+  update
 } = require('../src/services/ordenesProceso.service');
 
 test('conserva la fecha civil de la orden sin retroceder un día por UTC', () => {
@@ -64,6 +66,7 @@ test('limita el informe de proceso a ordenes finalizadas o cuadradas', async () 
 
 const dependencies = (responses) => {
   const queries = [];
+  const inputs = [];
   const transaction = {
     begin: async () => {},
     commit: async () => { transaction.committed = true; },
@@ -71,20 +74,118 @@ const dependencies = (responses) => {
   };
   return {
     queries,
+    inputs,
     transaction,
     options: {
       poolProvider: async () => ({}),
       transactionFactory: () => transaction,
       requestFactory: () => ({
-        input() { return this; },
+        values: {},
+        input(name, _type, value) { this.values[name] = value; return this; },
         async query(statement) {
           queries.push(statement);
+          inputs.push(this.values);
           return responses.shift();
         }
       })
     }
   };
 };
+
+const updateBody = (lots) => ({
+  process: { date: '2026-11-12', variety: 4, exporter: 2, label: 'POLCURA16' },
+  lots
+});
+const updateDependencies = (responses) => {
+  const deps = dependencies([]);
+  deps.inputs = [];
+  deps.options.requestFactory = () => {
+    const inputs = {};
+    return {
+      input(name, _type, value) { inputs[name] = value; return this; },
+      async query(statement) {
+        deps.queries.push(statement);
+        deps.inputs.push(inputs);
+        const response = responses.shift();
+        if (response instanceof Error) throw response;
+        return response || { recordset: [] };
+      }
+    };
+  };
+  return deps;
+};
+
+test('editar permite quitar todos los detalles conservando productor y especie de cabecera', async () => {
+  const deps = updateDependencies([{ recordset: [{ ProdCod: '34', Especod: 1, OrdpEstado: 0 }] }]);
+  const result = await update(1, 'MANDRADE', '2017-2018', 6, updateBody([]), deps.options);
+
+  assert.deepEqual(result.details, []);
+  assert.deepEqual(result.totals, { env: 0, kilos: 0 });
+  assert.equal(deps.transaction.committed, true);
+  assert.equal(deps.inputs[2].Producer, '34');
+  assert.equal(deps.inputs[2].Species, 1);
+  assert.equal(deps.inputs[2].TotEnv, 0);
+  assert.equal(deps.inputs[2].TotKilos, 0);
+  assert.equal(deps.queries.length, 3);
+  assert.match(deps.queries[1], /DELETE FROM ORDPROC1/);
+  assert.match(deps.queries[1], /DELETE FROM MOVFRUT1/);
+  assert.match(deps.queries[1], /DELETE FROM MOVFRUT/);
+  assert.ok(deps.queries.every((statement) => !/INSERT/.test(statement)));
+  assert.ok(deps.inputs.every((input) => input.EmpCod === 1 && input.TempCod === '2017-2018' && input.Ordpnum === 6));
+});
+
+test('editar conserva el guardado de los lotes restantes y sus movimientos', async () => {
+  const deps = updateDependencies([
+    { recordset: [{ ProdCod: '34', Especod: 1, OrdpEstado: 0 }] },
+    { recordset: [{ producer: '34', species: 1, variety: 4, containers: 500, kilos: 1450, usedContainers: 0, usedKilos: 0 }] }
+  ]);
+  const result = await update(1, 'MANDRADE', '2017-2018', 6, updateBody([{ lot: 14, containers: 100, kilos: 290 }]), deps.options);
+
+  assert.equal(result.details.length, 1);
+  assert.equal(result.details[0].lot, 14);
+  assert.deepEqual(result.totals, { env: 100, kilos: 290 });
+  assert.equal(deps.transaction.committed, true);
+  assert.match(deps.queries[4], /INSERT ORDPROC1/);
+  assert.match(deps.queries[5], /INSERT MOVFRUT /);
+  assert.match(deps.queries[6], /INSERT MOVFRUT1/);
+});
+
+test('vaciar el detalle no permite editar una orden en proceso', async () => {
+  const deps = updateDependencies([{ recordset: [{ ProdCod: '34', Especod: 1, OrdpEstado: 1 }] }]);
+  await assert.rejects(
+    update(1, 'MANDRADE', '2017-2018', 6, updateBody([]), deps.options),
+    (error) => error.code === 'ORDER_NOT_EDITABLE'
+  );
+  assert.equal(deps.transaction.rolledBack, true);
+  assert.equal(deps.queries.length, 1);
+});
+
+test('revierte la eliminacion de detalles si falla la actualizacion de cabecera', async () => {
+  const deps = updateDependencies([
+    { recordset: [{ ProdCod: '34', Especod: 1, OrdpEstado: 0 }] },
+    { recordset: [] },
+    new Error('Fallo SQL')
+  ]);
+  await assert.rejects(update(1, 'MANDRADE', '2017-2018', 6, updateBody([]), deps.options), /Fallo SQL/);
+  assert.equal(deps.transaction.rolledBack, true);
+  assert.equal(deps.transaction.committed, undefined);
+});
+
+test('editar exige una lista explicita para no borrar detalles por un payload incompleto', async () => {
+  const deps = updateDependencies([]);
+  await assert.rejects(
+    update(1, 'MANDRADE', '2017-2018', 6, updateBody(undefined), deps.options),
+    (error) => error.code === 'VALIDATION_ERROR'
+  );
+  assert.equal(deps.queries.length, 0);
+});
+
+test('crear una orden nueva sigue exigiendo al menos un lote', async () => {
+  await assert.rejects(
+    create(1, 'MANDRADE', { tempCod: '2017-2018', ...updateBody([]) }),
+    (error) => error.code === 'VALIDATION_ERROR' && /al menos un lote/.test(error.message)
+  );
+});
 
 test('inicia una orden ingresada y registra los datos de apertura', async () => {
   const deps = dependencies([{ recordset: [{ OrdpEstado: 0 }] }, { recordset: [] }, { recordset: [] }]);
@@ -141,7 +242,8 @@ test('calcula la cuadratura comparando kilos procesados, leidos y comerciales', 
 
   assert.equal(result.totals.readContainers, 900);
   assert.equal(result.totals.readKilos, 8500);
-  assert.equal(result.totals.projectedWasteKilos, 1250);
+  assert.equal(result.totals.projectedWasteKilos, 0);
+  assert.equal(result.totals.shrinkageKilos, 1250);
   assert.equal(result.totals.containerDifference, 80);
   assert.equal(result.totals.yieldPercentage, 85);
   assert.equal(result.status, 'pending');
@@ -155,7 +257,7 @@ test('marca sobrelectura cuando las salidas superan los kilos procesados', () =>
   );
 
   assert.equal(result.status, 'over-reading');
-  assert.equal(result.totals.projectedWasteKilos, -1);
+  assert.equal(result.totals.shrinkageKilos, -1);
 });
 
 test('advierte lecturas con kilos negativos sin ocultar el dato de origen', () => {
@@ -195,28 +297,36 @@ test('acepta la misma especie y variedad cuando comercial y desecho son distinto
   assert.deepEqual(rows.map((row) => row.classification), ['commercial', 'waste']);
 });
 
-test('cuadra una orden terminada y graba cabecera y fruta comercial en una transaccion', async () => {
+test('cuadra por kilos, conserva merma y numera el ingreso comercial tras movimientos existentes', async () => {
   const deps = dependencies([
     { recordset: [{ OrdpEstado: 4, OrdpFecha: new Date('2026-10-26'), OrdpTotEnv: 100, OrdpTotKilos: 1000 }] },
     { recordset: [] },
     { recordset: [{ readContainers: 80, readKilos: 800, invalidReadings: 0, readingRecords: 80 }] },
     { recordset: [{ VarCod: 2 }] },
-    { recordset: [{ VarCod: 2 }] },
+    { recordset: [] },
+    { recordset: [{ nextNumber: 7 }] },
     { recordset: [] },
     { recordset: [] }
   ]);
   const result = await finalizeQuadrature(1, 'OPERADOR', '2017-2018', 174, {
     classifications: [
       { speciesCode: 1, varietyCode: 2, classification: 'commercial', containers: 10, kilos: 150 },
-      { speciesCode: 1, varietyCode: 2, classification: 'waste', containers: 10, kilos: 50 }
+      { classification: 'waste', containers: 10, kilos: 20 }
     ]
   }, deps.options);
 
   assert.equal(result.state, 5);
-  assert.equal(result.totals.wasteKilos, 50);
+  assert.equal(result.totals.wasteKilos, 20);
+  assert.equal(result.totals.shrinkageKilos, 30);
+  assert.equal(result.totals.wasteContainers, 10);
   assert.equal(deps.transaction.committed, true);
-  assert.match(deps.queries[5], /OrdpEstado=5/);
+  assert.match(deps.queries[4], /OrdpEstado=5/);
+  assert.match(deps.queries[5], /MAX\(FCONumI\)/);
   assert.match(deps.queries[6], /INSERT FCOMERCIAL/);
+  assert.equal(deps.inputs[6].LineNumber, 8);
+  assert.equal(deps.inputs[6].Kilos, 150);
+  assert.equal(deps.inputs[6].Observation, 'Ingreso por Proceso - Sistema');
+  assert.equal(deps.inputs[7].WasteContainers, 10);
 });
 
 test('revierte la cuadratura cuando las salidas superan los kilos procesados', async () => {
@@ -231,6 +341,23 @@ test('revierte la cuadratura cuando las salidas superan los kilos procesados', a
     (error) => error instanceof OrdenesProcesoError && error.code === 'QUADRATURE_OVER_READING'
   );
   assert.equal(deps.transaction.rolledBack, true);
+});
+
+test('cuadra con merma y envases informativos sin crear ingreso comercial', async () => {
+  const deps = dependencies([
+    { recordset: [{ OrdpEstado: 4, OrdpFecha: new Date('2026-10-26'), OrdpTotEnv: 10, OrdpTotKilos: 100 }] },
+    { recordset: [] },
+    { recordset: [{ readContainers: 20, readKilos: 40, invalidReadings: 0, readingRecords: 20 }] },
+    { recordset: [] },
+    { recordset: [] }
+  ]);
+  const result = await finalizeQuadrature(1, 'OPERADOR', '2017-2018', 175, {
+    classifications: [{ classification: 'waste', containers: 3, kilos: 10 }]
+  }, deps.options);
+  assert.equal(result.totals.shrinkageKilos, 50);
+  assert.equal(result.totals.wasteContainers, 3);
+  assert.equal(deps.queries.some((query) => /INSERT FCOMERCIAL/.test(query)), false);
+  assert.equal(deps.transaction.committed, true);
 });
 
 test('exige confirmacion expresa para cuadrar una orden sin lecturas', async () => {

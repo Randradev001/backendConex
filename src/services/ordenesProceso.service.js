@@ -33,12 +33,12 @@ const normalizeCommercialRows = (rows) => {
   if (rows.length > 100) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La cuadratura admite hasta 100 lineas de clasificacion.');
   const seen = new Set();
   return rows.map((row, index) => {
-    const speciesCode = int(row?.speciesCode, `especie comercial ${index + 1}`, 1);
-    const varietyCode = int(row?.varietyCode, `variedad comercial ${index + 1}`, 1);
     const classification = String(row?.classification || 'commercial').trim().toLowerCase();
     if (!['commercial', 'waste'].includes(classification)) {
       throw new OrdenesProcesoError(400, 'INVALID_QUADRATURE_CLASSIFICATION', `La clasificacion de la linea ${index + 1} no es valida.`);
     }
+    const speciesCode = classification === 'waste' ? null : int(row?.speciesCode, `especie comercial ${index + 1}`, 1);
+    const varietyCode = classification === 'waste' ? null : int(row?.varietyCode, `variedad comercial ${index + 1}`, 1);
     const containers = int(row?.containers, `envases comerciales ${index + 1}`, 0);
     const kilos = money(row?.kilos, `kilos comerciales ${index + 1}`, 0);
     if (containers > 32767) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', `Los envases comerciales ${index + 1} superan el maximo permitido.`);
@@ -46,7 +46,8 @@ const normalizeCommercialRows = (rows) => {
       throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', `Los kilos comerciales ${index + 1} deben tener hasta dos decimales.`);
     }
     if (containers === 0 && kilos === 0) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', `La linea comercial ${index + 1} no tiene cantidades.`);
-    const key = `${classification}:${speciesCode}:${varietyCode}`;
+    if (classification === 'commercial' && kilos === 0) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', `La linea comercial ${index + 1} debe tener kilos.`);
+    const key = classification === 'waste' ? 'waste' : `${classification}:${speciesCode}:${varietyCode}`;
     if (seen.has(key)) throw new OrdenesProcesoError(400, 'DUPLICATE_COMMERCIAL_LINE', 'No repita una misma especie, variedad y clasificacion en la cuadratura.');
     seen.add(key);
     return {
@@ -191,7 +192,8 @@ const buildQuadrature = (order, speciesRows = []) => {
   const readKilos = speciesRows.reduce((total, row) => total + Number(row.readKilos || 0), 0);
   const commercialContainers = Number(order.OrdpEnvCom || 0);
   const commercialKilos = Number(order.OrdpKilosCom || 0);
-  const projectedWasteKilos = processedKilos - readKilos - commercialKilos;
+  const projectedWasteKilos = Number(order.OrdpDesecho || 0);
+  const shrinkageKilos = roundMoney(processedKilos - readKilos - commercialKilos - projectedWasteKilos);
   const state = Number(order.OrdpEstado);
 
   return {
@@ -216,6 +218,8 @@ const buildQuadrature = (order, speciesRows = []) => {
       commercialKilos,
       containerDifference: processedContainers - readContainers - commercialContainers,
       projectedWasteKilos,
+      shrinkageKilos,
+      wasteContainers: Number(order.WasteContainers || 0),
       storedWasteKilos: Number(order.OrdpDesecho || 0),
       yieldPercentage: processedKilos > 0 ? (readKilos / processedKilos) * 100 : 0,
       readingPercentage: processedContainers > 0 ? (readContainers / processedContainers) * 100 : 0
@@ -227,7 +231,7 @@ const buildQuadrature = (order, speciesRows = []) => {
           ? 'squared'
           : readContainers === 0
             ? 'without-readings'
-            : projectedWasteKilos < 0
+            : shrinkageKilos < -0.01
               ? 'over-reading'
               : 'pending',
     species: speciesRows.map((row) => ({
@@ -257,6 +261,9 @@ const getQuadrature = async (empCod, tempCod, ordpnumInput, { poolProvider = get
     .query(`
       SELECT TOP (1) o.TempCod,o.Ordpnum,o.OrdpFecha,o.OrdpEstado,o.Especod,o.VarCod,o.ProdCod,
         o.OrdpTotEnv,o.OrdpTotKilos,o.OrdpEnvExp,o.OrdpKilosExp,o.OrdpEnvCom,o.OrdpKilosCom,o.OrdpDesecho,
+        (SELECT TOP (1) a.WasteContainers FROM ORDPROC_CUADRATURA_AUDIT a
+         WHERE a.EmpCod=o.EmpCod AND a.TempCod=o.TempCod AND a.Ordpnum=o.Ordpnum AND a.AuditAction='CLOSE'
+         ORDER BY a.AuditId DESC) WasteContainers,
         RTRIM(e.EspeNom) EspeNom,RTRIM(v.VarNom) VarNom,RTRIM(p.ProdNom) ProdNom
       FROM ORDPROC o
       LEFT JOIN ESPECIES e ON e.EmpCod=o.EmpCod AND e.Especod=o.Especod
@@ -323,15 +330,15 @@ const getQuadrature = async (empCod, tempCod, ordpnumInput, { poolProvider = get
     observation: String(row.observation || '').trim()
   }));
   const classifications = [...commercial];
-  if (Number(order.OrdpEstado) === 5 && Number(order.OrdpDesecho || 0) > 0) {
+  if (Number(order.OrdpEstado) === 5 && (Number(order.OrdpDesecho || 0) > 0 || Number(order.WasteContainers || 0) > 0)) {
     classifications.push({
       lineNumber: classifications.length + 1,
       classification: 'waste',
-      speciesCode: Number(order.Especod),
-      speciesName: String(order.EspeNom || '').trim(),
-      varietyCode: Number(order.VarCod),
-      varietyName: String(order.VarNom || '').trim(),
-      containers: Math.max(0, Number(order.OrdpTotEnv || 0) - Number(order.OrdpEnvExp || 0) - Number(order.OrdpEnvCom || 0)),
+      speciesCode: null,
+      speciesName: '',
+      varietyCode: null,
+      varietyName: '',
+      containers: Number(order.WasteContainers || 0),
       kilos: Number(order.OrdpDesecho || 0),
       observation: 'Desecho registrado en cuadratura'
     });
@@ -479,7 +486,7 @@ const finalizeQuadrature = async (
       throw new OrdenesProcesoError(409, 'READINGS_CONFIRMATION_REQUIRED', 'La orden no tiene cajas leidas. Confirme expresamente si desea cuadrarla sin lecturas.');
     }
 
-    for (const row of classified) {
+    for (const row of commercial) {
       const catalog = await requestFactory(transaction)
         .input('EmpCod', sql.SmallInt, empCod)
         .input('Species', sql.SmallInt, row.speciesCode)
@@ -493,16 +500,10 @@ const finalizeQuadrature = async (
       if (!catalog.recordset.length) throw new OrdenesProcesoError(400, 'INVALID_COMMERCIAL_CLASSIFICATION', 'Una especie o variedad comercial no existe para la empresa.');
     }
 
-    let wasteKilos = roundMoney(Number(order.OrdpTotKilos || 0) - readKilos - commercialKilos);
-    if (wasteKilos < -0.01) throw new OrdenesProcesoError(409, 'QUADRATURE_OVER_READING', 'Los kilos leidos y comerciales superan los kilos procesados.');
-    if (wasteKilos < 0) wasteKilos = 0;
-    const wasteContainers = Number(order.OrdpTotEnv || 0) - readContainers - commercialContainers;
-    if (waste.length && wasteContainers !== classifiedWasteContainers) {
-      throw new OrdenesProcesoError(409, 'QUADRATURE_NOT_BALANCED', 'Los envases clasificados como desecho deben completar la diferencia del proceso.');
-    }
-    if (waste.length && Math.abs(wasteKilos - classifiedWasteKilos) > 0.01) {
-      throw new OrdenesProcesoError(409, 'QUADRATURE_NOT_BALANCED', 'Los kilos clasificados como desecho deben completar la diferencia del proceso.');
-    }
+    const wasteKilos = classifiedWasteKilos;
+    const wasteContainers = classifiedWasteContainers;
+    const shrinkageKilos = roundMoney(Number(order.OrdpTotKilos || 0) - readKilos - commercialKilos - wasteKilos);
+    if (shrinkageKilos < -0.01) throw new OrdenesProcesoError(409, 'QUADRATURE_OVER_READING', 'Las salidas en kilos superan los kilos a proceso.');
 
     await baseRequest()
       .input('ReadContainers', sql.Int, readContainers)
@@ -519,17 +520,22 @@ const finalizeQuadrature = async (
         WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum;
       `);
 
+    const nextCommercialNumber = commercial.length ? await baseRequest().query(`
+      SELECT COALESCE(MAX(FCONumI),0) nextNumber FROM FCOMERCIAL WITH (UPDLOCK,HOLDLOCK)
+      WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND FCOProceso=@Ordpnum;
+    `) : null;
+    const firstCommercialNumber = Number(nextCommercialNumber?.recordset?.[0]?.nextNumber || 0) + 1;
     for (let index = 0; index < commercial.length; index += 1) {
       const row = commercial[index];
       await baseRequest()
-        .input('LineNumber', sql.Decimal(10, 0), index + 1)
+        .input('LineNumber', sql.Decimal(10, 0), firstCommercialNumber + index)
         .input('ProcessDate', sql.DateTime, order.OrdpFecha)
         .input('Login', sql.Char(10), String(login || '').trim().slice(0, 10))
         .input('Containers', sql.SmallInt, row.containers)
         .input('Kilos', sql.Money, row.kilos)
         .input('Species', sql.SmallInt, row.speciesCode)
         .input('Variety', sql.Int, row.varietyCode)
-        .input('Observation', sql.Char(50), row.observation)
+        .input('Observation', sql.Char(50), 'Ingreso por Proceso - Sistema')
         .query(`
           INSERT FCOMERCIAL
             (EmpCod,TempCod,FCOProceso,FCONumI,FCOFecha,FCOLoginI,FCOFecC,TMcod,TMSCod,
@@ -546,15 +552,16 @@ const finalizeQuadrature = async (
       .input('CommercialContainers', sql.Int, commercialContainers)
       .input('CommercialKilos', sql.Money, commercialKilos)
       .input('WasteKilos', sql.Money, wasteKilos)
+      .input('WasteContainers', sql.Int, wasteContainers)
       .input('Login', sql.Char(10), String(login || '').trim().slice(0, 10))
       .query(`
         IF OBJECT_ID(N'dbo.ORDPROC_CUADRATURA_AUDIT', N'U') IS NOT NULL
           INSERT ORDPROC_CUADRATURA_AUDIT
             (EmpCod,TempCod,Ordpnum,AuditAction,PreviousState,NewState,ReadContainers,
-             ReadKilos,CommercialContainers,CommercialKilos,WasteKilos,Reason,AuditLogin)
+             ReadKilos,CommercialContainers,CommercialKilos,WasteKilos,WasteContainers,Reason,AuditLogin)
           VALUES
             (@EmpCod,@TempCod,@Ordpnum,'CLOSE',4,5,@ReadContainers,@ReadKilos,
-             @CommercialContainers,@CommercialKilos,@WasteKilos,NULL,@Login);
+             @CommercialContainers,@CommercialKilos,@WasteKilos,@WasteContainers,NULL,@Login);
       `);
 
     await transaction.commit();
@@ -564,7 +571,7 @@ const finalizeQuadrature = async (
       tempCod: temp,
       ordpnum,
       state: 5,
-      totals: { readContainers, readKilos, commercialContainers, commercialKilos, wasteKilos }
+      totals: { readContainers, readKilos, commercialContainers, commercialKilos, wasteKilos, wasteContainers, shrinkageKilos }
     };
   } catch (error) {
     await transaction.rollback();
@@ -736,21 +743,25 @@ const setProcessActive = async (
   }
 };
 
-const update = async (empCod, login, tempCod, ordpnumInput, body = {}) => {
+const update = async (
+  empCod, login, tempCod, ordpnumInput, body = {},
+  { poolProvider = getPool, transactionFactory, requestFactory = (target) => new sql.Request(target) } = {}
+) => {
   const ordpnum = int(ordpnumInput, 'orden', 1); const temp = String(tempCod || '').trim(); const process = body.process || {};
   if (!temp) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La temporada es obligatoria.');
-  if (!Array.isArray(body.lots) || !body.lots.length) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'Debe seleccionar al menos un lote.');
+  if (!Array.isArray(body.lots)) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'Los lotes deben enviarse como una lista.');
   const processDate = processDateValue(process.date);
   const variety = int(process.variety, 'variedad', 1); const exporter = int(process.exporter, 'exportadora', 1); const label = String(process.label || '').trim(); if (!label) throw new OrdenesProcesoError(400, 'VALIDATION_ERROR', 'La etiqueta es obligatoria.');
-  const pool = await getPool(); const tx = new sql.Transaction(pool); await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+  const pool = await poolProvider(); const tx = transactionFactory ? transactionFactory(pool) : new sql.Transaction(pool); await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+  const newRequest = () => requestFactory(tx);
   try {
-    const exists = await new sql.Request(tx).input('EmpCod', sql.SmallInt, empCod).input('TempCod', sql.Char(9), temp).input('Ordpnum', sql.Decimal(10, 0), ordpnum).query('SELECT TOP 1 ProdCod,OrdpEstado FROM ORDPROC WITH (UPDLOCK,HOLDLOCK) WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum;');
+    const exists = await newRequest().input('EmpCod', sql.SmallInt, empCod).input('TempCod', sql.Char(9), temp).input('Ordpnum', sql.Decimal(10, 0), ordpnum).query('SELECT TOP 1 ProdCod,Especod,OrdpEstado FROM ORDPROC WITH (UPDLOCK,HOLDLOCK) WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum;');
     if (!exists.recordset.length) throw new OrdenesProcesoError(404, 'ORDER_NOT_FOUND', 'La orden de proceso no existe.');
     if (Number(exists.recordset[0].OrdpEstado) !== 0) throw new OrdenesProcesoError(409, 'ORDER_NOT_EDITABLE', 'La orden no se puede editar en su estado actual.');
     const details = [];
     for (const raw of body.lots) {
       const lot = int(raw.lot, 'lote', 1); const env = int(raw.containers, 'envases', 1); const kilos = money(raw.kilos, 'kilos', 0.001);
-      const q = new sql.Request(tx).input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),temp).input('Lot',sql.Decimal(10,0),lot).input('Ordpnum',sql.Decimal(10,0),ordpnum);
+      const q = newRequest().input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),temp).input('Lot',sql.Decimal(10,0),lot).input('Ordpnum',sql.Decimal(10,0),ordpnum);
       const found = await q.query(`SELECT TOP 1 d.Mov1Espe species,d.Mov1Var variety,h.MovProd producer,d.Mov1Cuar cuartel,d.Mov1TEnv containerType,d.Mov1Condi conditionCode,d.Mov1NumE containers,d.Mov1KilN kilos,
         COALESCE((SELECT SUM(o.Ordp1Env) FROM ORDPROC1 o WITH (UPDLOCK,HOLDLOCK) WHERE o.EmpCod=d.EmpCod AND o.TempCod=d.TempCod AND o.Ordp1Nlote=d.Mov1Nlote AND o.Ordpnum<>@Ordpnum),0) usedContainers,
         COALESCE((SELECT SUM(o.Ordp1Kilos) FROM ORDPROC1 o WITH (UPDLOCK,HOLDLOCK) WHERE o.EmpCod=d.EmpCod AND o.TempCod=d.TempCod AND o.Ordp1Nlote=d.Mov1Nlote AND o.Ordpnum<>@Ordpnum),0) usedKilos
@@ -759,14 +770,17 @@ const update = async (empCod, login, tempCod, ordpnumInput, body = {}) => {
       if (env > Number(row.containers)-Number(row.usedContainers) || kilos > Number(row.kilos)-Number(row.usedKilos)) throw new OrdenesProcesoError(409, 'LOT_QUANTITY_EXCEEDED', `La cantidad del lote ${lot} supera el saldo disponible.`);
       details.push({ lot, env, kilos, species:row.species, variety:row.variety, producer:row.producer, cuartel:row.cuartel, containerType:row.containerType, conditionCode:row.conditionCode });
     }
-    const first = details[0]; if (details.some((d) => String(d.producer).trim() !== String(first.producer).trim())) throw new OrdenesProcesoError(409, 'MULTI_PRODUCER_NOT_ALLOWED', 'Todos los lotes deben pertenecer al mismo productor.'); const totals = details.reduce((a,d)=>({env:a.env+d.env,kilos:a.kilos+d.kilos}),{env:0,kilos:0});
-    const old = await new sql.Request(tx).input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),temp).input('Ordpnum',sql.Decimal(10,0),ordpnum).query('SELECT TOP 1 ProdCod FROM ORDPROC WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum;'); const oldProd = old.recordset[0].ProdCod;
-    await new sql.Request(tx).input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),temp).input('Ordpnum',sql.Decimal(10,0),ordpnum).query('DELETE FROM ORDPROC1 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum; DELETE FROM MOVFRUT1 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND OriCod=90 AND MovTDoc=90 AND MovNGuia=@Ordpnum; DELETE FROM MOVFRUT WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND OriCod=90 AND MovTDoc=90 AND MovNGuia=@Ordpnum;');
-    const h = new sql.Request(tx).input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),temp).input('Ordpnum',sql.Decimal(10,0),ordpnum).input('Producer',sql.Char(6),first.producer).input('Fecha',sql.DateTime,processDate).input('Species',sql.SmallInt,first.species).input('Variety',sql.Int,variety).input('Exporter',sql.SmallInt,exporter).input('Label',sql.Char(10),label).input('TotEnv',sql.Int,totals.env).input('TotKilos',sql.Money,totals.kilos);
+    // Una edicion puede quitar todos los lotes sin perder la cabecera de la orden.
+    const first = details[0] || { producer: exists.recordset[0].ProdCod, species: exists.recordset[0].Especod };
+    if (details.some((d) => String(d.producer).trim() !== String(first.producer).trim())) throw new OrdenesProcesoError(409, 'MULTI_PRODUCER_NOT_ALLOWED', 'Todos los lotes deben pertenecer al mismo productor.'); const totals = details.reduce((a,d)=>({env:a.env+d.env,kilos:a.kilos+d.kilos}),{env:0,kilos:0});
+    await newRequest().input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),temp).input('Ordpnum',sql.Decimal(10,0),ordpnum).query('DELETE FROM ORDPROC1 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum; DELETE FROM MOVFRUT1 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND OriCod=90 AND MovTDoc=90 AND MovNGuia=@Ordpnum; DELETE FROM MOVFRUT WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND OriCod=90 AND MovTDoc=90 AND MovNGuia=@Ordpnum;');
+    const h = newRequest().input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),temp).input('Ordpnum',sql.Decimal(10,0),ordpnum).input('Producer',sql.Char(6),first.producer).input('Fecha',sql.DateTime,processDate).input('Species',sql.SmallInt,first.species).input('Variety',sql.Int,variety).input('Exporter',sql.SmallInt,exporter).input('Label',sql.Char(10),label).input('TotEnv',sql.Int,totals.env).input('TotKilos',sql.Money,totals.kilos);
     await h.query('UPDATE ORDPROC SET ProdCod=@Producer,OrdpFecha=@Fecha,Especod=@Species,VarCod=@Variety,ExpCod=@Exporter,OrdpTotEnv=@TotEnv,OrdpTotKilos=@TotKilos,OrdpCodEti=@Label WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND Ordpnum=@Ordpnum;');
-    for (const d of details) await new sql.Request(tx).input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),temp).input('Ordpnum',sql.Decimal(10,0),ordpnum).input('Lot',sql.Decimal(10,0),d.lot).input('Env',sql.Int,d.env).input('Kilos',sql.Money,d.kilos).query('INSERT ORDPROC1 (EmpCod,TempCod,Ordpnum,Ordp1Nlote,Ordp1Env,Ordp1Kilos) VALUES (@EmpCod,@TempCod,@Ordpnum,@Lot,@Env,@Kilos);');
-    const m = new sql.Request(tx).input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),temp).input('Guide',sql.Decimal(10,0),ordpnum).input('Producer',sql.Char(6),first.producer).input('Date',sql.DateTime,processDate).input('TotEnv',sql.Int,totals.env).input('TotKilos',sql.Money,totals.kilos).input('Login',sql.Char(10),String(login||'').slice(0,10)); await m.query(`INSERT MOVFRUT (EmpCod,TempCod,OriCod,MovTDoc,MovNGuia,MovProd,MovFecha,MovObs,TMcod,TMSCod,MovTotE,MovTotKilN,MovTotKilB,MovLoginC,MovFecC,Movauto) VALUES (@EmpCod,@TempCod,90,90,@Guide,@Producer,@Date,'Salida por Proceso',2,1,@TotEnv,@TotKilos,0,@Login,GETDATE(),0);`);
-    for (const d of details) await new sql.Request(tx).input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),temp).input('Guide',sql.Decimal(10,0),ordpnum).input('Producer',sql.Char(6),first.producer).input('Lot',sql.Decimal(10,0),d.lot).input('Env',sql.Int,d.env).input('Kilos',sql.Money,d.kilos).input('Species',sql.SmallInt,d.species).input('Variety',sql.Int,d.variety).input('Cuartel',sql.Int,d.cuartel||0).input('ContainerType',sql.SmallInt,d.containerType||0).input('ConditionCode',sql.SmallInt,d.conditionCode||0).input('Date',sql.DateTime,processDate).query('INSERT MOVFRUT1 (EmpCod,TempCod,OriCod,MovTDoc,MovNGuia,MovProd,Mov1Nlote,Mov1Cuar,Mov1Espe,Mov1Var,Mov1TEnv,Mov1Condi,Mov1Destare,Mov1NumE,Mov1Peso,Mov1KilB,Mov1KilN,Mov1TM,Mov1STM,Mov1Fecha,Mov1AA,Mov1MM) VALUES (@EmpCod,@TempCod,90,90,@Guide,@Producer,@Lot,@Cuartel,@Species,@Variety,@ContainerType,@ConditionCode,0,@Env,0,0,@Kilos,2,1,@Date,YEAR(@Date),MONTH(@Date));');
+    for (const d of details) await newRequest().input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),temp).input('Ordpnum',sql.Decimal(10,0),ordpnum).input('Lot',sql.Decimal(10,0),d.lot).input('Env',sql.Int,d.env).input('Kilos',sql.Money,d.kilos).query('INSERT ORDPROC1 (EmpCod,TempCod,Ordpnum,Ordp1Nlote,Ordp1Env,Ordp1Kilos) VALUES (@EmpCod,@TempCod,@Ordpnum,@Lot,@Env,@Kilos);');
+    if (details.length) {
+      const m = newRequest().input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),temp).input('Guide',sql.Decimal(10,0),ordpnum).input('Producer',sql.Char(6),first.producer).input('Date',sql.DateTime,processDate).input('TotEnv',sql.Int,totals.env).input('TotKilos',sql.Money,totals.kilos).input('Login',sql.Char(10),String(login||'').slice(0,10)); await m.query(`INSERT MOVFRUT (EmpCod,TempCod,OriCod,MovTDoc,MovNGuia,MovProd,MovFecha,MovObs,TMcod,TMSCod,MovTotE,MovTotKilN,MovTotKilB,MovLoginC,MovFecC,Movauto) VALUES (@EmpCod,@TempCod,90,90,@Guide,@Producer,@Date,'Salida por Proceso',2,1,@TotEnv,@TotKilos,0,@Login,GETDATE(),0);`);
+      for (const d of details) await newRequest().input('EmpCod',sql.SmallInt,empCod).input('TempCod',sql.Char(9),temp).input('Guide',sql.Decimal(10,0),ordpnum).input('Producer',sql.Char(6),first.producer).input('Lot',sql.Decimal(10,0),d.lot).input('Env',sql.Int,d.env).input('Kilos',sql.Money,d.kilos).input('Species',sql.SmallInt,d.species).input('Variety',sql.Int,d.variety).input('Cuartel',sql.Int,d.cuartel||0).input('ContainerType',sql.SmallInt,d.containerType||0).input('ConditionCode',sql.SmallInt,d.conditionCode||0).input('Date',sql.DateTime,processDate).query('INSERT MOVFRUT1 (EmpCod,TempCod,OriCod,MovTDoc,MovNGuia,MovProd,Mov1Nlote,Mov1Cuar,Mov1Espe,Mov1Var,Mov1TEnv,Mov1Condi,Mov1Destare,Mov1NumE,Mov1Peso,Mov1KilB,Mov1KilN,Mov1TM,Mov1STM,Mov1Fecha,Mov1AA,Mov1MM) VALUES (@EmpCod,@TempCod,90,90,@Guide,@Producer,@Lot,@Cuartel,@Species,@Variety,@ContainerType,@ConditionCode,0,@Env,0,0,@Kilos,2,1,@Date,YEAR(@Date),MONTH(@Date));');
+    }
     await tx.commit(); return { success:true, tempCod:temp, ordpnum, totals, details };
   } catch (error) { await tx.rollback(); if (error instanceof OrdenesProcesoError) throw error; throw new OrdenesProcesoError(500,'ORDER_UPDATE_ERROR',error.message); }
 };

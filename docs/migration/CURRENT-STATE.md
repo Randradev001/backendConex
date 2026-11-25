@@ -1,5 +1,19 @@
 # Estado vigente de la migracion CONEX
 
+## Guardado de órdenes sin detalles — 2026-11-24
+
+En `/ordenes-proceso/operacion`, editar una orden permite guardar tras retirar
+todos sus lotes. Los botones se habilitan al cargar la cabecera y se bloquean
+durante el guardado. El backend acepta `lots: []`, conserva productor y especie,
+elimina los detalles y la salida `90/90` asociada, y deja envases y kilos en
+cero transaccionalmente. Crear sigue exigiendo un lote y editar sigue limitado
+al estado Ingresada. No se aceptan solicitudes sin una lista explícita de lotes.
+
+Verificación: 285 pruebas backend aprobadas, ESLint dirigido sin errores y
+build frontend aprobado. `node scripts/verify-orden-proceso-detalle-vacio.js
+1 2017-2018 6` confirmó el guardado usando tablas temporales con la estructura
+y una copia de la orden local; no se modificó la orden real.
+
 ## Actualización de roles — 2026-11-24
 
 `Actualizar rol` (`ActuRol16`) reconstruye los permisos de todos los usuarios

@@ -107,13 +107,15 @@ const quadraturePdf = run(async (req, res) => {
   let y = 154;
   const metrics = [
     ['Kilos procesados', data.totals.processedKilos], ['Kilos leídos', data.totals.readKilos],
-    ['Kilos comerciales', data.totals.commercialKilos], ['Desecho', data.order.state === 5 ? data.totals.storedWasteKilos : data.totals.projectedWasteKilos]
+    ['Kilos comerciales', data.totals.commercialKilos], ['Desecho', data.totals.projectedWasteKilos],
+    ['Merma', data.totals.shrinkageKilos]
   ];
   metrics.forEach(([label, value], index) => {
-    const x = left + index * (width / 4);
-    doc.rect(x, y, width / 4 - 5, 58).fill(index === 3 ? '#B45309' : '#EAF5EE');
-    doc.font('Helvetica-Bold').fontSize(7).fillColor(index === 3 ? '#FFFFFF' : muted).text(label.toUpperCase(), x + 9, y + 10, { width: width / 4 - 23 });
-    doc.font('Helvetica-Bold').fontSize(14).fillColor(index === 3 ? '#FFFFFF' : ink).text(`${formatNumber(value)} kg`, x + 9, y + 29, { width: width / 4 - 23 });
+    const boxWidth = width / metrics.length;
+    const x = left + index * boxWidth;
+    doc.rect(x, y, boxWidth - 5, 58).fill(index === 4 ? '#B45309' : '#EAF5EE');
+    doc.font('Helvetica-Bold').fontSize(7).fillColor(index === 4 ? '#FFFFFF' : muted).text(label.toUpperCase(), x + 9, y + 10, { width: boxWidth - 23 });
+    doc.font('Helvetica-Bold').fontSize(12).fillColor(index === 4 ? '#FFFFFF' : ink).text(`${formatNumber(value)} kg`, x + 9, y + 29, { width: boxWidth - 23 });
   });
   y += 82;
   const drawTable = (title, rows, columns) => {
