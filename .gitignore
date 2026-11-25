@@ -11,3 +11,4 @@ undefined
 /src/img/reporteStatusAprendizaje/
 /database/docker/backup/*
 !/database/docker/backup/.gitkeep
+logs/service-error.log logs/service-out.log
