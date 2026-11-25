@@ -1,5 +1,6 @@
 const { getPool, sql } = require("../../conectorMysql/conectorSqlServer");
 const { nextCorrelative } = require("../../services/gxCorrelatives.service");
+const { getCommuneByNumericId } = require("../../catalogs/chileComunas");
 const { renderSolicitudPdf } = require("./inspecciones.pdf");
 
 const permission = { sistema: 100, modulo: 20, programa: 1 };
@@ -13,6 +14,12 @@ class InspeccionesError extends Error {
 }
 
 const trim = (value) => String(value ?? "").trim();
+const communeName = (value) => {
+  const storedValue = trim(value);
+  const communeId = Number(storedValue);
+  if (!Number.isInteger(communeId) || communeId <= 0) return storedValue;
+  return getCommuneByNumericId(communeId)?.Comdesc || storedValue;
+};
 const isoDate = (value, label) => {
   const raw = trim(value);
   // SQL Server recibe una fecha tipada; se normaliza el formato visible antes de persistir.
@@ -509,7 +516,10 @@ const getSolicitudDetalle = async (
   return {
     header: { ...header, statusLabel: statusLabel(header.status) },
     folios: result.recordsets[1] || [],
-    details: result.recordsets[2] || [],
+    details: (result.recordsets[2] || []).map((row) => ({
+      ...row,
+      producerCommune: communeName(row.producerCommune),
+    })),
   };
 };
 

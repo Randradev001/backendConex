@@ -280,7 +280,7 @@
 "Procedure","RptCajaXLinea","LecturaCajas","LecturaCajas","","","","DISCOVERED",""
 "Procedure","Solicit01","Inspecciones","Inspecciones","Carátula de solicitud de inspección fitosanitaria","BACKEND_PDF","/backendDocker/inspecciones/solicitudes/:solNum/pdf","IMPLEMENTED","Campos y títulos GeneXus incluidos en la primera sección del PDF carta vertical combinado."
 "Procedure","Solicit01CU","Inspecciones","Inspecciones","Carátula de solicitud de inspección fitosanitaria por cuartel","","","DISCOVERED","Fuera del alcance actual del botón PDF; se conserva como evidencia GeneXus."
-"Procedure","Solicit02","Inspecciones","Inspecciones","Detalle de solicitud de inspección fitosanitaria","BACKEND_PDF","/backendDocker/inspecciones/solicitudes/:solNum/pdf","IMPLEMENTED","Campos y títulos GeneXus incluidos; agrega subtotales de Kilos y Cajas por folio cuando tiene más de una línea."
+"Procedure","Solicit02","Inspecciones","Inspecciones","Detalle de solicitud de inspección fitosanitaria","BACKEND_PDF","/backendDocker/inspecciones/solicitudes/:solNum/pdf","IMPLEMENTED","Campos y títulos GeneXus incluidos; agrega subtotales de Kilos y Cajas por folio cuando tiene más de una línea; muestra el nombre de comuna cuando ProdComuna guarda un identificador numérico histórico."
 "Procedure","Solicit03","Inspecciones","Inspecciones","","","","DISCOVERED",""
 "Procedure","SolicitCU","Inspecciones","Inspecciones","Detalle de solicitud de inspección fitosanitaria por cuartel","","","DISCOVERED","Fuera del alcance actual del botón PDF; se conserva como evidencia GeneXus."
 "Procedure","sonido","Paletizado","Paletizado","","","","DISCOVERED",""

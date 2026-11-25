@@ -122,7 +122,10 @@ Visualizar o Modificar; no aparecen al crear ni eliminar la solicitud.
   pero se conservan los campos históricos de ambos procedimientos y el título de solicitud se presenta como
   `N° SOLICITUD INSPECCIÓN`
   (totales, rangos, productor, CSG, provincia, comuna, variedad, proceso,
-  kilos, cajas y fecha). Cuando un folio tiene más de una línea, el detalle
+  kilos, cajas y fecha). La comuna del productor se presenta por su nombre
+  tanto en el detalle de la API como en el PDF; los identificadores numéricos
+  históricos de `ProdComuna` se resuelven con el catálogo de comunas de Chile.
+  Cuando un folio tiene más de una línea, el detalle
   agrega inmediatamente una fila de subtotal con sus Kilos y Cajas; los folios
   de una sola línea no agregan esa fila. La numeración de solicitud mantiene sus ceros y el
   pie muestra la página abajo a la derecha. Las filas del listado usan una

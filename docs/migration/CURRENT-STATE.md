@@ -525,6 +525,9 @@ adicional de subtotal inmediatamente debajo, con sus totales de Kilos y Cajas;
 los folios de una sola línea no agregan una fila adicional. Las filas del listado
 usan una altura vertical compacta y las filas de subtotal conservan espacio para
 sus dos líneas.
+El detalle y el PDF resuelven los identificadores numéricos históricos de
+`PRODUCTORES.ProdComuna` al nombre de comuna del catálogo chileno (por ejemplo,
+`50` se presenta como `CODEGUA`).
 La carátula compacta integra el bloque de campos reservados del SAG en la
 primera página cuando el contenido lo permite y valida el espacio disponible
 antes de dibujarlo, evitando páginas en blanco intermedias en el PDF. Dentro del bloque
@@ -1474,6 +1477,8 @@ Actualización 27-10-2026: se preparó `database/20261027_ingreso_tarjas_menu.sq
 Actualización 15-10-2026: se agregó en CONEX local el sistema `130 Guias electronicas`, módulo `1 Operacional`, programa `1 Guías de Despacho`. La migración `database/20261015_guias_electronicas_menu.sql` copia únicamente los permisos ya existentes para `wguiasd` (100/2/20 o 70/6/3), y el menú web prioriza la nueva agrupación. La ruta sigue abriendo la misma pantalla central de APERP; su administración electrónica permanece en el sistema de APERP y conserva permisos separados. En desarrollo, Conex usa `VITE_APERP_GUIDES_URL` para apuntar al frontend APERP cuando ambos corren en puertos distintos.
 
 Actualización 13-10-2026: `wguiasd` conduce al módulo operativo `/co/guias/electronicas`. Conex emite un acceso de un solo uso para la empresa y usuario autenticados; APERP lo canjea por una sesión breve limitada a Guías. El listado combina el histórico Conex con los borradores centrales, y el formulario puede precargarse desde Packing List o despacho comercial antes de guardar en APERP. La empresa requiere homologación explícita en `ge.ConexEmpresaMap`; el navegador no la selecciona. La emisión electrónica continúa deshabilitada hasta validar el sandbox Púlsar DTE 52. Ver [guias-origen-conex.md](guias-origen-conex.md).
+
+Actualización 25-11-2026: la grilla compartida de Guías muestra el código de sucursal de los borradores APERP y permite filtrar por los códigos presentes. El histórico Conex no aporta sucursal en su vista de origen y muestra ese campo vacío.
 
 Se crearon y verificaron cuatro vistas `integracion.vGuia*Origen` y `integracion.vPackingCabeceraOrigen` en la base local CONEX. Exponen cabecera, detalle histórico, cliente y cabecera de packing para lectura futura desde APERP; no generan guías ni cambian estados de migración GX. La base APERP local pudo consultar la vista de cabeceras entre bases. El detalle físico de packing sigue sin identificar. Evidencia y límites: [guias-origen-conex.md](guias-origen-conex.md).
 

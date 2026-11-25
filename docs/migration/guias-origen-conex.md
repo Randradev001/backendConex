@@ -1,5 +1,12 @@
 # Vistas de origen Conex para el módulo de guías APERP
 
+## Sucursal en el listado compartido — 25-11-2026
+
+La grilla APERP embebida en `/guias/electronicas` muestra y filtra por el código
+de sucursal de las guías centrales guardadas en `ge.GuiaComplemento`. La vista
+histórica `integracion.vGuiaCabeceraOrigen` de Conex no contiene sucursal; esas
+filas muestran el campo vacío y quedan fuera cuando se selecciona un código.
+
 ## Motivos de traslado Púlsar — 19-11-2026
 
 Por confirmación del usuario se retiraron del backend APERP las restricciones

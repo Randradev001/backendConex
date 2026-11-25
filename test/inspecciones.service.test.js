@@ -1119,6 +1119,42 @@ test("expone aprobación, rechazo y cajas por rango en el detalle de la solicitu
   );
 });
 
+test("muestra el nombre de la comuna en el detalle y el PDF de inspección", async () => {
+  const pool = {
+    request() {
+      return {
+        input() { return this; },
+        async query(statement) {
+          if (/FROM SOLICITUDES1 h/.test(statement)) {
+            return {
+              recordsets: [
+                [{ SolNum: 45, SolnumI: 123, status: 1 }],
+                [],
+                [
+                  { folio: "001", producerCommune: "50" },
+                  { folio: "002", producerCommune: "Rengo" },
+                  { folio: "003", producerCommune: "999" },
+                ],
+              ],
+            };
+          }
+          return { recordsets: [[{ companyName: "Empresa" }], [{ tempCod: "2026-2027" }]] };
+        },
+      };
+    },
+  };
+  const poolProvider = async () => pool;
+  const detail = await getSolicitudDetalle(1, 45, { poolProvider });
+  assert.deepEqual(detail.details.map((row) => row.producerCommune), ["CODEGUA", "Rengo", "999"]);
+
+  let pdfData;
+  await generateSolicitudPdf(1, 45, {
+    poolProvider,
+    pdfRenderer: async (data) => { pdfData = data; return Buffer.from("PDF"); },
+  });
+  assert.deepEqual(pdfData.details.map((row) => row.producerCommune), ["CODEGUA", "Rengo", "999"]);
+});
+
 test("genera un PDF carta vertical combinando carátula y detalle GeneXus", async () => {
   const pool = {
     request() {
