@@ -105,6 +105,13 @@ activa; el modal permite elegir especie y, para origen, destino y otros destinos
 aprobados. El listado de folios de origen también devuelve `SolDestinos` como
 `approvedDestinations` para mostrar los otros destinos aprobados tanto en el
 selector como en **Detalle de folios**.
+Al asociar un folio de origen, `Dor1Nsol` guarda el número impreso
+`SOLICITUDES1.SolnumI`; `SolNum` se usa como clave interna para leer
+`SOLICITUDES2/3` y cambiar la disponibilidad. `Dor2ComP` guarda el nombre de la
+comuna del productor, resolviendo identificadores numéricos como `50` a
+`CODEGUA`. La baja y anulación resuelven el `SolNum` desde el folio y el número
+guardado, incluso para filas anteriores con `Dor1Nsol=SolNum`. El PDF también
+resuelve el número impreso y el nombre de comuna de esas filas anteriores.
 Durante el alta permite preparar folios antes de guardar; al guardar la
 cabecera, la pantalla los asocia mediante las mismas operaciones protegidas del
 detalle. Si todo el guardado termina correctamente, vuelve al listado Despachos

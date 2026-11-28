@@ -1,6 +1,7 @@
 const { getPool, sql } = require('../../conectorMysql/conectorSqlServer');
 const { nextCorrelative } = require('../../services/gxCorrelatives.service');
 const { parseRut } = require('../../services/seguridad.service');
+const { buildPackingReport, renderPackingPdf } = require('./packingList.pdf');
 
 const permission = { sistema: 100, modulo: 2, programa: 13 };
 class PackingListError extends Error {
@@ -329,4 +330,63 @@ const update = async (empCod, packNumI, input = {}) => {
   } catch (error) { await transaction.rollback(); throw error; }
 };
 
-module.exports = { permission, PackingListError, getFormData, list, sources, getDetail, create, update };
+const getReportData = async (empCod, packNumI, report = 'packing01') => {
+  if (!['packing01', 'packing02'].includes(report)) fail('El reporte de packing no es válido.');
+  const id = number(packNumI, 'El packing');
+  const pool = await getPool();
+  const tempCod = await activeSeason(pool.request(), empCod);
+  const result = await key(pool.request(), empCod, tempCod, id).query(`
+    SELECT p.*,RTRIM(em.EmpNom) companyName,RTRIM(em.EmpGiro) companyActivity,
+      RTRIM(em.Empdir) companyAddress,em.EmpRut companyRut,RTRIM(em.EmpDV) companyDv,
+      RTRIM(e.ExpNom) exporterName,e.ExpRut exporterRut,RTRIM(e.ExpDv) exporterDv,
+      RTRIM(co.ConsNom) consigneeName,RTRIM(d.DestNom) destinationName,
+      RTRIM(a.AgeNom) agentName,a.Agerut agentRut,RTRIM(a.AgeDv) agentDv,
+      RTRIM(da.DANombre) dispatcherName,RTRIM(po.PuNombre) originPortName,
+      RTRIM(pd.PuNombre) destinationPortName
+    FROM PACKLIST p LEFT JOIN DEFEMP em ON em.EmpCod=p.EmpCod
+    LEFT JOIN EXPORT1 e ON e.EmpCod=p.EmpCod AND e.ExpCod=p.ExpCod
+    LEFT JOIN CONSIG co ON co.EmpCod=p.EmpCod AND co.ConsCod=p.ConsCod
+    LEFT JOIN DESTINOS d ON d.DestCod=p.DestCod
+    LEFT JOIN AGENTES a ON a.EmpCod=p.EmpCod AND a.AgeCod=p.AgeCod
+    LEFT JOIN DESPAAUTO da ON da.EmpCod=p.EmpCod AND da.DACod=p.DACod
+    LEFT JOIN PUERTOS po ON po.PuCod=p.PackPuOr LEFT JOIN PUERTOS pd ON pd.PuCod=p.PackPuDe
+    WHERE p.EmpCod=@EmpCod AND p.TempCod=@TempCod AND p.PackNumI=@PackNumI`);
+  const header = result.recordset[0];
+  if (!header) fail('No se encontró el packing list en la temporada activa.', 404, 'NOT_FOUND');
+  if (![1, 2, 3].includes(Number(header.PackTipo)))
+    fail('Estos reportes corresponden a planillas de origen, fumigación y muestreo.', 400, 'UNSUPPORTED_PACKING_TYPE');
+  // BusIDDespa traduce el número final de planilla a la clave interna del despacho.
+  const source = await base(pool.request(), empCod, tempCod)
+    .input('PackTipo', sql.SmallInt, header.PackTipo).input('SourceNumber', sql.Decimal(10, 0), header.PackNumG)
+    .query(`SELECT DORNum FROM DESORIGEN WHERE EmpCod=@EmpCod AND TempCod=@TempCod
+      AND DorTipPlani=@PackTipo AND DORNumf=@SourceNumber`);
+  if (!source.recordset.length) fail('No se encontró la planilla de despacho del packing.', 404, 'SOURCE_NOT_FOUND');
+  if (source.recordset.length !== 1) fail('El número de planilla identifica más de un despacho.', 409, 'AMBIGUOUS_SOURCE');
+  const details = await base(pool.request(), empCod, tempCod)
+    .input('PackTipo', sql.SmallInt, header.PackTipo).input('DORNum', sql.Decimal(10, 0), source.recordset[0].DORNum)
+    .query(`SELECT RTRIM(d.dor1Folio) folio,d.Dor2Corr correlation,d.Dor2espe speciesCode,
+      COALESCE(NULLIF(RTRIM(d.Dor2Nespe),''),RTRIM(e.EspeNom)) speciesName,
+      d.Dor2var varietyCode,COALESCE(NULLIF(RTRIM(d.Dor2Nvar),''),RTRIM(v.VarNom)) varietyName,
+      d.Dor2fecproc processDate,d.Dor2env containerCode,
+      COALESCE(NULLIF(RTRIM(d.Dor2NeNV),''),RTRIM(n.EnvNom)) containerName,
+      d.Dor2cat categoryCode,COALESCE(NULLIF(RTRIM(d.Dor2Ncat),''),RTRIM(c.CatNom)) categoryName,
+      RTRIM(d.Dor2cal) caliber,d.Dor2Cajas boxes,
+      COALESCE(NULLIF(RTRIM(d.Dor2NProd),''),RTRIM(p.ProdNom)) producerName
+    FROM DESORIGEN2 d
+    LEFT JOIN ESPECIES e ON e.EmpCod=d.EmpCod AND e.Especod=d.Dor2espe
+    LEFT JOIN ESPECIES1 v ON v.EmpCod=d.EmpCod AND v.Especod=d.Dor2espe AND v.VarCod=d.Dor2var
+    LEFT JOIN ENVCAT n ON n.EmpCod=d.EmpCod AND n.EnvCod=d.Dor2env
+    LEFT JOIN ENVCAT1 c ON c.EmpCod=d.EmpCod AND c.EnvCod=d.Dor2env AND c.Catcod=d.Dor2cat
+    LEFT JOIN PRODUCTORES p ON p.EmpCod=d.EmpCod AND p.ProdCod=d.Dor2Prod
+    WHERE d.EmpCod=@EmpCod AND d.TempCod=@TempCod AND d.DorTipPlani=@PackTipo AND d.DORNum=@DORNum
+    ORDER BY d.Dor2espe,d.dor1Folio,d.Dor2Corr`);
+  if (!details.recordset.length) fail('La planilla de despacho no contiene líneas para imprimir.', 409, 'EMPTY_REPORT');
+  return buildPackingReport({ header, details: details.recordset, tempCod, report });
+};
+
+const getPdf = async (empCod, packNumI, report = 'packing01') => {
+  const data = await getReportData(empCod, packNumI, report);
+  return { buffer: await renderPackingPdf(data), filename: `${report === 'packing01' ? 'Packing01' : 'Packing02'}_${data.header.PackNumI}.pdf` };
+};
+
+module.exports = { permission, PackingListError, getFormData, list, sources, getDetail, create, update, getReportData, getPdf };

@@ -1,5 +1,6 @@
 const { getPool, sql } = require("../../conectorMysql/conectorSqlServer");
 const { nextCorrelative } = require("../../services/gxCorrelatives.service");
+const { getCommuneByNumericId } = require("../../catalogs/chileComunas");
 const { renderDespachoPdf } = require("./despachosSAG.pdf");
 
 const permission = { sistema: 100, modulo: 20, programa: 3 };
@@ -13,6 +14,23 @@ class DespachosSAGError extends Error {
 }
 
 const trim = (value) => String(value ?? "").trim();
+const communeName = (value) => {
+  const stored = trim(value);
+  const id = Number(stored);
+  return Number.isInteger(id) && id > 0 ? getCommuneByNumericId(id)?.Comdesc || stored : stored;
+};
+
+// Dor1Nsol conserva el número impreso; los despachos antiguos guardaban SolNum.
+const originInspectionApply = `
+    OUTER APPLY (
+      SELECT TOP 1 i.SolnumI printedNumber,RTRIM(i.SolDestinos) approvedDestinations
+      FROM SOLICITUDES2 s
+      INNER JOIN SOLICITUDES1 i ON i.EmpCod=s.EmpCod AND i.TempCod=s.TempCod AND i.SolNum=s.SolNum
+      WHERE d.DorTipPlani=1 AND s.EmpCod=d.EmpCod AND s.TempCod=d.TempCod AND s.Sol2Folio=d.dor1Folio
+        AND (i.SolnumI=d.Dor1Nsol OR s.SolNum=d.Dor1Nsol)
+      ORDER BY CASE WHEN s.Sol2Dispo=1 THEN 0 ELSE 1 END,
+        CASE WHEN i.SolnumI=d.Dor1Nsol THEN 0 ELSE 1 END
+    ) inspection`;
 
 const isoLocal = (date) => {
   const year = date.getFullYear();
@@ -293,9 +311,10 @@ const getDespachoPdfData = async (
     WHERE h.EmpCod=@EmpCod AND h.TempCod=@TempCod AND h.DorTipPlani=1 AND h.DORNum=@DORNum;
     SELECT RTRIM(d.dor1Folio) folio,d.dor1espe speciesCode,
       COALESCE(NULLIF(RTRIM(d.Dor1Nespe),''),RTRIM(e.EspeNom)) speciesName,
-      d.Dor1Cajas boxes,d.Dor1Kilos kilos,d.Dor1Nsol inspectionNumber
+      d.Dor1Cajas boxes,d.Dor1Kilos kilos,COALESCE(inspection.printedNumber,d.Dor1Nsol) inspectionNumber
     FROM DESORIGEN1 d
     LEFT JOIN ESPECIES e ON e.EmpCod=d.EmpCod AND e.Especod=d.dor1espe
+    ${originInspectionApply}
     WHERE d.EmpCod=@EmpCod AND d.TempCod=@TempCod AND d.DorTipPlani=1 AND d.DORNum=@DORNum
     ORDER BY d.dor1Folio;
     SELECT RTRIM(d.dor1Folio) folio,d.Dor2Corr correlation,d.Dor2espe speciesCode,
@@ -349,7 +368,7 @@ const getDespachoPdfData = async (
       companySAGCode: result.recordsets?.[3]?.[0]?.companySAGCode,
     },
     folios: result.recordsets?.[1] || [],
-    details: result.recordsets?.[2] || [],
+    details: (result.recordsets?.[2] || []).map((row) => ({ ...row, commune: communeName(row.commune) })),
   };
 };
 
@@ -970,10 +989,11 @@ const getDespachoDetail = async (
     .query(`
       ${despachoHeaderSelect}
       SELECT RTRIM(d.dor1Folio) folio,d.dor1espe speciesCode,COALESCE(NULLIF(RTRIM(d.Dor1Nespe),''),RTRIM(e.EspeNom)) speciesName,
-        d.Dor1Cajas boxes,d.Dor1Kilos kilos,d.Dor1Nsol requestNumber,COALESCE(RTRIM(i.SolDestinos),'') approvedDestinations
+        d.Dor1Cajas boxes,d.Dor1Kilos kilos,COALESCE(inspection.printedNumber,d.Dor1Nsol) requestNumber,
+        COALESCE(inspection.approvedDestinations,'') approvedDestinations
       FROM DESORIGEN1 d
       LEFT JOIN ESPECIES e ON e.EmpCod=d.EmpCod AND e.Especod=d.dor1espe
-      LEFT JOIN SOLICITUDES1 i ON i.EmpCod=d.EmpCod AND i.TempCod=d.TempCod AND i.SolNum=d.Dor1Nsol
+      ${originInspectionApply}
       WHERE d.EmpCod=@EmpCod AND d.TempCod=@TempCod AND d.DorTipPlani=@DorTipPlani AND d.DORNum=@DORNum ORDER BY d.dor1Folio;
       SELECT RTRIM(d.dor1Folio) folio,d.Dor2Corr correlation,d.Dor2espe speciesCode,
         COALESCE(NULLIF(RTRIM(d.Dor2Nespe),''),RTRIM(e.EspeNom)) speciesName,d.Dor2var varietyCode,
@@ -1008,8 +1028,8 @@ const getDespachoDetail = async (
   return {
     header: { ...header, tempCod, typeLabel: despachoTypeLabel(header.DorTipPlani), statusLabel: statusLabel(header.DorEstado) },
     folios: result.recordsets?.[1] || [],
-    details: result.recordsets?.[2] || [],
-    communes: result.recordsets?.[3] || [],
+    details: (result.recordsets?.[2] || []).map((row) => ({ ...row, commune: communeName(row.commune) })),
+    communes: (result.recordsets?.[3] || []).map((row) => ({ ...row, commune: communeName(row.commune) })),
   };
 };
 
@@ -1200,7 +1220,7 @@ const listAvailableDespachoFolios = async (empCod, dorNumValue, dorTipPlaniValue
     .input("ApprovedDestinations", sql.Char(100), approvedDestinations);
   if (dorTipPlani === 1) {
     const result = await request.query(`
-      SELECT s.SolNum requestNumber,RTRIM(s.Sol2Folio) folio,s.Sol2Espe speciesCode,RTRIM(e.EspeNom) speciesName,
+      SELECT s.SolNum requestNumber,i.SolnumI inspectionNumber,RTRIM(s.Sol2Folio) folio,s.Sol2Espe speciesCode,RTRIM(e.EspeNom) speciesName,
         COALESCE(s.Sol2CajasDes,0) boxes,COALESCE(s.Sol2KilosDes,0) kilos,i.SolDest destinationCode,RTRIM(d.DestNom) destinationName,
         RTRIM(i.SolDestinos) approvedDestinations
       FROM SOLICITUDES2 s
@@ -1263,7 +1283,7 @@ const addFolioToDespacho = async (
     const req = requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("TempCod", sql.Char(9), tempCod).input("DorTipPlani", sql.SmallInt, dorTipPlani).input("DORNum", sql.Decimal(10, 0), dorNum).input("Folio", sql.Char(10), folio).input("RequestNumber", sql.Decimal(10, 0), requestNumber);
     if (dorTipPlani === 1) {
       const source = await req.query(`
-        SELECT TOP 1 s.SolNum,s.Sol2Folio,s.Sol2Espe,s.Sol2CajasDes,s.Sol2KilosDes,RTRIM(e.EspeNom) speciesName
+        SELECT TOP 1 s.SolNum,i.SolnumI,s.Sol2Folio,s.Sol2Espe,s.Sol2CajasDes,s.Sol2KilosDes,RTRIM(e.EspeNom) speciesName
         FROM SOLICITUDES2 s WITH (UPDLOCK,HOLDLOCK)
         INNER JOIN SOLICITUDES1 i ON i.EmpCod=s.EmpCod AND i.TempCod=s.TempCod AND i.SolNum=s.SolNum
         LEFT JOIN ESPECIES e ON e.EmpCod=s.EmpCod AND e.Especod=s.Sol2Espe
@@ -1272,10 +1292,11 @@ const addFolioToDespacho = async (
       `);
       const row = source.recordset?.[0];
       if (!row) throw new DespachosSAGError(409, "FOLIO_NOT_AVAILABLE", "El folio no está disponible para este despacho.");
+      if (!(Number(row.SolnumI) > 0)) throw new DespachosSAGError(409, "INSPECTION_NUMBER_MISSING", "La solicitud de inspección no tiene número impreso.");
       const duplicate = await requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("TempCod", sql.Char(9), tempCod).input("DorTipPlani", sql.SmallInt, dorTipPlani).input("DORNum", sql.Decimal(10, 0), dorNum).input("Folio", sql.Char(10), folio).query("SELECT TOP 1 dor1Folio FROM DESORIGEN1 WITH (UPDLOCK,HOLDLOCK) WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND DorTipPlani=@DorTipPlani AND DORNum=@DORNum AND dor1Folio=@Folio;");
       if (duplicate.recordset?.length) throw new DespachosSAGError(409, "FOLIO_ALREADY_ATTACHED", "El folio ya está asociado al despacho.");
       const species = await requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("Species", sql.SmallInt, row.Sol2Espe).query("SELECT TOP 1 RTRIM(EspeNom) name FROM ESPECIES WHERE EmpCod=@EmpCod AND Especod=@Species;");
-      await requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("TempCod", sql.Char(9), tempCod).input("DorTipPlani", sql.SmallInt, dorTipPlani).input("DORNum", sql.Decimal(10, 0), dorNum).input("Folio", sql.Char(10), folio).input("Species", sql.SmallInt, row.Sol2Espe).input("SpeciesName", sql.Char(20), species.recordset?.[0]?.name || row.speciesName || "").input("Boxes", sql.SmallInt, row.Sol2CajasDes).input("Kilos", sql.Money, row.Sol2KilosDes).input("RequestNumber", sql.Decimal(10, 0), row.SolNum).query("INSERT DESORIGEN1 (EmpCod,TempCod,DorTipPlani,DORNum,dor1Folio,dor1espe,Dor1Nespe,Dor1Cajas,Dor1Kilos,Dor1Nsol) VALUES (@EmpCod,@TempCod,@DorTipPlani,@DORNum,@Folio,@Species,@SpeciesName,@Boxes,@Kilos,@RequestNumber);");
+      await requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("TempCod", sql.Char(9), tempCod).input("DorTipPlani", sql.SmallInt, dorTipPlani).input("DORNum", sql.Decimal(10, 0), dorNum).input("Folio", sql.Char(10), folio).input("Species", sql.SmallInt, row.Sol2Espe).input("SpeciesName", sql.Char(20), species.recordset?.[0]?.name || row.speciesName || "").input("Boxes", sql.SmallInt, row.Sol2CajasDes).input("Kilos", sql.Money, row.Sol2KilosDes).input("RequestNumber", sql.Decimal(10, 0), row.SolnumI).query("INSERT DESORIGEN1 (EmpCod,TempCod,DorTipPlani,DORNum,dor1Folio,dor1espe,Dor1Nespe,Dor1Cajas,Dor1Kilos,Dor1Nsol) VALUES (@EmpCod,@TempCod,@DorTipPlani,@DORNum,@Folio,@Species,@SpeciesName,@Boxes,@Kilos,@RequestNumber);");
       const details = await requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("TempCod", sql.Char(9), tempCod).input("SolNum", sql.Decimal(10, 0), row.SolNum).input("Folio", sql.Char(10), folio).query(`
         SELECT d.Sol3Corr,d.sol3fecha,d.Sol3espe,d.Sol3Var,d.Sol3prod,d.Sol3Env,d.Sol3CaT,d.Sol3Cal,d.Sol3CajasDes,d.Sol3KilosDes,
           RTRIM(e.EspeNom) speciesName,RTRIM(v.VarNom) varietyName,RTRIM(p.ProdNom) producerName,RTRIM(p.ProdComuna) commune,RTRIM(p.ProdProvincia) province,RTRIM(p.ProdCodSAG) originCsg,
@@ -1289,7 +1310,7 @@ const addFolioToDespacho = async (
         WHERE d.EmpCod=@EmpCod AND d.TempCod=@TempCod AND d.SolNum=@SolNum AND d.Sol2Folio=@Folio AND COALESCE(d.Sol3CajasDes,0)>0 ORDER BY d.Sol3Corr;
       `);
       for (const detail of details.recordset || []) {
-        await requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("TempCod", sql.Char(9), tempCod).input("DorTipPlani", sql.SmallInt, dorTipPlani).input("DORNum", sql.Decimal(10, 0), dorNum).input("Folio", sql.Char(10), folio).input("Corr", sql.SmallInt, detail.Sol3Corr).input("Species", sql.SmallInt, detail.Sol3espe).input("SpeciesName", sql.Char(20), detail.speciesName || "").input("Variety", sql.Int, detail.Sol3Var).input("VarietyName", sql.Char(20), detail.varietyName || "").input("ProcessDate", sql.DateTime, detail.sol3fecha).input("Producer", sql.Char(6), detail.Sol3prod).input("ProducerName", sql.Char(35), detail.producerName || "").input("Commune", sql.Char(20), detail.commune || "").input("Province", sql.Char(20), detail.province || "").input("OriginCsg", sql.Char(10), detail.originCsg || "").input("Container", sql.SmallInt, detail.Sol3Env).input("ContainerName", sql.Char(20), detail.containerName || "").input("Category", sql.SmallInt, detail.Sol3CaT).input("CategoryName", sql.Char(20), detail.categoryName || "").input("Calibre", sql.Char(10), detail.Sol3Cal).input("Boxes", sql.SmallInt, detail.Sol3CajasDes).input("Kilos", sql.Money, detail.Sol3KilosDes).query("INSERT DESORIGEN2 (EmpCod,TempCod,DorTipPlani,DORNum,dor1Folio,Dor2Corr,Dor2espe,Dor2Nespe,Dor2var,Dor2Nvar,Dor2fecproc,Dor2Prod,Dor2NProd,Dor2ComP,Dor2ProvP,Dor2CSG,Dor2env,Dor2NeNV,Dor2cat,Dor2Ncat,Dor2cal,Dor2Cajas,Dor2Kilos) VALUES (@EmpCod,@TempCod,@DorTipPlani,@DORNum,@Folio,@Corr,@Species,@SpeciesName,@Variety,@VarietyName,@ProcessDate,@Producer,@ProducerName,@Commune,@Province,@OriginCsg,@Container,@ContainerName,@Category,@CategoryName,@Calibre,@Boxes,@Kilos);");
+        await requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("TempCod", sql.Char(9), tempCod).input("DorTipPlani", sql.SmallInt, dorTipPlani).input("DORNum", sql.Decimal(10, 0), dorNum).input("Folio", sql.Char(10), folio).input("Corr", sql.SmallInt, detail.Sol3Corr).input("Species", sql.SmallInt, detail.Sol3espe).input("SpeciesName", sql.Char(20), detail.speciesName || "").input("Variety", sql.Int, detail.Sol3Var).input("VarietyName", sql.Char(20), detail.varietyName || "").input("ProcessDate", sql.DateTime, detail.sol3fecha).input("Producer", sql.Char(6), detail.Sol3prod).input("ProducerName", sql.Char(35), detail.producerName || "").input("Commune", sql.Char(20), communeName(detail.commune)).input("Province", sql.Char(20), detail.province || "").input("OriginCsg", sql.Char(10), detail.originCsg || "").input("Container", sql.SmallInt, detail.Sol3Env).input("ContainerName", sql.Char(20), detail.containerName || "").input("Category", sql.SmallInt, detail.Sol3CaT).input("CategoryName", sql.Char(20), detail.categoryName || "").input("Calibre", sql.Char(10), detail.Sol3Cal).input("Boxes", sql.SmallInt, detail.Sol3CajasDes).input("Kilos", sql.Money, detail.Sol3KilosDes).query("INSERT DESORIGEN2 (EmpCod,TempCod,DorTipPlani,DORNum,dor1Folio,Dor2Corr,Dor2espe,Dor2Nespe,Dor2var,Dor2Nvar,Dor2fecproc,Dor2Prod,Dor2NProd,Dor2ComP,Dor2ProvP,Dor2CSG,Dor2env,Dor2NeNV,Dor2cat,Dor2Ncat,Dor2cal,Dor2Cajas,Dor2Kilos) VALUES (@EmpCod,@TempCod,@DorTipPlani,@DORNum,@Folio,@Corr,@Species,@SpeciesName,@Variety,@VarietyName,@ProcessDate,@Producer,@ProducerName,@Commune,@Province,@OriginCsg,@Container,@ContainerName,@Category,@CategoryName,@Calibre,@Boxes,@Kilos);");
       }
       await requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("TempCod", sql.Char(9), tempCod).input("SolNum", sql.Decimal(10, 0), row.SolNum).input("Folio", sql.Char(10), folio).input("DorNum", sql.Decimal(10, 0), dorNum).query("UPDATE SOLICITUDES2 SET Sol2Dispo=1 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND SolNum=@SolNum AND Sol2Folio=@Folio; UPDATE FOLIOSPROC SET FPDesOri=@DorNum WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND FPFolio=@Folio;");
     } else {
@@ -1311,6 +1332,30 @@ const addFolioToDespacho = async (
     if (!transaction._aborted) await transaction.rollback().catch(() => undefined);
     throw error instanceof DespachosSAGError ? error : new DespachosSAGError(500, "DESPACHO_FOLIO_ADD_ERROR", error.message);
   }
+};
+
+const releaseOrigenFolio = async (requestFactory, transaction, empCod, tempCod, folio, storedNumber) => {
+  const source = await requestFactory(transaction)
+    .input("EmpCod", sql.SmallInt, empCod)
+    .input("TempCod", sql.Char(9), tempCod)
+    .input("Folio", sql.Char(10), folio)
+    .input("StoredNumber", sql.Decimal(10, 0), storedNumber)
+    .query(`
+      SELECT s.SolNum
+      FROM SOLICITUDES2 s WITH (UPDLOCK,HOLDLOCK)
+      INNER JOIN SOLICITUDES1 i ON i.EmpCod=s.EmpCod AND i.TempCod=s.TempCod AND i.SolNum=s.SolNum
+      WHERE s.EmpCod=@EmpCod AND s.TempCod=@TempCod AND s.Sol2Folio=@Folio AND s.Sol2Dispo=1
+        AND (i.SolnumI=@StoredNumber OR s.SolNum=@StoredNumber);
+    `);
+  if (source.recordset?.length !== 1) {
+    throw new DespachosSAGError(409, "INSPECTION_FOLIO_AMBIGUOUS", "No se pudo identificar una única solicitud para liberar el folio.");
+  }
+  await requestFactory(transaction)
+    .input("EmpCod", sql.SmallInt, empCod)
+    .input("TempCod", sql.Char(9), tempCod)
+    .input("Folio", sql.Char(10), folio)
+    .input("SolNum", sql.Decimal(10, 0), source.recordset[0].SolNum)
+    .query("UPDATE SOLICITUDES2 SET Sol2Dispo=0 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND SolNum=@SolNum AND Sol2Folio=@Folio; UPDATE FOLIOSPROC SET FPDesOri=0 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND FPFolio=@Folio;");
 };
 
 const removeFolioFromDespacho = async (
@@ -1336,7 +1381,7 @@ const removeFolioFromDespacho = async (
     if (!row) throw new DespachosSAGError(404, "FOLIO_NOT_FOUND", "El folio no está asociado al despacho.");
     await requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("TempCod", sql.Char(9), tempCod).input("DorTipPlani", sql.SmallInt, dorTipPlani).input("DORNum", sql.Decimal(10, 0), dorNum).input("Folio", sql.Char(10), folio).query("DELETE FROM DESORIGEN2 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND DorTipPlani=@DorTipPlani AND DORNum=@DORNum AND dor1Folio=@Folio; DELETE FROM DESORIGEN1 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND DorTipPlani=@DorTipPlani AND DORNum=@DORNum AND dor1Folio=@Folio;");
     if (dorTipPlani === 1) {
-      await requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("TempCod", sql.Char(9), tempCod).input("Folio", sql.Char(10), folio).input("RequestNumber", sql.Decimal(10, 0), row.dor1Nsol).query("UPDATE SOLICITUDES2 SET Sol2Dispo=0 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND SolNum=@RequestNumber AND Sol2Folio=@Folio; UPDATE FOLIOSPROC SET FPDesOri=0 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND FPFolio=@Folio;");
+      await releaseOrigenFolio(requestFactory, transaction, empCod, tempCod, folio, row.dor1Nsol);
     } else {
       await requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("TempCod", sql.Char(9), tempCod).input("Type", sql.SmallInt, dorTipPlani).input("Number", sql.Decimal(10, 0), row.dor1Nsol).input("Folio", sql.Char(10), folio).query("UPDATE PROCUSDA1 SET PUS1Dispo=1 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND PUSTipo=@Type AND PUSNum=@Number AND PUS1Folio=@Folio;");
     }
@@ -1424,7 +1469,7 @@ const anularDespacho = async (
     const folios = await requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("TempCod", sql.Char(9), tempCod).input("DorTipPlani", sql.SmallInt, dorTipPlani).input("DORNum", sql.Decimal(10, 0), dorNum).query("SELECT RTRIM(dor1Folio) folio,dor1Nsol requestNumber FROM DESORIGEN1 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND DorTipPlani=@DorTipPlani AND DORNum=@DORNum;");
     for (const row of folios.recordset || []) {
       if (dorTipPlani === 1) {
-        await requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("TempCod", sql.Char(9), tempCod).input("Folio", sql.Char(10), row.folio).input("RequestNumber", sql.Decimal(10, 0), row.requestNumber).query("UPDATE SOLICITUDES2 SET Sol2Dispo=0 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND SolNum=@RequestNumber AND Sol2Folio=@Folio; UPDATE FOLIOSPROC SET FPDesOri=0 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND FPFolio=@Folio;");
+        await releaseOrigenFolio(requestFactory, transaction, empCod, tempCod, row.folio, row.requestNumber);
       } else {
         await requestFactory(transaction).input("EmpCod", sql.SmallInt, empCod).input("TempCod", sql.Char(9), tempCod).input("Type", sql.SmallInt, dorTipPlani).input("Number", sql.Decimal(10, 0), row.requestNumber).input("Folio", sql.Char(10), row.folio).query("UPDATE PROCUSDA1 SET PUS1Dispo=1 WHERE EmpCod=@EmpCod AND TempCod=@TempCod AND PUSTipo=@Type AND PUSNum=@Number AND PUS1Folio=@Folio;");
       }

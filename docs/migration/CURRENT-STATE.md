@@ -1,5 +1,18 @@
 # Estado vigente de la migracion CONEX
 
+## Despachos SAG: comuna y número impreso de inspección — 2026-11-27
+
+Al asociar un folio de inspección a un despacho de origen, `DESORIGEN2.Dor2ComP`
+guarda la descripción de `PRODUCTORES.ProdComuna` (resolviendo sus identificadores
+numéricos del catálogo chileno) y `DESORIGEN1.Dor1Nsol` guarda
+`SOLICITUDES1.SolnumI`, el número impreso. `SOLICITUDES2.SolNum` sigue siendo la
+clave interna para consultar los detalles y actualizar la disponibilidad del
+folio. Al quitar o anular se resuelve esa clave desde el folio y el número
+guardado, aceptando también las filas antiguas que conservan el `SolNum` interno.
+El PDF y el detalle muestran `SolnumI` para esas filas antiguas y convierten
+las comunas numéricas a su descripción al leerlas. Los tipos USDA conservan su
+uso de `Dor1Nsol` como `PUSNum`.
+
 ## Guardado de órdenes sin detalles — 2026-11-24
 
 En `/ordenes-proceso/operacion`, editar una orden permite guardar tras retirar
@@ -162,8 +175,13 @@ muestran `DD/MM/YYYY` y el rango se valida y filtra en backend.
 autenticado carga nuevamente el packing en APERP, guarda un borrador único en
 `ge.Guia`/`ge.GuiaLinea` y abre su edición. La ficha editable sigue el orden de
 `PackList`, con los combos de despacho del XPZ, validación de RUT y DUS,
-y peso bruto calculado en el alta. La eliminación, la impresión y Excel del
-packing siguen pendientes.
+y peso bruto calculado en el alta. Desde el 27-11-2026 el listado y la consulta
+ofrecen PDF detalle (`Packing01`) y PDF resumen (`Packing02`), migrados desde
+`packing_list.xpz`: detalle por folio, cajas/pallets por especie y resumen por
+especie/variedad/envase/categoría/calibre. La API genera PDFs completos desde
+`DESORIGEN2`, con empresa de sesión y temporada activa, para tipos 1 a 3.
+SQL histórico y paginación verificados; 434 cajas y 2 pallets en el packing 1.
+La eliminación, Excel y los reportes específicos de clientes siguen pendientes.
 Detalle y verificación: [packing-list.md](packing-list.md).
 
 Ultima actualizacion documental: 2026-10-21.

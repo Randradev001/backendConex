@@ -48,7 +48,7 @@ físico permanece en `PACKLIST` con clave `EmpCod + TempCod + PackNumI`.
   `100/2/13`; empresa y usuario se obtienen de la sesión, nunca del navegador.
 - API `/backendDocker/packing-list`: `GET /form-data`, `GET /packings`,
   `GET /sources?type=`, `POST /packings`, `GET /packings/:id`,
-  `PUT /packings/:id`.
+  `PUT /packings/:id`, `GET /packings/:id/pdf?report=packing01|packing02`.
 - Generar exige temporada activa y un origen único/finalizado para SAG. El
   diálogo replica `GenPack`: solo solicita tipo y documento de origen. Para
   despachos comerciales el cliente se hereda de `DESCLI_FP`; en los demás
@@ -73,7 +73,7 @@ transportista aplican máscara chilena mientras se digitan y al cargar datos
 existentes (`12.345.678-5`).
 Los campos de auditoría y los totales heredados se conservan en lectura; la
 edición avanzada ya incluye los campos operativos indicados arriba. Faltan la
-impresión/Excel del packing y la homologación editable de puertos y catálogos.
+exportación Excel del packing y la homologación editable de puertos y catálogos.
 La generación crea un borrador central; la validación tributaria y la emisión
 Púlsar siguen a cargo del módulo de Guías, no de `PACKLIST`.
 
@@ -84,6 +84,46 @@ nuevas usan hoy en Chile, con opción explícita de tomar fechas logísticas del
 packing. Las pruebas aisladas de actualización y rollback aprobaron. El servicio real
 de edición se ensayó en CONEX local dentro de una transacción revertida,
 comprobando que la cabecera y extensión permanecieran intactas.
+
+## PDF Packing01 y Packing02 (2026-11-27)
+
+Fuente revisada: `C:/Externo/Exe/Paso/packing_list.xpz`, objetos `Packing01`,
+`Packing02` y procedimiento `BusIDDespa`. Los PrintBlocks y el código del XPZ
+definen los campos y agrupaciones; el PDF usa el estilo verde de CONEX.
+
+- `Packing01` conserva la cabecera de empresa, planilla, guía, embarque,
+  participantes, transporte y termógrafos. Imprime folio, fecha de proceso,
+  cajas, especie, variedad, envase, categoría, calibre y productor. Ordena por
+  especie y folio, con subtotal de cajas y pallets por especie. Un folio cuenta
+  una vez dentro de cada especie; el total general aparece si hay varias especies,
+  igual que en GX. Formato Carta horizontal, con títulos al continuar página.
+- `Packing02` conserva empresa, guía, planilla y fecha. Agrupa por los códigos
+  de especie, variedad, envase, categoría y calibre; suma cajas entre folios,
+  con subtotales por variedad y especie y total general. Formato Carta vertical.
+- Ambos resuelven `PACKLIST.PackNumG = DESORIGEN.DORNumf` por empresa,
+  temporada y tipo, para consultar todas las líneas de `DESORIGEN2` usando la
+  clave interna `DORNum`. Los textos históricos se conservan, con respaldo de
+  maestros cuando están vacíos. Los totales se calculan desde esas líneas.
+- La API usa empresa de sesión, temporada activa y permiso de programa
+  `100/2/13`. Rechaza origen inexistente/ambiguo, detalle vacío, formato desconocido
+  y tipo comercial 4. `Packing01_OT`, `Packing01_PDF`, `Packing02US` y
+  `Packing03US` siguen fuera de esta entrega.
+- El listado y la consulta del packing ofrecen **PDF detalle** y **PDF resumen**,
+  con vista previa en una ventana que permite imprimir o descargar. La edición
+  debe guardarse antes de imprimir. La respuesta PDF no se almacena en caché.
+
+Verificación: `node --test test/packingListPdf.test.js test/packingListEdicion.test.js`
+cubre agrupación, conteo de folios, empresa/temporada/tipo, errores, paginación,
+sesión, permiso del programa y contenido HTTP. `npm run build` del frontend
+completó; ESLint dirigido no reportó errores, con advertencias de formato CRLF.
+Se generaron los dos PDFs con SQL real de solo lectura para empresa 1, packing 1,
+temporada histórica `2017-2018`: 2 líneas, 434 cajas y 2 pallets. La temporada
+activa `2026-2027` no tenía packings; no se alteró su configuración ni se crearon
+datos. Se revisaron visualmente documentos reales y muestras de 120 líneas.
+
+Reproducción de la consulta histórica, sin cambiar la temporada activa:
+`node scripts/verify-packing-pdf.js 1 1 2017-2018`. Sin el tercer argumento,
+la verificación utiliza la temporada activa. Los archivos quedan en `output/pdf/`.
 
 ## Verificación
 

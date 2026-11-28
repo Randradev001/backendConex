@@ -2,6 +2,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   DespachosSAGError,
+  addFolioToDespacho,
+  anularDespacho,
   generateArchivoDes,
   buildMultipuertoFile,
   generateArchivoMultipuerto,
@@ -14,6 +16,7 @@ const {
   despachoTypeLabel,
   normalizeDespachoPayload,
   normalizeMultipuertoPayload,
+  removeFolioFromDespacho,
   statusLabel,
 } = require("../src/modules/despachosSAG/despachosSAG.service");
 const { addFolioTotals, paginateDetailRows, renderDespachoPdf } = require("../src/modules/despachosSAG/despachosSAG.pdf");
@@ -192,7 +195,9 @@ test("incluye otros destinos aprobados en el detalle de folios del despacho", as
 
   assert.equal(result.folios[0].approvedDestinations, "USA, CANADÁ");
   assert.match(statements.at(-1), /RTRIM\(i\.SolDestinos\).*approvedDestinations/i);
-  assert.match(statements.at(-1), /LEFT JOIN SOLICITUDES1 i/i);
+  assert.match(statements.at(-1), /INNER JOIN SOLICITUDES1 i/i);
+  assert.match(statements.at(-1), /s\.Sol2Folio=d\.dor1Folio/i);
+  assert.match(statements.at(-1), /i\.SolnumI=d\.Dor1Nsol OR s\.SolNum=d\.Dor1Nsol/i);
 });
 
 test("genera el archivo DES con la secuencia histórica de ArchiDES", async () => {
@@ -335,27 +340,138 @@ test("impide generar archivo DES para un despacho no finalizado", async () => {
   );
 });
 
+test("al agregar un folio guarda SolnumI y la descripción de la comuna, conservando SolNum para la fuente", async () => {
+  const calls = [];
+  const transaction = { async begin() {}, async commit() {}, async rollback() {} };
+  const requestFactory = () => ({
+    params: {},
+    input(name, _type, value) { this.params[name] = value; return this; },
+    async query(statement) {
+      calls.push({ statement, params: this.params });
+      if (/FROM TEMP01 WITH/.test(statement)) return { recordset: [{ tempCod: "2017-2018" }] };
+      if (/SELECT TOP 1 DorEstado FROM DESORIGEN/.test(statement)) return { recordset: [{ DorEstado: 0 }] };
+      if (/SELECT TOP 1 s\.SolNum,i\.SolnumI/.test(statement)) return { recordset: [{ SolNum: 5, SolnumI: 123, Sol2Espe: 1, Sol2CajasDes: 10, Sol2KilosDes: 100 }] };
+      if (/SELECT TOP 1 dor1Folio FROM DESORIGEN1/.test(statement)) return { recordset: [] };
+      if (/SELECT TOP 1 RTRIM\(EspeNom\)/.test(statement)) return { recordset: [{ name: "Cerezas" }] };
+      if (/FROM SOLICITUDES3 d/.test(statement)) return { recordset: [{ Sol3Corr: 1, Sol3espe: 1, Sol3CajasDes: 10, Sol3KilosDes: 100, commune: "50" }] };
+      return { recordset: [] };
+    },
+  });
+  const pool = {
+    request() {
+      return {
+        input() { return this; },
+        async query(statement) {
+          if (/FROM TEMP01/.test(statement)) return { recordset: [{ tempCod: "2017-2018" }] };
+          return { recordsets: [[{ DORNum: 44, DorTipPlani: 1, DorEstado: 0 }], [], [], []] };
+        },
+      };
+    },
+  };
+  await addFolioToDespacho(1, "USER", 44, { folio: "0120260168", requestNumber: 5 }, {
+    poolProvider: async () => pool,
+    transactionFactory: () => transaction,
+    requestFactory,
+  });
+  assert.equal(calls.find((call) => /INSERT DESORIGEN1/.test(call.statement)).params.RequestNumber, 123);
+  assert.equal(calls.find((call) => /INSERT DESORIGEN2/.test(call.statement)).params.Commune, "CODEGUA");
+  assert.equal(calls.find((call) => /UPDATE SOLICITUDES2 SET Sol2Dispo=1/.test(call.statement)).params.SolNum, 5);
+});
+
+test("al quitar un folio resuelve el SolNum interno desde el número impreso", async () => {
+  const calls = [];
+  const transaction = { async begin() {}, async commit() {}, async rollback() {} };
+  const requestFactory = () => ({
+    params: {},
+    input(name, _type, value) { this.params[name] = value; return this; },
+    async query(statement) {
+      calls.push({ statement, params: this.params });
+      if (/FROM TEMP01 WITH/.test(statement)) return { recordset: [{ tempCod: "2017-2018" }] };
+      if (/SELECT TOP 1 DorEstado FROM DESORIGEN/.test(statement)) return { recordset: [{ DorEstado: 0 }] };
+      if (/SELECT TOP 1 dor1Nsol FROM DESORIGEN1/.test(statement)) return { recordset: [{ dor1Nsol: 123 }] };
+      if (/SELECT s\.SolNum\s+FROM SOLICITUDES2 s WITH/.test(statement)) return { recordset: [{ SolNum: 5 }] };
+      return { recordset: [] };
+    },
+  });
+  const pool = {
+    request() {
+      return {
+        input() { return this; },
+        async query(statement) {
+          if (/FROM TEMP01/.test(statement)) return { recordset: [{ tempCod: "2017-2018" }] };
+          return { recordsets: [[{ DORNum: 44, DorTipPlani: 1, DorEstado: 0 }], [], [], []] };
+        },
+      };
+    },
+  };
+  await removeFolioFromDespacho(1, 44, "0120260168", {}, {
+    poolProvider: async () => pool,
+    transactionFactory: () => transaction,
+    requestFactory,
+  });
+  assert.equal(calls.find((call) => /SELECT s\.SolNum\s+FROM SOLICITUDES2 s WITH/.test(call.statement)).params.StoredNumber, 123);
+  assert.equal(calls.find((call) => /UPDATE SOLICITUDES2 SET Sol2Dispo=0/.test(call.statement)).params.SolNum, 5);
+});
+
+test("al anular un despacho libera sus folios por SolNum aunque Dor1Nsol guarde SolnumI", async () => {
+  const calls = [];
+  const transaction = { async begin() {}, async commit() {}, async rollback() {} };
+  const requestFactory = () => ({
+    params: {},
+    input(name, _type, value) { this.params[name] = value; return this; },
+    async query(statement) {
+      calls.push({ statement, params: this.params });
+      if (/FROM TEMP01 WITH/.test(statement)) return { recordset: [{ tempCod: "2017-2018" }] };
+      if (/SELECT TOP 1 DorEstado FROM DESORIGEN/.test(statement)) return { recordset: [{ DorEstado: 0 }] };
+      if (/SELECT RTRIM\(dor1Folio\) folio,dor1Nsol requestNumber/.test(statement)) return { recordset: [{ folio: "0120260168", requestNumber: 123 }] };
+      if (/SELECT s\.SolNum\s+FROM SOLICITUDES2 s WITH/.test(statement)) return { recordset: [{ SolNum: 5 }] };
+      return { recordset: [] };
+    },
+  });
+  const pool = {
+    request() {
+      return {
+        input() { return this; },
+        async query(statement) {
+          if (/FROM TEMP01/.test(statement)) return { recordset: [{ tempCod: "2017-2018" }] };
+          return { recordsets: [[{ DORNum: 44, DorTipPlani: 1, DorEstado: 5 }], [], [], []] };
+        },
+      };
+    },
+  };
+  await anularDespacho(1, "USER", 44, 1, {
+    poolProvider: async () => pool,
+    transactionFactory: () => transaction,
+    requestFactory,
+  });
+  assert.equal(calls.find((call) => /UPDATE SOLICITUDES2 SET Sol2Dispo=0/.test(call.statement)).params.SolNum, 5);
+  assert.ok(calls.some((call) => /UPDATE DESORIGEN SET DorEstado=5/.test(call.statement)));
+});
+
 test("genera el PDF del despacho combinando cabecera y detalles", async () => {
+  let statement;
   const file = await generateDespachoPdf(1, 44, {
     poolProvider: async () =>
       poolFrom({
         recordsets: [
           [{ planillaNumber: 18, internalNumber: 44, status: 1 }],
           [{ folio: "0000000073" }],
-          [{ folio: "0000000073", boxes: 12 }],
+          [{ folio: "0000000073", boxes: 12, commune: "50" }],
           [{ companyName: "Empresa de prueba" }],
           [{ tempCod: "2017-2018" }],
         ],
-      }),
+      }, (query) => { statement = query; }),
     pdfRenderer: async (data) => {
       assert.equal(data.header.planillaNumber, 18);
       assert.equal(data.folios.length, 1);
       assert.equal(data.details[0].boxes, 12);
+      assert.equal(data.details[0].commune, "CODEGUA");
       return Buffer.from("%PDF-despacho");
     },
   });
   assert.equal(file.filename, "Planilla_Despacho_18.pdf");
   assert.equal(file.content.toString(), "%PDF-despacho");
+  assert.match(statement, /COALESCE\(inspection\.printedNumber,d\.Dor1Nsol\) inspectionNumber/i);
 });
 
 test("agrega totales solo para folios repetidos en el detalle del despacho", () => {
